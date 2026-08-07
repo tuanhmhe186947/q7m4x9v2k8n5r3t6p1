@@ -4,8 +4,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-05`.
-- Expires: `2026-08-06T00:00:00+07:00`.
+- Opened: `2026-08-07`.
+- Expires: `2026-08-08T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -37,134 +37,6 @@
 - [ ] `THESIS25B-1` `[IN_PROGRESS]` Patch and verify Section 2.5
   - Next: Run semantic and line scans, then checkpoint the correction.
 
-### C2V2-20260804-06 - P1-P4 local scientific validation
-
-- Prompt: Execute the predeclared P1 learned A12 controls, P2 one-fold B0-B3 pilot, P3 real
-  interrupted resume, and P4 bounded compute profile on the clean Classification V2 authority;
-  stop before paid GPU or claim-grade OOF.
-- Status: `DONE`.
-- Opened: `2026-08-04T22:01:50+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-pre-gpu-autoresearch-20260804-r2`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `f8c6c0d6b4229b1a1b3801e2551a12d2d572825e4a88306af59966d8adc23a2d`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `13`.
-- Lease expires: `2026-08-05T01:36:18+07:00`.
-- Block SHA256: `5e295e35c57f30a499c929134c033a9fad1fc4f2e8a406cceaa22140a409624f`.
-- Previous owner: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `ea3c41c8eab302e56530da47c5c261d14cbd4697c0e2455d81408b5c248bc120`.
-  - Timestamp: 2026-08-04T22:39:16+07:00
-  - Action: administrative-takeover
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 5
-  - Prior block SHA256: ce329e385549ce5477fb5400f1aacf6a0f9f01938c777afb31b200c28c64ed73
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: SSD upgrade moved repository; rebind active task to verified live Git worktree
-  - Authority: user authorization reference
-    user_message_revoke_lease_and_authorize_administrative_takeover_20260804
-- Ownership audit event: `d88bdf0ee1c7ed13dec34dc21f244e21db9e5d2a7ed45ffdc7425586c271458d`.
-  - Timestamp: 2026-08-04T22:39:52+07:00
-  - Action: administrative-takeover
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 6
-  - Prior block SHA256: 9ef491f6e2ba3413e88c6315f508fb3e1562ddf4a97b4b4ce678cd4cbb09c846
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: SSD upgrade moved repository; rebind active task to verified live Git worktree
-  - Authority: user authorization reference
-    user_message_revoke_lease_and_authorize_administrative_takeover_20260804
-- Ownership audit event: `03832cfbf3701a2a25ad980911343d74e597c8f101426f7ca653e62a9930b182`.
-  - Timestamp: 2026-08-05T00:09:17+07:00
-  - Action: administrative-takeover
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 7
-  - Prior block SHA256: ea8186dc76166d3022b5e0980ada16a76f03f9be63d036565423b0166b189c41
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume P4 after independently verified real P3 PASS; preserve existing lineage and
-    do not rerun P3
-  - Authority: user authorization reference
-    user_message_revoke_lease_and_authorize_administrative_takeover_20260804
-- Ownership audit event: `6cc834d09b9e81ba7b6f04cc9cae8659d732a645824e918c6b28abb2004b45ac`.
-  - Timestamp: 2026-08-05T00:18:03+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 10
-  - Prior block SHA256: 03575bceffb9188f57eb0b051c9907d1fa46b76ab534892b99a39a280c35eb30
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume P4 after live-state revalidation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `125c2009fbe1cc6f0a5f484e496da8b0fd6e334bdcad95686bc3932f80437d32`.
-  - Timestamp: 2026-08-05T00:34:25+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 11
-  - Prior block SHA256: c129001589df536091a1e43874dbb72b1a0005a2f5dadc1278d281ab77a1f20b
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume P4 after independent verification of PASS evidence
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Each phase has independent hashed evidence and explicit PASS/FAIL/INCONCLUSIVE
-  status; no plan edit, label/review mutation, paid GPU, or full claim-grade OOF.
-- Skills: `scientific-ablation-controller`, `experiment-lineage-reproducibility`, `grouped-cv-
-  evaluation`, `safe-refactor-test-guardian`.
-- [x] `P1-01` `[DONE]` Run learned A12 controls
-  - Evidence: P1 clean-code A12 run a12_learned_b3_77c586d_20260804222000: feature-only pooled
-    BA 0.9056; representation probe PASS (pooled 0.8226, shuffled controls at chance); learned
-    B3 source-balanced 4-fold report valid; transfer CVAT-to-legacy and legacy-to-CVAT PASS.
-    Paired clean-code run paired_b2_b3_77c586d_20260804224000: 65 hashes, 277 paired native
-    units, B3-B2 Macro-F1 -0.01122, mean stand/move/explore recall -0.03742, practical gate
-    false. P1 remains INCONCLUSIVE; no paid GPU.
-- [x] `P2-01` `[DONE]` Run one-fold B0-B3 pilot
-  - Evidence: P2 real baseline contract p2_real_baseline_contract_77c586d_20260804230000: 8 real
-    T6 windows (4 CVAT, 4 legacy), current 46D spatial schema, future dependence 0; B0/B1/B2/B3
-    all finite logits/loss/gradients, deterministic repeat delta 0.0, CUDA RTX 3050, peak
-    allocated 36.99 MB and reserved 46 MB, cache misses/source loads 0. Checkpoint serialization
-    contract p2_checkpoint_contract_77c586d_20260804230500 valid with RNG continuation and
-    stale-lineage rejection. This is engineering smoke, not paper metric.
-- [x] `P3-01` `[DONE]` Validate interrupted resume
-  - Evidence: outputs/classification_v2/model_readiness_audit/p3_resume_8fd4031_det_202608042351
-    33/p3_resume_audit.json: status=PASS; real interrupted/resumed FP32 run; losses_match=true;
-    prediction_hash_match=true; checkpoint and RNG checks true;
-    code_sha=59684f7c8e232d6b54e0d28fd117453b771da4ab
-- [x] `P4-01` `[DONE]` Profile bounded compute
-  - Evidence: P4 profile outputs/classification_v2/model_readiness_audit/p4_compute_profile_5968
-    4f7_20260805014000/p4_compute_profile.json and independent check outputs/classification_v2/m
-    odel_readiness_audit/p4_compute_profile_59684f7_20260805014000/p4_independent_check.json
-    both PASS; code SHA 59684f7; plan hash CD96FB3D; no paid GPU/full OOF
-
-
-
-
 ### TRACKING-20260804-03 - Fresh full four-mode tracking evaluation
 
 - Prompt: Run a new authority-bound evaluation of bytetrack_raw, hybrid_bytetrack,
@@ -189,1158 +61,882 @@
 - [ ] `TRACK-01` `[IN_PROGRESS]` Resolve authority and pass preflight
   - Next: Inspect runner, profiles, manifests, and gates before effects
 
-### C2V2-20260804-07 - Classification V2 P3 resume repair and revalidation
+### C2V2-20260806-06 - Execute plan-bound local diagnostics
 
-- Prompt: Resolve the proven real interrupted/resumed training mismatch without changing the
-  immutable pre-GPU plan, reviewed data, labels, folds, or authorities; verify P3 G15 and only
-  then proceed.
-- Status: `DONE`.
-- Opened: `2026-08-04T23:23:21+07:00`.
+- Prompt: Continue Classification V2 exactly under
+  PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804.md after corrected G17 handoff; run only
+  authorized local diagnostics, preserve the paid-GPU block, and never touch review authorities.
+- Status: `DEFERRED`.
+- Opened: `2026-08-06T10:15:24+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-pre-gpu-autoresearch-20260804-r2`.
+- Owner session: `codex_root_20260806_classification_readiness_v2`.
 - Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `7a1708896a45c7ee0ddb20dab03284f06f139bd084aeeacae666131da2b0248e`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `7`.
-- Lease expires: `2026-08-05T01:06:37+07:00`.
-- Block SHA256: `c215b21027242ae45560a993f9b9ecaf78b210c0155ce4a16f2260341680bcca`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `d21a9f2ea89c8db6591e2616c2c827337ca1be1388e0793ede9260dfb0588a98`.
-  - Timestamp: 2026-08-05T00:06:22+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 5
-  - Prior block SHA256: 5aa3f8198e88a0fa927a02e1624ab7dbd5b068e9ec5139f286376519b407479c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume after rollover; P3 evidence verified in p3_resume_audit.json
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: P3 reference and interrupted+resumed FP32 losses and prediction hashes match
-  within plan tolerance; code/data/schema/fold hashes are bound; plan hash unchanged; no paid
-  GPU or full OOF launched.
-- Skills: `safe-refactor-test-guardian`.
-- [x] `PGPUR-1` `[DONE]` Reproduce and fix only the resume iterator/RNG mismatch
-  - Evidence: Reproduced restored-RNG skip bug; added start_step and deterministic full-mode
-    batch schedule; focused suite 15 passed; py_compile, Ruff, diff-check and line scan passed.
-- [x] `PGPUR-2` `[DONE]` Run focused tests, commit patch, and re-freeze P0
-  - Evidence: Commit 8fd4031d1ab75c3bffabab74b1d42f104409db7c; focused 15 passed;
-    Ruff/py_compile/diff-check/line scan passed; P0 artifact p0_refreeze_8fd4031_20260804233447
-    verifies plan and all bound authority hashes, clean worktree, tree
-    1aac8b58e19f2132550ccedb8be767febb83d368.
-- [x] `PGPUR-3` `[DONE]` Execute isolated real P3 interrupted/resumed gate
-  - Evidence: outputs/classification_v2/model_readiness_audit/p3_resume_8fd4031_det_202608042351
-    33/p3_resume_audit.json: status=PASS; checkpoint_exists_after_interrupt=true;
-    losses_match=true; prediction_hash_match=true; all train/eval index and resume checks true;
-    code_sha=59684f7c8e232d6b54e0d28fd117453b771da4ab; paid_gpu_started=false
-
-
-
-
-### C2V2-20260805-01 - P5-P9 Classification V2 readiness and autoresearch preflight
-
-- Prompt: Continue the immutable pre-GPU Classification V2 plan after P4 PASS; close all
-  remaining local/static/CPU/bounded gates and stop before paid GPU unless every permit gate
-  passes.
-- Status: `DONE`.
-- Opened: `2026-08-05T00:36:45+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-pre-gpu-autoresearch-20260804-r2`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `062cd9d0412087079519f164af9989261aafcfc6d5992b9152d1fb5599ec62dc`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `12`.
-- Lease expires: `2026-08-05T02:20:14+07:00`.
-- Block SHA256: `7d7c511fda2386565fb6b77e8a7ea7c4eb25e18f1a96665fed5e674c850296c1`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `701c49f267a35f9581501c99f94b37d210bcd6c63790cf36ea180c4e0acc7a44`.
-  - Timestamp: 2026-08-05T00:45:36+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 1
-  - Prior block SHA256: efa9267708344e47671c84e250cba5d909cc23b68a9c9b3ca825735b489083ad
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume P5-P8 classification goal after verified same-runtime continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `06715de70882691d674a51c3cabe46603b6c46fa3c1a41e604128b42563d10ca`.
-  - Timestamp: 2026-08-05T00:57:32+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 4
-  - Prior block SHA256: c337b9cdaecee3925abeb8d0e34da1d2ec3890848e396ded8d9aa92f856e9a3c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume current P6-01 after context continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `0c5fce6e4ba8333107c572aa740275266c099d0202139d535773ae6996f40c5f`.
-  - Timestamp: 2026-08-05T01:05:54+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 5
-  - Prior block SHA256: 5f45104c07dce8f31b3112921f7b2ba63222d9add4d047f51dae13a36faba37e
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-runtime-token-recovery-before-P6-checkpoint
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `ca2ae081e9aaef86d56eef4fd60d9649918b147515eea91c61d1368ae5a57348`.
-  - Timestamp: 2026-08-05T01:07:06+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-pre-gpu-autoresearch-20260804-r2
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 8
-  - Prior block SHA256: ef97b645d445d9c4ed25e299bd8e425ef93b41ac95807058d1bd9d3bbe7aefe5
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: continue same-thread P7 execution after checkpoint
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: A12/source shortcut, training mass, RGB/model, social/paired, native
-  OOF/calibration, autoresearch harness, and launch matrix have independently verified PASS or
-  explicit BLOCKED evidence; plan hash and protected authorities unchanged; no paid GPU or
-  claim-grade campaign.
-- Skills: `scientific-ablation-controller`, `experiment-lineage-reproducibility`, `grouped-cv-
-  evaluation`, `agent-harness-construction`, `project-state-steward`.
-- [x] `P5-01` `[DONE]` TODO
-  - Evidence: outputs/classification_v2/model_readiness_audit/p5_native_oof_preflight_59684f7_20
-    260805005000/full_learned_oof_contract_audit.json (valid=false: historical train_ready paths
-    and native OOF manifest missing); q2_oof_metric_contract_audit.json (valid=true,
-    execution_allowed=false); current P0 authority hashes verified read-only; no OOF or paper
-    metric run.
-- [x] `P6-01` `[DONE]` TODO
-  - Evidence: outputs/classification_v2/model_readiness_audit/p6_social_topk_59684f7_current/p6_
-    social_ladder_contract_audit.json
-- [x] `P7-01` `[DONE]` TODO
-  - Evidence: outputs/classification_v2/model_readiness_audit/p7_autoresearch_preflight_59684f7_
-    current_20260805_01/p7_autoresearch_harness_audit.json;
-    live_preflight_sha256=bf098f1c228c0ad83d7b3df7c797a206bcbe3ef051a5b5989cc3d3166137d662;
-    focused_tests=22_passed; authorization_eligible=false; execution_allowed=false
-- [x] `P8-01` `[DONE]` TODO
-  - Evidence: outputs/classification_v2/model_readiness_audit/p8_final_readiness_59684f7_current
-    _20260805_01/training_readiness_decision_current.json; FINAL_HANDOFF.md;
-    paid_gpu_launch_matrix.csv; next_authorized_commands.cmd;
-    independent_readiness_checker=PASS; paid_gpu=BLOCKED; production_code_changed=NO
-
-
-
-
-### C2V2-20260805-02 - Resolve current reviewed-input binding and paired native-unit executor
-
-- Prompt: Continue immutable Classification V2 pre-GPU goal by binding current reviewed
-  artifacts, implementing an independent paired native-unit executor, closing discoverable
-  A12/source-shortcut and evaluation gates with bounded validation, and stopping before paid GPU
-  unless every permit gate passes.
-- Status: `DONE`.
-- Opened: `2026-08-05T01:23:07+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-paired-executor-20260805-r1`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `464f71a40dc1b7cec84decab473bffab659696ae9d5fd4fc781472687edee565`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
+- Owner token SHA256: `d4163896fe9adb2656bc3b0341d1d271d8365811e0ab592534dc8692af80df4e`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
 - Revision: `15`.
-- Lease expires: `2026-08-05T06:46:46+07:00`.
-- Block SHA256: `716eea83dcca65eb590a25b5e6f2610f152fce607b7ede1e6702986e4cbb717a`.
-- Previous owner: `codex-c2v2-paired-executor-20260805-r1`.
+- Lease expires: `2026-08-06T15:19:59+07:00`.
+- Block SHA256: `106a137dc09f531551a3a2754a389a66e5713aa2b83fef87e0b1204a852d3f42`.
 - Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `c35d298a5e63d51df1030f781f8c14e2692d3b1f7ec64dec8643778dcbc7c5ea`.
-  - Timestamp: 2026-08-05T01:28:37+07:00
+- Ownership audit event: `e6b90bbcecdf8da5bdd4a238aa01dd73868eb26f9023d2425f3476a46f18d11a`.
+  - Timestamp: 2026-08-06T10:25:28+07:00
   - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
+  - From owner: codex_root_20260806_classification_readiness_v2
   - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
+  - To owner: codex_root_20260806_classification_readiness_v2
   - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
   - Prior revision: 1
-  - Prior block SHA256: 77987c52a285c005a8c70b227f273621c526bacee815725f73e7b6795cd9cb12
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-thread-token-recovery
+  - Prior block SHA256: 580b1d586874a1fc6391557f0a5797ca02f220ee3d00b290b0d3ec5d2c5c6397
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: Resume plan-bound P2-1 after context handoff in the same runtime session
   - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `8cf0099ed1449fb736d4b9de2ef79e09db1682ca182394f30edd073c7d1583a9`.
-  - Timestamp: 2026-08-05T01:40:51+07:00
+- Ownership audit event: `aede6c15713cc1aa00f598122630f40a8de69031b78897500468acc83f4f6bee`.
+  - Timestamp: 2026-08-06T11:00:34+07:00
   - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
+  - From owner: codex_root_20260806_classification_readiness_v2
   - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 2
-  - Prior block SHA256: 5c09d4ccf18e80f0656e06b9da9ec3d531936ccc2a36f5936b9ef1139c247b60
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-runtime continuation after user requested goal progress; revalidate current
-    state before effects
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `544d811b4c9a8c9bc62e8997081e3f1c7a67a6229ab5881c983eb367a26152b0`.
-  - Timestamp: 2026-08-05T01:57:08+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 3
-  - Prior block SHA256: 2e815c86805ce5ce6c7a09baefbdd366d215a0019dd0b675515037a3df5655d5
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-thread-token-recovery
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `76f85c7e6e3243403ff2f88f9f115a16ffa32eaf3625812c2030c39745a18cbc`.
-  - Timestamp: 2026-08-05T02:06:21+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 6
-  - Prior block SHA256: 51aac9f42d12534286908d8d9d42f2d38639f402033919b91b484fd3cc5e12bc
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume active same-runtime PX2-02 after PX2-01 binding evidence
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `3acbf4cbe5cb2c841c650c93088de6765d2a89161ac9ece522d85a528f856cf6`.
-  - Timestamp: 2026-08-05T04:25:22+07:00
-  - Action: administrative-takeover
-  - From owner: codex-c2v2-paired-executor-20260805-r1
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 7
-  - Prior block SHA256: ccb1dce7116f8f5c0806f6041cdf57f15cd173091766e80747e71c476adcbed3
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume_px2_after_compaction_preserve_px201
-  - Authority: user authorization reference
-    user_message_revoke_lease_and_authorize_administrative_takeover_20260804
-- Ownership audit event: `405bf3a331ac1d6b172e44083caeee4f783242b96d7c1b34f8076ce847f97c94`.
-  - Timestamp: 2026-08-05T05:12:09+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
+  - To owner: codex_root_20260806_classification_readiness_v2
   - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
   - Prior revision: 8
-  - Prior block SHA256: 117dd58a4cf359b97a99325cbcf6e3257fada3098607997c8aef203672918853
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume PX2-02 after context handoff; retain evidence and continue bounded audit
+  - Prior block SHA256: 0e2597d947b7a8fbd8721a89987dd2bdf86db9ba1b0650d1114af2e9157f82de
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: Resume plan-bound SOCIAL-1 after context handoff in same runtime session
   - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `68d23a9e9b8bef3a999054ebe05a7ebe287ea795ba1dfe8cced9750e7ce105bd`.
-  - Timestamp: 2026-08-05T05:43:05+07:00
+- Ownership audit event: `4fa5005c421b903d2a215c2596ef1377a353d435f754c80bdeaaa99f85f3d915`.
+  - Timestamp: 2026-08-06T11:30:26+07:00
   - Action: same-session-token-recovery
-  - From owner: codex-c2v2-paired-executor-20260805-r1
+  - From owner: codex_root_20260806_classification_readiness_v2
   - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-paired-executor-20260805-r1
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 11
-  - Prior block SHA256: d15fcf17866d03026605c0b846fdc799d4a4edacb7e406a8b532025c596ef6c4
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume PX2-03 after bounded A12 and paired B2/B3 evidence inspection
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Plan hash unchanged; current code/data/schema/fold authority bound; deterministic
-  keyed artifact audit passes; paired native-unit executor has independent checker and bounded
-  smoke; A12 and social gates are explicitly PASS/FAIL/INCONCLUSIVE; no human
-  ledgers/labels/splits/annotations/full OOF/paid GPU changed; readiness and launch matrix
-  updated with exact hashes.
-- Skills: `scientific-ablation-controller`, `experiment-lineage-reproducibility`, `grouped-cv-
-  evaluation`, `agent-harness-construction`, `safe-refactor-test-guardian`, `project-state-
-  steward`.
-- [x] `PX2-01` `[DONE]` Rebind current reviewed artifacts
-  - Evidence: PX2 rebind audit PASS: px2_rebind_audit.json; exact window/split/sequence/y/train
-    alignment; RGB/social order checks; current-code roles and event weights byte-identical to
-    authority.
-- [x] `PX2-02` `[DONE]` Implement bounded paired native-unit executor
-  - Evidence: Executor and independent checker in Classification worktree; py_compile PASS; Ruff
-    PASS; git diff --check PASS; focused tests 60 passed; paired CPU diagnostic PASS at E:\PigPr
-    ojectStorage\PIG_Behavior_Project\outputs\classification_v2\model_readiness_audit\px2_social
-    _paired_59684f7_20260805_041500\paired_social_diagnostic.json; independent checker PASS with
-    stale-binding negative test at paired_social_diagnostic_check_v2.json; no canonical data,
-    labels, splits, ledgers, or paid GPU touched.
-- [x] `PX2-03` `[DONE]` Run bounded paired/A12 controls
-  - Evidence: A12 reconciliation PASS at outputs/classification_v2/model_readiness_audit/px2_a12
-    _59684f7_20260805_043500/a12_reconciliation_check_independent_v2.json; paired B2/B3 PASS at 
-    outputs/classification_v2/model_readiness_audit/px2_paired_b2_b3_25b9d3c_20260805_054000/pai
-    red_b2_b3_audit.json with practical Macro-F1 gain +0.04912; source-balanced support remains
-    unavailable for FOLD_2/FOLD_4; paid GPU not started
-- [x] `PX2-04` `[DONE]` Recompute readiness and permit decision
-  - Evidence: Readiness recomputed at outputs/classification_v2/model_readiness_audit/px2_readin
-    ess_25b9d3c_20260805_060500/training_readiness_decision_current.json and FINAL_HANDOFF.md;
-    dual-SHA disposition records production Classification authority 59684f7, audit-only runner
-    25b9d3c with unchanged src tree; G10 remains INCONCLUSIVE on FOLD_2/FOLD_4 support; G12
-    engineering-only PASS; paid GPU/full OOF/autoresearch remain BLOCKED
-
-
-
-
-### C2V2-20260805-03 - Resolve A12 support scope and autoresearch readiness
-
-- Prompt: Continue the immutable PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804 Classification V2
-  readiness goal; audit the live A12 source-support limitation and fail-closed autoresearch
-  campaign boundary without changing production code, labels, splits, review authorities, or
-  launching paid/full training.
-- Status: `DONE`.
-- Opened: `2026-08-05T05:55:21+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `872e4bbadb6239e06c89809794d16bd675f272ed9589623455c7ed66ca1bbb37`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `8`.
-- Lease expires: `2026-08-05T07:09:06+07:00`.
-- Block SHA256: `098a5376acd8d66317ba170f204b839f3d04dae1f32378969cf277c0330a3f35`.
-- Acceptance: Live plan/authority hashes reconciled; A12 support limitation independently
-  evidenced; harness campaign contract independently tested; only plan-authorized bounded checks
-  run; exact READY/BLOCKED handoff written with no paid GPU; project-state reconciliation
-  completed.
-- Skills: `scientific-ablation-controller`.
-- [x] `PX3-01` `[DONE]` Reconcile live A12 authority and source support
-  - Evidence: Live plan CD96FB3D37BC0DC0F366E2A7EF76511F39E0284ED9A0A132675774697620DBCE; clean
-    classification worktree 25b9d3cddaddd6295db17170e94b6d060d0cc340; A12 checker
-    E7F7201F639D3B3DA21707A5E93CCB13D3991EDB6DC1713656BAFB304D5D16EB PASS with INCONCLUSIVE
-    gate; independent split source counts show FOLD_2 CVAT-only and FOLD_4 legacy-only.
-- [x] `PX3-02` `[DONE]` Verify autoresearch fail-closed contract and candidate boundaries
-  - Evidence: Classification autoresearch tests: 22 passed; compileall passed. Current
-    c2v2.reviewed_lineage method is SUPERSEDED with next action amendment_v1; synthetic
-    candidate plan is metric_eligible=false and authorization_eligible=false, command is
-    --synthetic-preflight. Direct synthetic temporal preflight under conda Python returned
-    valid=true but full_data_base_promotion_allowed=false and missing
-    short_gate/paired_native/per_source/seed/mixed_reviewed requirements.
-- [x] `PX3-03` `[DONE]` Run independent bounded checks and update readiness evidence
-  - Evidence: Non-overwriting audit outputs/classification_v2/model_readiness_audit/px3_live_rec
-    onciliation_25b9d3c_20260805_070000: px3_live_reconciliation SHA
-    03e940be5f89f87110f53c925babd7c1b5b07017196df6239e83c8f115d1e4f2; focused_checks SHA
-    55dd8801be21e89fad31564c13627d1dfdffeec33b1cba4d614d053686f2020d; artifact manifest SHA
-    92a4a9c0e099b160d712a517daff6df98e8f719ac3ec1cf62b3dd1e5f213e5b3. Independent artifact hash
-    check PASS; paid GPU/full training false; governance test known 13 passed/1 existing short-
-    memory failure.
-- [x] `PX3-04` `[DONE]` Final governance reconciliation and launch decision
-  - Evidence: Final handoff outputs/classification_v2/model_readiness_audit/px3_live_reconciliat
-    ion_25b9d3c_20260805_070000/FINAL_HANDOFF.md; artifact manifest SHA
-    0e95bb76eb251a1f1237d122aef16067a1da9e2267c780524f8ae2b922186a9b; independent artifact
-    hashes PASS. Exact decision remains
-    BLOCKED_PENDING_A12_SCOPE_DECISION_NATIVE_OOF_BALANCED_AND_AUTORESEARCH; no paid GPU/full
-    model/ledger/decision/split/data effects. Governance failure is pre-existing terminal-task
-    line-budget drift and is preserved for manager-controlled rollover.
-
-
-
-
-### C2V2-20260805-04 - Continue Classification V2 readiness after PX3
-
-- Prompt: Continue the immutable PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804 readiness goal by
-  auditing independent BALANCED, native OOF/calibration, and autoresearch boundaries; do not
-  alter A12 scope, labels, splits, review authorities, canonical data, or launch paid/full
-  training.
-- Status: `DONE`.
-- Opened: `2026-08-05T06:14:33+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `f72d86a7191ccffc462429fbc10fc1820c25e81a07355923f5e79f40f1dd9592`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T08:15:49+07:00`.
-- Block SHA256: `63b7a9fe6968562a4c9a6e7234eebfd3bf9b7681e7f8042d72b2a99f28fa4653`.
-- Acceptance: Live authority and PX3 evidence revalidated; independent
-  model/evaluation/autoresearch audit recorded; only bounded safe repairs if frozen contract
-  proves expected behavior; exact remaining blockers and next action documented; no paid GPU or
-  claim-grade campaign.
-- Skills: `scientific-ablation-controller`.
-- [x] `PX4-01` `[DONE]` Inspect live authorities and PX3 evidence
-  - Evidence: PX3 live reconciliation outputs/classification_v2/model_readiness_audit/px3_live_r
-    econciliation_25b9d3c_20260805_070000/px3_live_reconciliation.json and FINAL_HANDOFF.md re-
-    read; plan SHA CD96FB3D; audit HEAD 25b9d3cd; C-path worktree is a junction to E-path and
-    both resolve HEAD 25b9d3cd; main status inspected.
-
-
-### C2V2-20260805-05 - Continue Classification V2 readiness after PX3
-
-- Prompt: Continue the immutable PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804 readiness goal by
-  auditing independent BALANCED, native OOF/calibration, and autoresearch boundaries; do not
-  alter A12 scope, labels, splits, review authorities, canonical data, or launch paid/full
-  training.
-- Status: `DONE`.
-- Opened: `2026-08-05T06:16:15+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `855a99d6020ffa637170beb856d72892ce7cab392917ef8b2cf7b2f1e617ae58`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `9`.
-- Lease expires: `2026-08-05T08:51:01+07:00`.
-- Block SHA256: `15acc3b0939b0df56f2a896b957939de2e8a316ec8f075d7180132bd90ebc91e`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `1c0d6863252f012551e9dda420b4112df42ef3d2c762b4fbbd1c16ca6dfe432f`.
-  - Timestamp: 2026-08-05T06:30:47+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 1
-  - Prior block SHA256: faec0704b1c75bfccddc6a9780c3c8c997828359848c04a9724f4d5dc575130c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-thread-resume-after-context-continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Live authority and PX3 evidence revalidated; independent
-  model/evaluation/autoresearch audit recorded; only bounded safe repairs if frozen contract
-  proves expected behavior; exact remaining blockers and next action documented; no paid GPU or
-  claim-grade campaign.
-- Skills: `scientific-ablation-controller`.
-- [x] `PX5-01` `[DONE]` Revalidate live authorities and PX3 evidence
-  - Evidence: 020800 current binding PASS
-    sha256=27af57efe929ef44c33efcfdc9e5eff0e30d44f947815499fa225e50c7de753f; 020600 FAIL
-    retained as stale negative; px3 live reconciliation
-    sha256=03e940be5f89f87110f53c925babd7c1b5b07017196df623e83c8f115d1e4f2; main/prod/audit
-    authorities revalidated; no protected data or ledgers touched
-- [x] `PX5-02` `[DONE]` Audit BALANCED/model modules and native OOF/calibration readiness
-  - Evidence: px5_balanced_oof_autoresearch_audit.json: B0-B3 BUILD_PASS; BALANCED fail-closed
-    with 4 missing modules; current 4-fold bounded role adapter 33,355 units; stale 13-fold
-    audit quarantined as historical; native OOF predictions/calibration BLOCKED; focused tests
-    40 passed
-- [x] `PX5-03` `[DONE]` Audit autoresearch boundary and safe bounded checks
-  - Evidence: px5 audit records classification policy/candidate hashes, synthetic_preflight-only
-    metric_eligible=false execution_permitted=false no auto-promotion; classification contract
-    tests 40 passed and autoresearch contract tests 17 passed; no paid GPU or full OOF started
-- [x] `PX5-04` `[DONE]` Write continuation handoff and reconcile state
-  - Evidence: px5_continuation_25b9d3c_20260805_01/px5_balanced_oof_autoresearch_audit.json and
-    FINAL_HANDOFF.md written and JSON-validated; artifact inventory recorded; maturity scan
-    PASS; reconcile correctly returned reconcile_not_needed; unrelated memory
-    validator/governance line-budget failures preserved and reported
-
-
-
-
-### C2V2-20260805-06 - Strict four-fold readiness
-
-- Prompt: Continue Classification V2 readiness after explicit strict four-fold A12 choice; no
-  changes to labels, splits, review authorities, or paid GPU.
-- Status: `DONE`.
-- Opened: `2026-08-05T06:56:40+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-strict-fourfold-20260805`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `f296b2a7fa16f1e099fa4dd7dfd035a407c00e0e577f220d50f4fd08099aed15`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2`.
-- Revision: `14`.
-- Lease expires: `2026-08-05T08:39:15+07:00`.
-- Block SHA256: `67fa270835a1a89292c5328e8b3f1ee8355356c79fc1dbff98e783a6f65c0453`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `103747b982dcf6c20eb876b079fcc5a8cc4e0e47290f8a52244d8a08df1c3155`.
-  - Timestamp: 2026-08-05T06:58:44+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 1
-  - Prior block SHA256: 87bb2262c09078333b54173d7d3a5713d9bed3dbd3052695f8bde8861fb8bc3c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-runtime continuation after strict four-fold scope selection
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `923491ba58e6b6a1e7ffded5184f5e75339e5df3ab147079be8c673dec36e71e`.
-  - Timestamp: 2026-08-05T07:01:44+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 3
-  - Prior block SHA256: a5a6216973451dda79a41bee4c2cb002ae57374bfe13fda17e7d52bcd48065a9
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-session continuation after checkpoint token rotation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `f3fb648c7696aceaa7074d7e301a1bb26b4a01ae425404662ca6e6de9f04ff88`.
-  - Timestamp: 2026-08-05T07:07:35+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 5
-  - Prior block SHA256: bd12daf78f35e55e5a9045a2bd7a7bd391be23e6b4906c451daf00cffcbb19fd
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-runtime continuation after PX6-02 checkpoint
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `ed3ee0c78c0f5c5d58f61f878353bf0edcf1e39e67d14dd8ddb716e5a93d281d`.
-  - Timestamp: 2026-08-05T07:19:58+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 6
-  - Prior block SHA256: a441ecc7229b314fa18089f874d9e9f87b83d76e04ed35ee6f554ef3dfb28e26
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: resume strict four-fold bounded OOF after continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `092c419e06c5e5c261ae4dd2b899cc838aab795db1f0e34bf97ccfaef87800c7`.
-  - Timestamp: 2026-08-05T07:23:33+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 7
-  - Prior block SHA256: 84a10d5d1c0a89d8a3449d22e7598fb33a9bd484ebde593b8e91f0e92b93607c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: same-runtime continuation after task inspection
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `164be4dc03bc0cdf3758306323182f37499449381e1326813274b312a42c5972`.
-  - Timestamp: 2026-08-05T07:25:11+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-fourfold-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-fourfold-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 8
-  - Prior block SHA256: edfec5cac8734ac81fc02d96feb488850cd7b104995df8ddf1d7692c9b7b274a
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2
-  - Reason: recover after checkpoint validation rotated credential
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Strict four-fold A12 is bound; native OOF/calibration is independently audited;
-  readiness and launch blockers are recorded; no paid GPU or claim-grade campaign is launched.
-- Skills: `scientific-ablation-controller`, `experiment-lineage-reproducibility`, `grouped-cv-
-  evaluation`, `dataset-contract-leakage-guard`, `project-state-steward`.
-- [x] `PX6-01` `[DONE]` Revalidate authority
-  - Evidence: User selected strict four-fold A12; live audit HEAD
-    25b9d3cddaddd6295db17170e94b6d060d0cc340; production code authority
-    59684f7c8e232d6b54e0d28fd117453b771da4ab; plan SHA
-    cd96fb3d37bc0dc0f366e2a7ef76511f39e0284ed9a0a132675774697620dbce; PX5 audit records A12
-    INCONCLUSIVE only because FOLD_2/FOLD_4 lack source-balanced support and forbids silent
-    scope narrowing.
-- [x] `PX6-02` `[DONE]` Build OOF executor
-  - Evidence: Commit 7fd98ab7aa52bebe9ad490bdd233db34bacfc814 contains the strict four-fold
-    scope audit and bounded OOF executor; focused tests/compile/Ruff passed. Post-commit bounded
-    run px6_strict_fourfold_bounded_oof_7fd98ab_20260805_03 completed with valid=true,
-    prediction_schema_valid=true, four folds present, and complete cross-fitted calibration
-    coverage.
-- [x] `PX6-03` `[DONE]` Run bounded audits
-  - Evidence: Clean disposable worktree at 7fd98ab produced
-    px6_strict_fourfold_bounded_oof_7fd98ab_20260805_04 with runner_valid=true, git_dirty=false,
-    prediction_schema_valid=true, 59 predictions and 59 unique native units, fold-manifest
-    missing/mismatch=0/0, all four folds, finite probabilities, complete four-fold cross-fitted
-    calibration. Independent audit independent_bounded_oof_audit.json reproduces all checks and
-    calibration ID hashes.
-- [x] `PX6-04` `[DONE]` Write readiness handoff
-  - Evidence: Readiness package written and verified in
-    px6_strict_fourfold_bounded_oof_7fd98ab_20260805_04:
-    training_readiness_decision_current.json, paid_gpu_launch_matrix.csv, FINAL_HANDOFF.md,
-    CURRENT_STATE.md. Decision binds plan hash, main/code/audit SHAs, strict-fold source
-    limitation, clean bounded independent audit, and paid-GPU BLOCKED.
-
-
-
-
-### C2V2-20260805-07 - Audit remaining readiness gates
-
-- Prompt: Inspect current autoresearch fail-closed, BALANCED and social contracts after strict
-  four-fold handoff; run only read-only/static/bounded checks and record exact remaining
-  blockers.
-- Status: `DONE`.
-- Opened: `2026-08-05T07:42:27+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-readiness-20260805`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `73a166a1178909e399d82803f748f7c439fe6c33953f7c3a30a6534ddb610906`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_pre_gpu_autoresearch_q2_clean_7fd98ab`.
-- Revision: `7`.
-- Lease expires: `2026-08-05T09:09:54+07:00`.
-- Block SHA256: `59f67d78fe4230efb12aaecc063315310b391091079ac348f3c05a08f2b1f393`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `8e36ee1ec8393fd974444b80241122a5c4ff99a8371e36e82f96fa0b70d9776d`.
-  - Timestamp: 2026-08-05T07:56:54+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-readiness-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-readiness-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 3
-  - Prior block SHA256: df5cf58b124d71c7c29a52758b78e31e18a5b8c7817d4ef20bb09778ef4ce4d1
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_pre_gpu_autoresearch_q2_clean_7fd98ab
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_pre_gpu_autoresearch_q2_clean_7fd98ab
-  - Reason: resume RG-02 after independent static and focused contract verification
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Independent gate inventory and bounded checks; no paid GPU, no
-  review/data/label/split changes; readiness handoff updated or explicit no-change evidence.
-- Skills: `scientific-ablation-controller`.
-- [x] `RG-01` `[DONE]` Reconcile current gate authorities
-  - Evidence: Current plan SHA cd96fb3d37bc0dc0f366e2a7ef76511f39e0284ed9a0a132675774697620dbce;
-    main 487a55b12041889a00f6d1827297a88865e15345; accepted production code
-    59684f7c8e232d6b54e0d28fd117453b771da4ab; audit runner
-    7fd98ab7aa52bebe9ad490bdd233db34bacfc814; PX6 handoff and decision are current for this
-    scope.
-- [x] `RG-02` `[DONE]` Audit autoresearch/BALANCED/social
-  - Evidence: outputs/classification_v2/model_readiness_audit/rg02_social_balanced_7fd98ab_20260
-    805_075705/rg02_gate_audit.json; clean locked-HEAD checkout 7fd98ab7 focused contracts 83
-    passed; nominal worktree drift preserved and not committed
-- [x] `RG-03` `[DONE]` Update handoff if evidence changes
-  - Evidence: outputs/classification_v2/model_readiness_audit/rg03_readiness_handoff_7fd98ab_202
-    60805_075705/training_readiness_decision_current.json; paid_gpu_launch_matrix.csv;
-    FINAL_HANDOFF.md; independent_handoff_check.json valid=true; artifact_hash_manifest.json
-
-
-
-
-### C2V2-20260805-08 - Continue strict four-fold A12 and paired social gate
-
-- Prompt: Continue the user-selected strict four-fold A12 path after RG-02/RG-03; preserve the
-  immutable pre-GPU plan, reconcile uncommitted worktree drift, and bind or implement only the
-  paired native-unit S0/S1/S2 executor needed to reopen the social gate.
-- Status: `DONE`.
-- Opened: `2026-08-05T08:16:50+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `codex-c2v2-strict-a12-20260805`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `17f99f6dfeabf523230abd6b26747614caa7205c661c08a9f668aa610b896508`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_rg02_clean_verify_20260805_075705`.
-- Revision: `12`.
-- Lease expires: `2026-08-05T10:36:25+07:00`.
-- Block SHA256: `6368421667d7b448440fa9336c208c68b9ab11d4892c10e9b4379788b49132bb`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `77bf51fb8200c532fc7b1f5547e03b15f00a6f8b7cd6ccd5d0d80564b55e6766`.
-  - Timestamp: 2026-08-05T08:18:11+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 1
-  - Prior block SHA256: 72318aa1c0c0e85183c613580c2c632c8bf2bfe8c71af47b31075ad9339a278c
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: resume_after_context_continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `0f585c0ef84049bf8f4ac0214b6db3a97f0f755ed839ea024e9c3d9171af37d6`.
-  - Timestamp: 2026-08-05T08:21:58+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 4
-  - Prior block SHA256: 75f36517f1ce85a8e2a4881ac98806a5220e045ad39e61d21c9ecc83736105a2
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: checkpoint_token_recovery
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `60ad19bea0745a559546089aef8fb7936486cdc84186f9c3b7794f6370154a6a`.
-  - Timestamp: 2026-08-05T08:41:38+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 5
-  - Prior block SHA256: 370aaec93f4c0c9e15425ea9446357a9996f42954b41a057df38a486f50fcdc0
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: Resume strict A12 after context continuation; same CODEX_THREAD_ID and existing
-    owner binding.
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `7c7acd1f02f6e811d11f6b6f68e796bbcabbb1f5091d7eb6b8c723a591c01769`.
-  - Timestamp: 2026-08-05T09:54:01+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 8
-  - Prior block SHA256: b2c2dd39d12ad87db4cf1885ed352473dde361c0b4fb3ec510db7db09175e6bf
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: Resume A12-03 after RG-04 four-fold executor and focused tests; same
-    CODEX_THREAD_ID.
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `f0fed8aa7c5f4f7564e0ca0899175dc7a318008f1bd9de0520927a6c6d53778f`.
-  - Timestamp: 2026-08-05T10:01:10+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 9
-  - Prior block SHA256: 00e1967926a8835b1a21b32c4aeef74f937a88b0709b28bf3b3ee35798614da7
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: Resume A12-03 after context continuation; runtime thread matches recorded owner
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `4937d154cca106852636728ca2d00e846474e5374aae32235a13728a671913a2`.
-  - Timestamp: 2026-08-05T10:01:44+07:00
-  - Action: same-session-token-recovery
-  - From owner: codex-c2v2-strict-a12-20260805
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: codex-c2v2-strict-a12-20260805
+  - To owner: codex_root_20260806_classification_readiness_v2
   - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
   - Prior revision: 10
-  - Prior block SHA256: ede388b6bf41d03962dca79a713d0a392c57ba493aeef012ecfd54627ec8b26f
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg02_clean_verify_20260805_075705
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg02_clean_verify_20260805_075705
-  - Reason: resume after context continuation for A12-03 refresh
+  - Prior block SHA256: af31f2273e1afc53a70088e1de5cb452bf7e2b356a2010725c9165c0f653386d
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: plan_continuation_user_authorized
   - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Current authority and worktree drift are reconciled without blind commit; paired
-  native-unit S0/S1/S2 contract is either independently bound and passes focused checks or
-  remains explicitly blocked with evidence; no paid GPU, full OOF, labels, splits, or canonical
-  artifacts are changed.
-- Skills: `scientific-ablation-controller`.
-- [x] `A12-01` `[DONE]` Reconcile strict-A12 authority and dirty drift
-  - Evidence: Nominal audit worktree is commit 979fe534 with no tracked edits; only untracked
-    .tmp/px4_registry_probe.py remains and is preserved as non-authority. Task-bound clean
-    verify checkout is clean at 7fd98ab7. Commits d1e4911b and 979fe534 add paired
-    evaluator/checker on the audit branch only; none is merged or production authority.
-- [x] `A12-02` `[DONE]` Bind or implement paired native-unit S0/S1/S2 executor
-  - Evidence: RG-04 executor implemented on isolated branch 09b3639; bounded four-fold S0/S1/S2
-    diagnostic PASS_ENGINEERING_ONLY at outputs/classification_v2/model_readiness_audit/rg04_soc
-    ial_oof_executor_09b3639_20260805_110000; 59 paired native units, all four folds, arm
-    coverage identical, lineage valid, no paper metric authority.
-- [x] `A12-03` `[DONE]` Run focused gate and refresh handoff
-  - Evidence: RG-03 refreshed handoff E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\clas
-    sification_v2\\model_readiness_audit\\rg03_readiness_handoff_e212632_20260805_095700;
-    independent_handoff_check=PASS; 10/10 artifact hashes verified; RG-04
-    sha256=3e022bb7bcf9a7eb6ee2981791e8df4d97e7f419f9f7867b65c49e576e41e2a0; candidate
-    e212632ca252220d4f39fb92106800127ed4511b clean; focused tests 31 passed; compileall, Ruff,
-    diff-check and line scan passed; paid GPU/full OOF/ledgers unchanged
+- Ownership audit event: `cb55ea99a6bac5e50a0b7f2d2edd1a784776f58655c0591ae6ba7c461bfb49cd`.
+  - Timestamp: 2026-08-06T11:49:35+07:00
+  - Action: same-session-token-recovery
+  - From owner: codex_root_20260806_classification_readiness_v2
+  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
+  - To owner: codex_root_20260806_classification_readiness_v2
+  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
+  - Prior revision: 11
+  - Prior block SHA256: 13d2e2c616a3182ecedad82bc7da1c145008e745675ddce6e8985783dd1195b5
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: resume plan-bound continuation after context handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `9247f9f9bae8c1d39c4231548bdc73d33fa9b78cd80c6243809ccd76524536c8`.
+  - Timestamp: 2026-08-06T14:48:02+07:00
+  - Action: same-session-token-recovery
+  - From owner: codex_root_20260806_classification_readiness_v2
+  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
+  - To owner: codex_root_20260806_classification_readiness_v2
+  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
+  - Prior revision: 13
+  - Prior block SHA256: 52c03b5c3d1ed98ae6d22830cbdf34c4c8bd387dc4e547f7e59d25d82c2dc316
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: Resume active plan-bound readiness continuation after context handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: P2 B0-B3 pilot, real resume, and compute evidence are independently checked;
+  paired social work is gated and fail-closed; artifacts are hash-bound and no paper or paid-GPU
+  claim is promoted.
+- Skills: `dataset-contract-leakage-guard`, `grouped-cv-evaluation`, `scientific-ablation-
+  controller`, `experiment-lineage-reproducibility`, `project-state-steward`.
+- [x] `P2-1` `[DONE]` Run one-fold B0-B3 local pilot
+  - Evidence: outputs/classification_v2/model_readiness_audit/p2_local_baseline_pilot_884016a_20
+    260806103050_retry4/pilot_audit.json; all B0-B3 PASS with finite loss/gradients, validation
+    predictions, checkpoint reload and deterministic repeat
+- [x] `P3-1` `[DONE]` Run real interrupted resume
+  - Evidence: outputs/classification_v2/model_readiness_audit/p3_real_resume_884016a_20260806103
+    050/p3_resume_audit.json; PASS intentional interrupt/checkpoint/loss-step-index-prediction-
+    hash/resume-flag; p3_authority_reconciliation.json and independent 57-artifact hash check
+    PASS
+- [x] `P4-1` `[DONE]` Measure compute and memory profile
+  - Evidence: outputs/classification_v2/model_readiness_audit/p4_compute_profile_884016a_2026080
+    6105428/p4_compute_profile.json; PASS cache-only, finite FP32/AMP, AMP agreement,
+    accumulation, VRAM and OOM-safe forward
+- [x] `SOCIAL-1` `[DONE]` Run paired S0-S2 diagnostic after gates
+  - Evidence: social_s0_s2_paired_884016a_20260806_r1/executor_rebound_spc1/independent_check.js
+    on PASS; social_ladder_decision.json INCONCLUSIVE; S1 +0.088095 Macro-F1, S2 -0.019048;
+    stale-binding and duplicate-native-unit failed attempts preserved
+- [ ] `OOF-2` `[DEFERRED]` Expand native OOF after finalist lock
+  - Next: Assemble final readiness and launch matrix; keep full OOF, autoresearch execution, and
+    paid GPU fail-closed unless a new authorized split/finalist decision is supplied.
 
 
 
 
-### C2V2-20260805-09 - Fresh readiness revalidation and bounded BALANCED contract work
+### C2V2-20260806-07 - Resolve paid-GPU authorization blockers
 
-- Prompt: Continue the immutable PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804.md after RG-04
-  handoff; independently revalidate current authorities and close only discoverable local/model
-  gates in the isolated Classification V2 worktree, stopping before paid GPU/full OOF.
-- Status: `DONE`.
-- Opened: `2026-08-05T10:21:15+07:00`.
+- Prompt: Continue Classification V2 from the blocked readiness checkpoint to a valid paid-GPU
+  permit and authorized remote campaign under the frozen plan; do not alter protected
+  review/data authorities or bypass hard gates.
+- Status: `BLOCKED`.
+- Opened: `2026-08-06T15:12:05+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
+- Owner session: `codex_root_20260806_gpu_authorization`.
 - Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `4e03bc0985137e0400f534d093b3449b1806aad89e462958f7bc976e2a347310`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_rg04_social_executor`.
-- Revision: `12`.
-- Lease expires: `2026-08-05T14:45:26+07:00`.
-- Block SHA256: `6b783b75dbba3083e7298a776f6e4fb5fc4d895e8f45c0b6af9aaa6132646e1a`.
+- Owner token SHA256: `bb99f09475d561bc2e52409076d90fae61eb51ad170a83b4cc8c2f5cdb58df95`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `2`.
+- Lease expires: `2026-08-06T15:48:08+07:00`.
+- Block SHA256: `972ad807e2b85f87085992d42529b5ef125ce1ad5552673bdcb0a268cfc09544`.
+- Acceptance: G10 A12, finalist/OOF, autoresearch, and result-package gates are independently
+  PASS or an explicitly authorized plan amendment is hash-bound; only then issue a paid-GPU
+  permit and launch the remote pilot.
+- Skills: `scientific-ablation-controller`.
+- [ ] `P5-1` `[BLOCKED]` Reconcile A12/finalist/OOF blockers
+  - Next: User must authorize either a versioned strict split/estimand amendment or a
+    G19_ENGINEERING_PILOT plan amendment. Evidence:
+    a12_authority_reconciliation_884016a_20260806_r1/a12_authority_reconciliation.json and
+    docs/classification_v2/PAID_GPU_GATE_RESOLUTION_OPTIONS_20260806.md. Do not run or pay for
+    GPU before that authority.
+
+
+### CLASSIFICATION-20260806-05 - Prepare and launch exactly 500 posture-review items
+
+- Prompt: Use the existing posture GUI and queue/session contract to prepare, validate, and open
+  exactly 500 new current native units; exclude all previously decided units; do not change GUI
+  or run training/GPU/OOF.
+- Status: `DONE`.
+- Opened: `2026-08-06T23:37:16+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `02e61c577262d5c69ff8f6f8f9fcde693d44ae39bd7921980ac8e35658bd51f8`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `20`.
+- Lease expires: `2026-08-07T03:10:04+07:00`.
+- Block SHA256: `94aa62051f3a3906fb93d2186b558e07927115e578fbdaa10a6827d16b6b9a2e`.
 - Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `a1aa18fc1ec7f17818237125fbf05fe686798c288a19e18630057fd122c53b78`.
-  - Timestamp: 2026-08-05T10:31:47+07:00
+- Ownership audit event: `5d4954ee928f69ba2aab4b40c7118bf9dd2776b814a8f16d9ad123f62344c6bb`.
+  - Timestamp: 2026-08-07T00:20:02+07:00
   - Action: same-session-token-recovery
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 3
-  - Prior block SHA256: 2ed7f29d8d5c2683860000aa52963426d0972f11ffb4f7dd2704419ee78d68dd
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg04_social_executor
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg04_social_executor
-  - Reason: Resume C2R-02 after same-runtime continuation; prior C2R-01 evidence already
-    recorded
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 1
+  - Prior block SHA256: 3f4684f5b3d845addd102c95f1ffedf7ea575ac714d12776ca336fef644b5146
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: Resume same CODEX_THREAD_ID after interrupted queue construction; inspect staged
+    evidence before any rerun.
   - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `3204047e24b8620a590ce5c96476c4001fdd175f795a2844d0b25827540cffa5`.
-  - Timestamp: 2026-08-05T10:37:16+07:00
+- Ownership audit event: `80d07bc300870070579f9c0e750cbbefef064a1daa2868ff63213aaf81bb76e0`.
+  - Timestamp: 2026-08-07T00:43:38+07:00
   - Action: same-session-token-recovery
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 4
-  - Prior block SHA256: 615215902d9880e7e467f1250b7dc414f5f85687f42d44d0230fa31489ac0e40
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg04_social_executor
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg04_social_executor
-  - Reason: resume current C2R-02 after context continuation; same runtime owner
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `9b87335e4292debf5ba25ecb770bdb54144791c20a38e6dac7bc91f071af4196`.
-  - Timestamp: 2026-08-05T11:37:37+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 7
-  - Prior block SHA256: a78a17b32d83eccc91a305426211586f82b3324d29ba196418ab22b56e6f2845
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg04_social_executor
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg04_social_executor
-  - Reason: resume C2R-03 after context continuation
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `a7c48084f8b1b3e8b9a67fe64bc474009089ff9eca20c03740dd123c4ff84b6b`.
-  - Timestamp: 2026-08-05T12:18:56+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - From runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To owner: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - To runtime session: 019f8f89-f8a4-7481-875a-1dfc654f8b6b
-  - Prior revision: 8
-  - Prior block SHA256: a340b1ce6cb1ed87a8eb6d1cec92032e6d96742d50aff40cec08bb9e7b26a7c6
-  - Prior worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classificatio
-    n_v2_rg04_social_executor
-  - New worktree: E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_
-    v2_rg04_social_executor
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 2
+  - Prior block SHA256: 14c1c13faa6cad541ad60381ba161e7fe6234eec14eb54071db59ecf841df96a
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
   - Reason: same-session-token-recovery-after-context-continuation
   - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Plan hash unchanged; main and protected reviewed authorities untouched; fresh
-  A12/remaining-gate evidence; any source patch is isolated, reversible, test-backed, and leaves
-  paid GPU/full OOF blocked unless all hard gates truly pass.
-- Skills: `multimodal-sequence-model-builder`, `dataset-contract-leakage-guard`, `scientific-
-  ablation-controller`, `experiment-lineage-reproducibility`, `safe-refactor-test-guardian`,
+- Ownership audit event: `9c6801f656c8727bf243e87117e3de5780d84059ae04ac71b87211b9fac88b8d`.
+  - Timestamp: 2026-08-07T01:01:32+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 3
+  - Prior block SHA256: d32aebcd672db3a0a8625df0cf651602162a83f0ef892ef8f0a3383dd60f04e4
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: continuation after context handoff; preserve opened GUI and complete bounded
+    A12-B/E0/eligibility handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `c43a7c864b6181aaa631204da678c13882e56b6ab6fc80016343a776faf1ab3c`.
+  - Timestamp: 2026-08-07T01:17:40+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 5
+  - Prior block SHA256: d3abfab9ec222b0b47b3496076cb6742536c665d27098db25924a834a36328bb
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: continue unattended post-readiness handoff after context recovery
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `1c7890a222ba849b82bfaf8f69514bbd0b94cbe518735ee36ea3b8d2c50e01e9`.
+  - Timestamp: 2026-08-07T02:22:12+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 13
+  - Prior block SHA256: 2fe6d28f3a69f7b2ba805b6732996c3586606cc7ecd07deb9a28b04d23b7535f
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: resume same-runtime Classification V2 execution after bounded handoff validation
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `0db5ace2d38ebfb2205f907e29e6558a35297691c1428c3aa872f16906b429d7`.
+  - Timestamp: 2026-08-07T02:39:40+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 18
+  - Prior block SHA256: 123ae8dafcae00a84aef0613da563c61b64c05710e4759e2c123534631285368
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: same-runtime final closeout after execution-branch commit
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: 500 unique current-snapshot native units are in a frozen existing-format session,
+  queue and media validation pass, no decisions are prefilled, the unchanged existing GUI is
+  launched, and the execution branch contains only small audit/manifests.
+- Skills: `project-state-steward`, `dataset-contract-leakage-guard`, `experiment-lineage-
+  reproducibility`, `agent-harness-construction`.
+- [x] `POSTURE-2` `[DONE]` inventory prior posture decisions and authorities
+  - Evidence: docs/classification_v2/corrected_pooled_route_20260806/next_phase/posture_500_2026
+    0806/existing_posture_review_inventory.csv; docs/classification_v2/corrected_pooled_route_20
+    260806/next_phase/posture_500_20260806/existing_posture_review_exclusion_set.json
+- [x] `POSTURE-3` `[DONE]` bind current population and select candidate strata
+  - Evidence: current snapshot bound; candidate population hash
+    7f35bdc3b7b90f2290136280c11048e724001c6d74cc393b1747ee54278bc172; exclusion set docs/classif
+    ication_v2/corrected_pooled_route_20260806/next_phase/posture_500_20260806/existing_posture_
+    review_exclusion_set.json
+- [x] `POSTURE-4` `[DONE]` construct exactly 500 blinded queue rows
+  - Evidence: 500-row queue manifest docs/classification_v2/corrected_pooled_route_20260806/next
+    _phase/posture_500_20260806/posture_500_candidate_manifest.json; queue audit reports 500
+    rows, 500 unique keys, strata 200/200/100, queue SHA
+    a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c
+- [x] `POSTURE-5` `[DONE]` create existing-format posture session
+  - Evidence: existing-format session created at E:\PigProjectStorage\PIG_Behavior_Project\outpu
+    ts\classification_v2\posture_review_sessions\posture_500_a566c58d252c1642; queue path
+    posture_review_scope.csv; decisions path posture_pilot_decisions.csv; session manifest SHA
+    7e979f41246abbf33424a03cf947aa16d2fef7a6dc87f3b175c409950cb4d168
+- [x] `POSTURE-6` `[DONE]` run non-destructive queue and media validation
+  - Evidence: docs/classification_v2/corrected_pooled_route_20260806/next_phase/posture_500_2026
+    0806/posture_500_queue_audit.json; E:/PigProjectStorage/PIG_Behavior_Project/outputs/classif
+    ication_v2/posture_review_sessions/posture_500_a566c58d252c1642/session_manifest.json; PID
+    15220 responsive
+- [x] `POSTURE-7` `[DONE]` launch the unchanged existing posture GUI
+  - Evidence: PID 15220 is responsive; WMI command line binds review_posture_pilot_gui.py to
+    posture_500_a566c58d252c1642/posture_review_scope.csv; GUI source unchanged
+- [x] `POSTURE-8` `[DONE]` close out lineage and repository state
+  - Evidence: commit=7a34ddd; corrected-route-validator=PASS; next-phase-hash-validator=PASS;
+    focused-pytest=6 passed; compileall=PASS; GUI_PID=15220_Responding=True; protected-file-
+    diff=clean
+
+
+
+
+### CLASSIFICATION-20260807-01 - Verify Space playback in the existing posture GUI
+
+- Prompt: Verify and, only if necessary, add Space-to-playback behavior to the existing local
+  posture GUI without changing review semantics, data, or the active posture session.
+- Status: `IN_PROGRESS`.
+- Opened: `2026-08-07T05:47:40+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `9519148223defe4d711c6e06dcf0ed0812196dac6f91ca8e049eeb6e88e9a12a`.
+- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_behavior_posture_paired_ablation_v1`.
+- Revision: `1`.
+- Lease expires: `2026-08-07T06:17:40+07:00`.
+- Block SHA256: `8ff0da33cb0a22018995c83c8405ff57052eedadc0341c00fea1e678827bdc01`.
+- Acceptance: Existing posture GUI source and playback binding are verified; focused
+  behavior/import checks pass; no new GUI is created; any necessary patch is minimal; existing
+  posture session remains resumable and no review decisions are changed.
+- Skills: `agent-harness-construction`, `safe-refactor-test-guardian`, `project-state-steward`.
+- [ ] `GUI-1` `[IN_PROGRESS]` verify existing GUI source and Space playback binding
+  - Next: run focused source and behavior checks
+- [ ] `GUI-2` `[TODO]` apply only a minimal defect fix if required
+  - Next: compile and focused test the GUI change
+- [ ] `GUI-3` `[TODO]` launch or resume the existing GUI and close out
+  - Next: record process, command, and worktree state
+
+### C2V2-20260807-01 - Close completed 500-item posture review authority
+
+- Prompt: Freeze and audit the completed 500-item posture session, build the human posture
+  authority and support reports, audit the historical pilot, register matched auxiliary ablation
+  contracts, update readiness, validate, and commit without training or GPU execution.
+- Status: `DONE`.
+- Opened: `2026-08-07T08:33:11+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `9a3325ecffa7692aa0936555776cd4e9c722eb6f81a1dfa16710359dad4c2559`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `11`.
+- Lease expires: `2026-08-07T10:58:33+07:00`.
+- Block SHA256: `6efbc593ba7c4d14617deb1df0c9d3d7db34c27763b5a47cebbff031465cc0cc`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `040e49365a461e60091f08d32d78b3debf8d1aeeb2ddfd76de25d212e70cc6c9`.
+  - Timestamp: 2026-08-07T09:41:53+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 3
+  - Prior block SHA256: ee20274b91f64d18ecaa8f3aa08d5b76ebd897d06f13034c6f6c2791df681047
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: Resume bounded post-review closure after context handoff; existing uncommitted
+    generator and artifacts inspected before repair.
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: The completed 500-item ledger is fully bound to the current snapshot and split,
+  required authority/support/audit/contract/readiness artifacts are hash-bound, focused
+  validation passes, and one clean closure commit is produced on the execution branch.
+- Skills: `dataset-contract-leakage-guard`, `experiment-lineage-reproducibility`, `scientific-
+  ablation-controller`, `project-state-steward`.
+- [x] `POST-01` `[DONE]` Verify worktree, session, ledger, and authority hashes
+  - Evidence: HEAD 7a34ddd5f0542648cf895dff6cfa49e4fa0a29a0; execution worktree clean; queue
+    posture_review_scope.csv SHA256
+    a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c; session_manifest.json
+    SHA256 7e979f41246abbf33424a03cf947aa16d2fef7a6dc87f3b175c409950cb4d168; manifest binds
+    reviewed snapshot ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e and split
+    557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b; completed ledger found at
+    posture_pilot_decisions.csv with 500 rows and valid schema.
+- [x] `POST-02` `[DONE]` Freeze and audit completed 500-item ledger
+  - Evidence: Completed session ledger frozen and hash-bound: 500 queue rows, 500 decision rows,
+    zero pending/duplicate/unknown values; 500 current snapshot/media bindings pass.
+- [x] `POST-03` `[DONE]` Build gold authority, support, mapping, and pilot audits
+  - Evidence: Deterministic closure regeneration PASS twice with identical SHA-256 outputs;
+    human gold is 500 bound rows (194 lying, 204 sitting, 102 upright), and historical pilot is
+    rebound 120/120 without pooling.
+- [x] `POST-04` `[DONE]` Register contracts and update readiness
+  - Evidence: Registered independent P0/P1 posture contracts and readiness: P1 uses human
+    posture mask plus unchanged behavior eligibility; E0 L4 handoff revalidation PASS, FOLD_3,
+    outer access BLOCKED, S1 remains blocked by E0 not executed.
+- [x] `POST-05` `[DONE]` Validate, commit closure, and report
+  - Evidence: Commit fd43c6a855faa5a27d491f11e25d5a6c15c6c222; corrected-route and next-phase
+    validators PASS; 7 focused tests PASS; compile, JSON/CSV contract, protected-file, and
+    deterministic 14-artifact regeneration checks PASS; execution worktree clean.
+
+
+
+
+### C2V2-20260807-02 - Reconcile pooled T6 plus H6 causal-history route
+
+- Prompt: Perform only the minimal H6 temporal-route reconciliation before paid E0; reuse closed
+  authorities, measure missing H6 feasibility, register a matched future contract if valid, and
+  do not train or execute E0/S1/C2.
+- Status: `DONE`.
+- Opened: `2026-08-07T12:00:20+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `2672dfe08bcf00ff6837b34b8b5d6cad0b71b1b4014cf25fb5309d4ef89d3144`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `13`.
+- Lease expires: `2026-08-07T18:42:34+07:00`.
+- Block SHA256: `84378a3283bb06d1fc0a9157e94e7557d0e6804650e3cb7ac36c1d6378e07a51`.
+- Previous owner: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `6e617c176c6dace5b23a57e8cc8aa40cbdbf46c0080c88353f7ce958c882ab70`.
+  - Timestamp: 2026-08-07T12:24:46+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 1
+  - Prior block SHA256: e4005be8195e44979f8cc6974b5a327a4fd7044b7259f8342c78ec0fe9be1a8f
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: same runtime continuation after bounded context handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `06e64f9e38277f035db1828a2f434615db3b58274a0a954b1abfc1f22d887872`.
+  - Timestamp: 2026-08-07T13:46:54+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 4
+  - Prior block SHA256: 7741ccf1a32def87d67baaebe9dc50b2716e645f18c24256273f10943d434f99
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: Continue the user-superseded H5 current-authority closure under the same runtime.
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `22d6fc0d4707c85dadf85f37396c2c830f663195f5b94c5f4ba1a44095f3bab8`.
+  - Timestamp: 2026-08-07T15:07:29+07:00
+  - Action: expired-lease-takeover
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 7
+  - Prior block SHA256: 35604cd74f61ef9e0657ae0df49cdfe0968cb37d074b8422e1d5082060db02dd
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: resume_after_interruption
+  - Authority: expired lease plus lock and CAS
+- Ownership audit event: `b5f1048ccc30e393b0944d828507e14f43265fd47e1abdbbefc71380a1e70cd2`.
+  - Timestamp: 2026-08-07T17:28:28+07:00
+  - Action: expired-lease-takeover
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 8
+  - Prior block SHA256: db703b228a7f92a671712ad1b98beb15f8ddb20a4b5e33be12f7c17f94938a1d
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: resume_after_materialization
+  - Authority: expired lease plus lock and CAS
+- Ownership audit event: `87d8a62c9ee4457e826ce2f2b1941c89534b6464d011a5b2ab2a45f146d55254`.
+  - Timestamp: 2026-08-07T17:32:37+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 11
+  - Prior block SHA256: 62d2129e825c7e5c5a50619d74dad793ebb3c1edf8b9bf52abec37eb7c1ebd7a
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: resume_h5_closure
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: Reuse A12/posture/split/T6 authority; issue hash-bound H6 feasibility and matched-
+  cohort decision; preserve T6 E0 unchanged; commit only minimal code/contracts/evidence after
+  focused validation.
+- Skills: `dataset-contract-leakage-guard`, `experiment-lineage-reproducibility`, `scientific-
+  ablation-controller`, `safe-refactor-test-guardian`, `project-state-steward`.
+- [x] `H6-01` `[DONE]` Map existing H6/T6 evidence and freeze semantics
+  - Evidence: Inspected current registry, effective-window authority, E0 preflight, and stale
+    pre-review H6 inventory; current H6 semantics are fixed but current pooled availability is
+    not yet evidenced.
+- [x] `H6-02` `[DONE]` Measure only missing H6 feasibility evidence
+  - Evidence: Current H5 read-only audit bound snapshot
+    ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e and split
+    557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b; 33,166 valid matched
+    targets; H5 causality/video/actor/split violations all zero; 96 missing-CVAT-history targets
+    recorded separately.
+- [x] `H6-03` `[DONE]` Register minimal temporal route amendment
+  - Evidence: Historical H5 reused and rebound; current 33166-row H5 bundle manifest, loader
+    smoke, and minimal route amendment pass.
+- [x] `H6-04` `[DONE]` Validate and close the reconciliation
+  - Evidence: Commit 7cd9041; H5 current closure and matched cohort recorded; bundle hash,
+    focused tests, loader smoke, route validator, E0 preflight, and outer-access denial pass; no
+    training or paid GPU.
+
+
+
+
+### ROI-EXAMPLE-20260807-01 - Create pig frame actor bbox ROI examples
+
+- Prompt: Create a project-local example folder containing images derived from a pig frame,
+  actor bbox, and feeder/drinker/toy ROI annotations.
+- Status: `DONE`.
+- Opened: `2026-08-07T18:02:30+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `codex_roi_examples_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `0c53ca6674babf0cec0976f94c9bfdd099f6cf073d8f237c9b741422390f36fe`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `6`.
+- Lease expires: `2026-08-07T18:47:54+07:00`.
+- Block SHA256: `1aa10aa97a2c95037aab5192eb9ba3d1e4df5c6673abec18642ceb8909a8ade4`.
+- Acceptance: Folder contains frame bbox image, actor crop, ROI illustration, and a hash-bound
+  manifest; source/reviewed authorities remain unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `EXAMPLE-1` `[DONE]` Select source frame, actor bbox, and canonical ROI annotations
+  - Evidence: Canonical ROI COCO, source frame, and actor bbox verified; source paths exist and
+    frame dimensions match 1280x720.
+- [x] `EXAMPLE-2` `[DONE]` Generate example images and manifest
+  - Evidence: Generated outputs/roi_bbox_examples_20260807 with three valid JPGs and
+    manifest.json; all images reload successfully and source hashes/coordinates are recorded.
+- [x] `EXAMPLE-3` `[DONE]` Reconcile project state and close task
+  - Evidence: Final manifest parse passed; output folder contains exactly three JPG examples and
+    manifest.json; rendered images were visually inspected; git diff --check passed; pre-
+    existing dirty paths were preserved and generator script removed.
+
+
+
+
+### C2V2-20260807-03 - Lightning remote CPU preflight
+
+- Prompt: Verify only local and remote CPU-safe E0 connectivity, transport and dry readiness;
+  stop before GPU allocation or E0.
+- Status: `BLOCKED`.
+- Opened: `2026-08-07T18:06:25+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `5135d783a4eb1d37c1b99296d0ffdd510f1961ce60cfefb332306c02867564d8`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `2`.
+- Lease expires: `2026-08-07T19:23:58+07:00`.
+- Block SHA256: `74acd49b8ac727d2646b4a867a6c3b3fd337ab72ef4017adca8d3023381c5aae`.
+- Acceptance: E0 package authority and minimal transfer inventory are verified; local tooling
+  and non-secret Lightning connectivity are checked; stop at UI/SSH checkpoint unless a verified
+  no-cost CPU Studio connection exists; no GPU or training.
+- Skills: `experiment-lineage-reproducibility`, `dataset-contract-leakage-guard`, `safe-
+  refactor-test-guardian`, `project-state-steward`.
+- [ ] `P2-01` `[BLOCKED]` Verify local E0 authority and inventory
+  - Next: Provide or authorize the canonical FOLD_3 B3 T6 RGB geometry motion wrapper; do not
+    create a Lightning Studio before resolution.
+- [ ] `P2-02` `[TODO]` Check local tooling and Lightning evidence
+  - Next: Inspect VS Code, OpenSSH, and non-secret remote configuration.
+- [ ] `P2-03` `[TODO]` Perform remote CPU preflight or hand off
+  - Next: Use only verified CPU connection or return the exact UI action.
+- [ ] `P2-04` `[TODO]` Record bounded Phase 2 handoff
+  - Next: Commit reusable evidence if any and verify no GPU allocation.
+
+### ROI-EXAMPLE-20260807-02 - Create softened pen ROI illustration
+
+- Prompt: Create a sibling ROI illustration with softened masked areas, a visible pen label, and
+  larger high-contrast toy/drinker/feeder labels while preserving canonical ROI geometry.
+- Status: `DONE`.
+- Opened: `2026-08-07T18:34:47+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `codex_roi_softened_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `97c2bca4f46e157f1fb987069647291ee4b775e40628d4081816b81c11fbecd8`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:06:54+07:00`.
+- Block SHA256: `876befbb0c0232739efcd841352598a7f4e055111fbcecfca6a8960d36faaa3d`.
+- Acceptance: New image exists beside the original; outside-pen black areas are
+  softened/obscured, pen and ROI labels are readable, original image remains unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `EDIT-1` `[DONE]` Define pen soft-mask and label style
+  - Evidence: Original ROI image and canonical COCO geometry inspected; plan is a sibling JPEG
+    with soft-edged obscuration outside the pen quadrilateral and larger high-contrast labels.
+- [x] `EDIT-2` `[DONE]` Render new softened ROI image
+  - Evidence: Created 04_roi_softened_pen_labels.jpg; visual inspection confirms
+    blurred/softened outside areas, visible PEN label, and larger high-contrast ROI labels.
+    Manifest records the new output hash.
+- [x] `EDIT-3` `[DONE]` Reconcile and close
+  - Evidence: New image and manifest parse successfully; visual inspection passed; original
+    03_roi_feeder_drinker_toy.jpg remains a separate unchanged file; temporary renderer removed;
+    git diff --check passed.
+
+
+
+
+### ROI-EXAMPLE-20260807-03 - Refine softened pen label layout
+
+- Prompt: Reduce excessive blur in the PEN area and separate PEN and TOY labels in a new ROI
+  illustration variant.
+- Status: `DONE`.
+- Opened: `2026-08-07T18:42:22+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `codex_roi_refine_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `1dc853b1471d439cfa5db6de886b6aaf0710908a909bdcd52bbcb688a03ed57a`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:14:03+07:00`.
+- Block SHA256: `3735095fea98c0887fa783d00134a862b05920a0f78f2ac2085ecfcc99f7044a`.
+- Acceptance: New v2 image has lighter softening, non-overlapping PEN/TOY labels, preserved ROI
+  geometry, and original variants unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `REFINE-1` `[DONE]` Set revised blur and label positions
+  - Evidence: Current variant inspected; v2 will reduce Gaussian blur from sigma 18 to 8, reduce
+    the outside veil, and move PEN to upper-left/center away from TOY.
+- [x] `REFINE-2` `[DONE]` Render v2 image and validate
+  - Evidence: Rendered 05_roi_softened_pen_labels_v2.jpg and visually verified lighter outside
+    softening with separated PEN and TOY labels; manifest updated with output hash.
+- [x] `REFINE-3` `[DONE]` Close and reconcile
+  - Evidence: Manifest parses with v2 output hash and 1280x720 dimensions; original variants
+    remain separate; temporary renderer removed; git diff --check passed.
+
+
+
+
+### C2V2-20260807-04 - Repair frozen E0 executable contract
+
+- Prompt: Create the narrow B3 T6 FOLD_3 RGB geometry6 motion12 E0 executable wrapper and
+  manifest; no remote, GPU, training, data, H5, or posture changes.
+- Status: `BLOCKED`.
+- Opened: `2026-08-07T18:44:15+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `667a6f7486958846b9cc780becd2e94e2075b1de8a2a04f05e22e428b79d40aa`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `4`.
+- Lease expires: `2026-08-07T19:38:25+07:00`.
+- Block SHA256: `d6f345502c397a44bb5220104553c8c2cbfcc17191d8b3851b82a74c6f38972b`.
+- Acceptance: Exact E0 wrapper and manifest resolve B3/T6/FOLD_3/seed 20260804 with actor RGB,
+  geometry 6D, and motion 12D only; tests and bounded local smoke pass; Phase 2 blocker is
+  resolved.
+- Skills: `scientific-ablation-controller`, `dataset-contract-leakage-guard`, `multimodal-
+  sequence-model-builder`, `experiment-lineage-reproducibility`, `safe-refactor-test-guardian`,
   `project-state-steward`.
-- [x] `C2R-01` `[DONE]` Revalidate live authority and immutable plan
-  - Evidence: Live revalidation: main=487a55b12041889a00f6d1827297a88865e15345 dirty only pre-
-    existing memory/tmp; candidate=e212632ca252220d4f39fb92106800127ed4511b clean; plan
-    SHA256=cd96fb3d37bc0dc0f366e2a7ef76511f39e0284ed9a0a132675774697620dbce;
-    current_input_binding_no_bom status=PASS with 165305 windows, 33355 native units, 46D
-    spatial/12D motion, event rows 661220, RGB manifest and fold-event audit bound; RG04 handoff
-    independently verified; no human authority touched.
-- [x] `C2R-02` `[DONE]` Audit A12 and remaining model gates
-  - Evidence: Independent C2R-02 audit: normalized canonical test-role manifest
-    (outer_fold_id->oof_fold_id) preserved 33,355 unique native units; strict A12 scope output o
-    utputs/classification_v2/model_readiness_audit/c2r02_a12_e212632c_20260805_140000/strict_fou
-    r_fold_a12_test_role.json has structure_valid=true, FOLD_1/FOLD_3 source support, FOLD_2
-    CVAT-only and FOLD_4 legacy-only, A12=INCONCLUSIVE with explicit warnings; fold-event-weight
-    audit valid with zero errors/duplicate rows and mass conservation; reviewed RGB authority
-    manifest PASS with 245,680 loadable frame rows, 165,305 windows, zero duplicate/missing IDs
-    and order match; candidate model tests 22 passed; B0-B3 buildable and BALANCED raises
-    declared FusionExtensionPointError.
-- [x] `C2R-03` `[DONE]` Bounded contract implementation
-  - Evidence: 21 focused tests passed; compileall PASS; Ruff PASS; git diff --check PASS;
-    changed-file line scan PASS; real-cache smoke PASS for 4 windows (2 CVAT, 2 legacy), 46D
-    spatial, 12D motion, Top-K [B,6,3,10], CVAT H12 and explicit unavailable legacy history,
-    finite forward/backward, deterministic delta 0.0, forbidden/future checks 0; artifact=E:\Pig
-    ProjectStorage\PIG_Behavior_Project\outputs\classification_v2\model_readiness_audit\c2r03_re
-    al_balanced_e212632c_20260805_170000\real_balanced_contract_smoke.json
-- [x] `C2R-04` `[DONE]` Refresh readiness handoff
-  - Evidence: Fresh C2R-04 handoff=E:\PigProjectStorage\PIG_Behavior_Project\outputs\classificat
-    ion_v2\model_readiness_audit\c2r04_readiness_9dc04eb3_20260805_124500;
-    training_readiness_decision.json verdict=BLOCKED_BEFORE_PAID_GPU;
-    balanced_runner_binding_audit.json production binding=NOT_BOUND; A12=INCONCLUSIVE;
-    paid_gpu_launch_matrix.csv all paid_gpu=NO; candidate
-    commit=9dc04eb31ad1c54d6b582cbfd8e9552d27c0d773 clean; plan SHA unchanged; maturity scan
-    PASS; protected authority counts unchanged and no ledgers/GUI/data touched.
+- [x] `P2A-01` `[DONE]` Locate and freeze existing E0 execution authorities
+  - Evidence: Targeted lookup completed: current e0_l4_handoff invokes full; B3 registry and
+    historical real-cache smoke exist; no current B3 FOLD_3 training wrapper was found.
+- [ ] `P2A-02` `[BLOCKED]` Implement or rebind the minimal canonical E0 wrapper
+  - Next: Await a versioned E0 execution authority that fixes the B3 trainer, optimizer/LR,
+    epoch budget, checkpoint/resume, prediction export, and FOLD_3 inner-only settings; current
+    full launch and generic outer-test trainer cannot be substituted.
+- [ ] `P2A-03` `[TODO]` Validate the exact E0 input and fold contract
+  - Next: Run dry resolution outer-access test and bounded local smoke
+- [ ] `P2A-04` `[TODO]` Commit and amend the Phase 2 readiness artifacts
+  - Next: Update handoff inventory and cleanly commit
 
+### ROI-EXAMPLE-20260807-04 - Reduce pen and ROI haze
 
-
-
-### THESIS-20260805-27 - Draft Section 2.7 feature construction
-
-- Prompt: Write a bilingual, evidence-bounded thesis draft for Section 2.7 Spatio-Temporal
-  Feature Construction without changing code or claiming unvalidated results.
+- Prompt: Create a v3 ROI illustration with PEN label inside the pen, much lighter
+  blur/softening, and less translucent ROI overlays.
 - Status: `DONE`.
-- Opened: `2026-08-05T10:29:17+07:00`.
+- Opened: `2026-08-07T18:46:26+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `85fec63b0b62f6b1d681c6c864d8dbf24ac9bab1164a6b82527ee294638680d3`.
+- Owner session: `codex_roi_v3_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `4a54c27b35d7ba9e95b9312726344b1ee4ea741394890719bb877373589d4986`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T12:39:12+07:00`.
-- Block SHA256: `37b16a297eafecd4341483fcf45e29ef56f4167fc7aa1624304ce8bbd964647b`.
-- Acceptance: A new Section 2.7 draft contains Vietnamese meaning, original academic English,
-  evidence anchors, visual anchor decision, and explicit pending status for any unresolved
-  feature-audit authority; no implementation or generated artifact is changed.
-- Skills: `thesis-evidence-writing`.
-- [x] `THESIS27-1` `[DONE]` Inspect feature contracts and draft Section 2.7
-  - Evidence: Created
-    docs/thesis_drafts/CHAPTER_2_7_SPATIO_TEMPORAL_FEATURE_CONSTRUCTION_VI_DRAFT.md; feature
-    contracts and source builders inspected; Markdown headings and no-overlong-line scan pass;
-    existing feature_semantics_audit mismatch recorded as pending.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:17:44+07:00`.
+- Block SHA256: `fbd3b770bc851f38348304fa9c15c0021b71a4efc292e326c85df5ab194c4e5e`.
+- Acceptance: New v3 image has PEN inside the pen, reduced haze in pen and ROI regions, readable
+  non-overlapping labels, and prior variants unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `V3-1` `[DONE]` Set lighter softening and overlay opacity
+  - Evidence: PEN will be labeled inside the open bedding area at x=520,y=230, away from the
+    toy; v3 reduces outside blur and ROI fill opacity.
+- [x] `V3-2` `[DONE]` Render and inspect v3
+  - Evidence: Rendered and visually inspected 06_roi_pen_labels_v3.jpg; PEN is inside the pen,
+    separate from TOY, with lighter softening and ROI overlays.
+- [x] `V3-3` `[DONE]` Close and reconcile
+  - Evidence: V3 manifest parses with 1280x720 output and recorded hash; prior variants remain
+    unchanged; temporary renderer removed; git diff --check passed.
 
 
-### THESIS-20260805-28 - Draft Section 2.8 evidence-guided human review
 
-- Prompt: Write a bilingual, evidence-bounded thesis draft for Section 2.8 Evidence-Guided Human
-  Review without changing code, data, configs, or generated artifacts.
+
+### ROI-EXAMPLE-20260807-05 - Create flat-overlay pen ROI illustration
+
+- Prompt: Remove internal blur from the ROI illustration, use a flat translucent cover for the
+  outside/masked area, and place PEN outside the main pen image region.
 - Status: `DONE`.
-- Opened: `2026-08-05T10:53:17+07:00`.
+- Opened: `2026-08-07T18:50:35+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `cf2c643a8833d5dfaaa6e8a28b30853e76e9c15e4d075d15b0c545ed24d766e5`.
+- Owner session: `codex_roi_v4_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `36d7e7f0cff972ca52ba7fbf57749153a8661a775f6432bbd7158dca3ee11730`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T12:58:43+07:00`.
-- Block SHA256: `bfae6677d869d24b1b5bd5815e0576434950a0104f2de9861508869079695c68`.
-- Acceptance: New CHAPTER_2_8 draft contains Vietnamese meaning, original academic English,
-  evidence anchors, visual anchor decision, and explicit claim boundaries; no software-
-  documentation jargon in manuscript prose; no invented metrics or thresholds.
-- Skills: `thesis-evidence-writing`.
-- [x] `THESIS28-1` `[DONE]` Inspect review authorities and draft Section 2.8
-  - Evidence: Created docs/thesis_drafts/CHAPTER_2_8_EVIDENCE_GUIDED_HUMAN_REVIEW_VI_DRAFT.md;
-    inspected outline, evidence map, current review contracts, candidate-selection code,
-    decision contract, consistency audit, reproduction contract, and current-state authority;
-    line/heading/semantic scans pass; no code, config, data, or generated artifacts changed.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:22:05+07:00`.
+- Block SHA256: `9f81a69c6cc46b82716cbe2cfc4358b47ab321d5d7532d9fcfe42ccdf3d61a2e`.
+- Acceptance: New v4 image uses no Gaussian blur, has a flat translucent outside overlay with
+  PEN label outside the main pen area, readable ROI labels, and prior variants unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `V4-1` `[DONE]` Define outside overlay and PEN placement
+  - Evidence: Outside/masked pixels will receive a flat translucent neutral overlay only; no
+    Gaussian or other blur will be applied. PEN label will be placed in the upper-left outside
+    region.
+- [x] `V4-2` `[DONE]` Render and inspect v4
+  - Evidence: Rendered and visually inspected 07_roi_flat_pen_labels_v4.jpg; outside area uses a
+    flat neutral cover with no blur, PEN is outside the main image area, and ROI labels remain
+    readable.
+- [x] `V4-3` `[DONE]` Close and reconcile
+  - Evidence: V4 manifest parses with 1280x720 output and recorded hash; prior variants remain
+    unchanged; temporary renderer removed; git diff --check passed.
 
 
-### STEW-20260805-29 - Reconcile thesis skill ledger after Section 2.8
 
-- Prompt: Record the verified skill use and evidence for the Section 2.8 thesis draft without
-  altering scientific artifacts.
+
+### ROI-EXAMPLE-20260807-06 - Render pen boundary line and outside cover
+
+- Prompt: Represent PEN only by the black-to-image boundary line; cover the exterior with a flat
+  color and preserve the pen interior and other ROI annotations.
 - Status: `DONE`.
-- Opened: `2026-08-05T10:59:35+07:00`.
+- Opened: `2026-08-07T18:54:28+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `7ed8f23cd8bd9c78aa53eb1970a3e16d160794d4811c38cea8083c46ec87b6ec`.
+- Owner session: `codex_roi_boundary_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `e9289dc9bb37dd863ca50bde7bf39f43e11775851657fae1f5798a737411b752`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T12:00:27+07:00`.
-- Block SHA256: `3b808070821d5fa3ca24f268d7bd8e57545abd0ff49d69f7ecb3e65a2006d916`.
-- Acceptance: Skill portfolio records thesis-evidence-writing and iterative-retrieval use,
-  evidence paths, reuse boundary, and no source/data changes.
-- Skills: `project-state-steward`.
-- [x] `STEW29-1` `[DONE]` Update skill portfolio and verify memory/docs scans
-  - Evidence: Updated .agents/memory/11_SKILL_PORTFOLIO.md with the Section 2.8 skill-use
-    ledger. Draft line/heading/semantic scans and git diff-check pass. Memory validator and
-    governance test report 13 passed/1 failed only because pre-existing short tasks
-    C2V2-20260804-06, C2V2-20260805-02, C2V2-20260805-06 and C2V2-20260805-08 exceed the legacy
-    120-line budget; no new source/data/config artifact changed.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:32:46+07:00`.
+- Block SHA256: `a4f7362e8d3005871a43a8f5c715437e67fdaaf8cde6677e96a44059c76e1ed6`.
+- Acceptance: New image has a boundary line for PEN, flat exterior cover without internal blur,
+  unchanged pen interior, readable feeder/drinker/toy ROIs, and prior variants preserved.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `BOUNDARY-1` `[DONE]` Define connected outside mask and boundary
+  - Evidence: Canonical background inspected; external black-to-image connected region will be
+    represented by its external contour only, with a flat exterior cover and no internal blur.
+- [x] `BOUNDARY-2` `[DONE]` Render and inspect boundary variant
+  - Evidence: Rendered and visually inspected 08_roi_pen_boundary_line_v5.jpg using
+    data/annotations/scene/mask.png; PEN boundary is clean, exterior is flat-covered, and
+    feeder/drinker/toy ROIs remain readable.
+- [x] `BOUNDARY-3` `[DONE]` Close and reconcile
+  - Evidence: V5 manifest parses with 1280x720 output and recorded hash; source mask geometry is
+    used; prior variants remain unchanged; temporary renderer removed; git diff --check passed.
 
 
-### THESIS-20260805-30 - Revise Section 2.7 with implementation-bound formulas
 
-- Prompt: Refine the bilingual Section 2.7 draft by adding only code-supported mathematical
-  definitions and correcting reviewer overclaims about temporal history, schema dimensions, and
-  social branch.
+
+### ROI-EXAMPLE-20260807-07 - Use outside pen label and equal ROI font sizes
+
+- Prompt: Replace PEN outside label with OUTSIDE PEN and render OUTSIDE PEN, TOY, DRINKER, and
+  FEEDER at a common font scale.
 - Status: `DONE`.
-- Opened: `2026-08-05T11:04:42+07:00`.
+- Opened: `2026-08-07T19:06:53+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `128c6b131e406b38c7f4ea97a5f166b9a7962185083acf9d2da28a6f4337d1e6`.
+- Owner session: `codex_roi_labels_20260807`.
+- Owner runtime session: `019fdbdd-91e3-7f60-a23e-2027ec1ebff0`.
+- Owner token SHA256: `da183a16afc5393694e06689df9ea67014c2ddd6d4c650de592abfc148cd0235`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T12:14:31+07:00`.
-- Block SHA256: `2aef5f2cded4d8b112b3a1743ba54ec151ccf59eb4917b8515887f9cfb6ea32f`.
-- Acceptance: Section 2.7 contains implementation-bound formulas for geometry, pair validity,
-  motion, aggregation, ROI and base social distance; distinguishes masks from model X, preserves
-  temporal history conditionally, avoids unsupported 46D/social-final claims, and passes
-  Markdown scans; no code/data/config/output changes.
-- Skills: `thesis-evidence-writing`.
-- [x] `THESIS30-1` `[DONE]` Audit feature formulas and patch Section 2.7
-  - Evidence: Section 2.7 updated with code-traceable formulas for geometry, pair validity,
-    velocity/shape rates, acceleration, validity-aware aggregation/coverage, axis-aligned ROI
-    geometry and nearest-partner selection; formula artifact has zero control characters, zero
-    lines over 100 characters, and read-back review passed.
+- Revision: `6`.
+- Lease expires: `2026-08-07T19:38:24+07:00`.
+- Block SHA256: `7ef2af12349f5e945520af6a67de71baf14470da079c20cbc9d21e68463b2336`.
+- Acceptance: New v6 image uses OUTSIDE PEN outside the mask, all requested labels share one
+  font scale, mask boundary and ROI geometry are preserved, and prior variants remain unchanged.
+- Skills: `computer-vision-opencv`, `project-state-steward`.
+- [x] `LABEL-1` `[DONE]` Set standard label and common font size
+  - Evidence: Standardized wording to OUTSIDE PEN and selected one shared font scale for OUTSIDE
+    PEN, TOY, DRINKER, and FEEDER.
+- [x] `LABEL-2` `[DONE]` Render and inspect v6
+  - Evidence: Rendered and visually inspected 09_roi_outside_pen_equal_labels_v6.jpg; OUTSIDE
+    PEN is outside the mask and all four requested labels use shared FONT_SCALE 0.80.
+- [x] `LABEL-3` `[DONE]` Close and reconcile
+  - Evidence: V6 manifest parses with 1280x720 output and recorded hash; prior variants remain
+    unchanged; temporary renderer removed; git diff --check passed.
 
 
-### THESIS-20260805-31 - Write Section 2.9 temporal windows
 
-- Prompt: Create evidence-bounded Vietnamese and English thesis prose for Section 2.9 on
-  temporal windows, Hidden eligibility, and leakage controls.
-- Status: `DONE`.
-- Opened: `2026-08-05T11:56:31+07:00`.
+
+### C2V2-20260807-05 - Freeze E0 inner-only execution authority
+
+- Prompt: Close only the missing B3 T6 FOLD_3 inner-only E0 execution authority without
+  Lightning GPU or E0 training.
+- Status: `BLOCKED`.
+- Opened: `2026-08-07T19:22:06+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `7ddeb86fdb08d74f84d49eae4e4bc4f5a6814ad680f106404c72dee5727d8d16`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T12:35:51+07:00`.
-- Block SHA256: `f87b6ea105c32205a8afce8d15d0b59855f973d70626d3427f9aa7fa95756cf3`.
-- Acceptance: Reader-facing draft; implemented formulas only; native and model windows distinct;
-  temporal access and Hidden policy exact; grouped leakage controls explicit; missing final
-  manifests marked pending; no code or experiment changes.
-- Skills: `thesis-evidence-writing`.
-- [x] `THESIS31-1` `[DONE]` Audit and write Section 2.9
-  - Evidence: Section 2.9 Markdown created; registry, builder, Hidden policy, split contracts,
-    and audit boundaries reviewed; control-character and overlong-line scans pass; no code or
-    experiment changes.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `299c6d5a115b30e6d0afc98a31e03fb6ac4d7befb67e69e77df3beef45753d98`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_v2_e0_a12b_posture_20260806`.
+- Revision: `12`.
+- Lease expires: `2026-08-07T21:56:20+07:00`.
+- Block SHA256: `7e389f57c07213d47372976d2d094f65fb745856bd1da8652ee8e28ae460cda7`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `d203f8c1ea3f948586e88cff93d25068c3bdec34ea48ba3b038a563b83f613c4`.
+  - Timestamp: 2026-08-07T19:59:50+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 1
+  - Prior block SHA256: 072b8cb81ce899b28b7c2e20a174cde09a1abc836a64328c5ccc88518539c405
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: resume-after-context-recovery-under-current-user-authorization
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `0f0f54301453fcf6713d3255afe4863d93c1409dfb9780c2a12d5e48b4eb3b2b`.
+  - Timestamp: 2026-08-07T20:00:31+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 2
+  - Prior block SHA256: b6423b61c4eee7c78cf62b8dcb068df891d0fe5b57646ac62eb8f3d9943789ff
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: recover-owner-token-lost-during-context-handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `a65b237858bfe2043b7a87525d33d245dbc652120258d80af115f3e8b0ad975a`.
+  - Timestamp: 2026-08-07T20:00:57+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 3
+  - Prior block SHA256: bf8bde3fb5d61cb4fc1fcf50735337362847b6494b9b496e79c8f6407892b0dc
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: establish-continuation-owner-token-after-context-handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `80e24381eeed3e40377045b488e333a27e7f83347f7af7c867dc737a2c18b175`.
+  - Timestamp: 2026-08-07T20:18:23+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 6
+  - Prior block SHA256: a36ef4753fa3564d7afa2c196e25a492fbdef4727acd3771809ced831183c834
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classificatio
+    n_v2_e0_a12b_posture_20260806
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\classification_
+    v2_e0_a12b_posture_20260806
+  - Reason: continue-phase-2b-after-test-runner-handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: One hash-bound authority and fail-closed inner-only wrapper resolve all execution-
+  critical fields, pass bounded local preflight, then promote only focused accepted changes to
+  main.
+- Skills: `scientific-ablation-controller`, `dataset-contract-leakage-guard`, `multimodal-
+  sequence-model-builder`, `experiment-lineage-reproducibility`, `safe-refactor-test-guardian`,
+  `project-state-steward`.
+- [x] `E0B-01` `[DONE]` Recover and freeze E0 execution provenance
+  - Evidence: e0_execution_authority_recovery.json records targeted field-level recovery with no
+    conflict and a bounded engineering freeze
+- [x] `E0B-02` `[DONE]` Implement the fail-closed inner-only E0 path
+  - Evidence: Fail-closed wrapper plus authority/recovery artifacts created; canonical
+    inspection, outer-test negative check, 5 contract tests, Ruff, compile, one-step CPU smoke,
+    checkpoint/resume serialization, and 10/10 inner-validation prediction export PASS.
+- [x] `E0B-03` `[DONE]` Validate the bounded local execution contract
+  - Evidence: 49 focused B3/E0 tests, py_compile, Ruff, JSON parsing, corrected-route validator,
+    source-hash-bound inspection, outer-test negative check, and one-step CPU
+    loader/forward/backward/optimizer/checkpoint/resume/prediction-export smoke PASS.
+- [ ] `E0B-04` `[BLOCKED]` Commit promote and revalidate accepted authority
+  - Next: When main is clean, integrate 38ed7f8, rerun the 49 focused tests from main, then
+    update the Phase-2 handoff with the accepted main SHA before Lightning setup.
 
 
-### THESIS-20260805-32 - Revise Section 2.7 feature construction
 
-- Prompt: Reconcile Section 2.7 with the current implementation and the attached scientific
-  review; edit only the thesis Markdown section.
-- Status: `DONE`.
-- Opened: `2026-08-05T12:10:59+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `24288a50f0dcba5512a1e2d4466987af4f93fc27a700f506f193ab227fe12fb2`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T14:35:53+07:00`.
-- Block SHA256: `11f38f747317824c31b0e29796e0110de7b1bc1e2f4ad91a837fedf85fef4d10`.
-- Acceptance: Section 2.7 reflects confirmed computation grains, masks, midpoint motion
-  semantics, multi-instance ROI handling, final feature whitelist, and no unresolved branch is
-  presented as final.
-- Skills: `thesis-evidence-writing`.
-- [x] `THESIS2732-1` `[DONE]` Audit implementation authority and review constraints
-  - Evidence: Revised
-    docs/thesis_drafts/CHAPTER_2_7_SPATIO_TEMPORAL_FEATURE_CONSTRUCTION_VI_DRAFT.md; code/config
-    authority checked for geometry.py, spatial_sequence_export.py, roi.py, social.py,
-    spatial_schema.py, motion_schema.py, feature_semantics_v2.json, trainer_contract_v2.json;
-    formulas and bilingual headings validated.
-
-
-### C2V2-20260805-10 - Bind BALANCED production runner
-
-- Prompt: Continue immutable Classification V2 pre-GPU plan by resolving the recorded production
-  runner binding blocker in an isolated candidate worktree; preserve target/history/masks,
-  native-unit aggregation, checkpoint/resume lineage, and all protected authorities; stop before
-  paid GPU/full OOF.
-- Status: `IN_PROGRESS`.
-- Opened: `2026-08-05T12:48:04+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner runtime session: `019f8f89-f8a4-7481-875a-1dfc654f8b6b`.
-- Owner token SHA256: `fba1712174f392e2823b281060d58948afb429afd27886b09896b92d1cda93d3`.
-- Worktree: `E:\PigProjectStorage\PIG_Behavior_Project\.codex_tmp\worktrees\classification_v2_rg04_social_executor`.
-- Revision: `1`.
-- Lease expires: `2026-08-05T14:48:04+07:00`.
-- Block SHA256: `08ee85d69cbb05d156978e8f4f897daafe3f3f74604f7b1f6eb233e45ede8de7`.
-- Acceptance: Candidate runner invokes BalancedCausalModel and real ModelBatch contract without
-  forbidden features, future frames, mask loss, or native-unit lineage loss; focused and bounded
-  real checks pass or blocker is recorded with evidence; plan hash and protected authorities
-  unchanged.
-- Skills: `agent-architecture-audit`.
-- [ ] `C2R-05` `[IN_PROGRESS]` Bind production runner
-  - Next: Inspect and patch candidate runner
-
-### REPO-PUSH-20260805-01 - Push latest thesis draft flow
-
-- Prompt: Commit and push the latest Section 2.7-2.9 thesis drafts without including unrelated
-  temporary artifacts or concurrent memory changes.
-- Status: `DONE`.
-- Opened: `2026-08-05T12:50:08+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `a8d6b32315f4975fc9e5f1860861d43a5889e1b68af53b2e563ffabb2cad4a28`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T13:20:49+07:00`.
-- Block SHA256: `01fa3393f69d92b7d0c6a2a291319b7b25987087b803c108e5a8373cab47f7b1`.
-- Acceptance: Only the intended 2.7, 2.8, and 2.9 Markdown drafts are committed and pushed;
-  origin/main contains the resulting commit; unrelated staged or dirty files remain untouched.
-- Skills: `agent-harness-construction,git-workflow,project-state-steward`.
-- [x] `PUSH-01` `[DONE]` Validate and commit intended thesis drafts
-  - Evidence: git diff --cached --check passed; three intended Markdown drafts have no unstaged
-    changes; no lines over 100 characters were found.
-
-
-### REPO-PUSH-20260805-02 - Commit and push latest thesis drafts
-
-- Prompt: Commit and push only the already validated Section 2.7-2.9 thesis drafts to
-  origin/main.
-- Status: `CANCELLED`.
-- Opened: `2026-08-05T12:51:02+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `46885306894845de34f266017938451c35cf4387cfadd733de21dea0056d7c9b`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `2`.
-- Lease expires: `2026-08-05T13:24:22+07:00`.
-- Block SHA256: `eace5e29d1f2029f4cfbe90700a4809e126039880bfd6126b032aa24bbc701b9`.
-- Acceptance: A new commit contains exactly the three thesis draft paths, is pushed to
-  origin/main, and post-push status confirms the remote contains it; unrelated staged or dirty
-  files remain untouched.
-- Skills: `agent-harness-construction,git-workflow,project-state-steward`.
-- [x] `PUSH-02` `[CANCELLED]` Commit and push the validated thesis drafts
-  - Evidence: User expanded scope from three thesis drafts to all current workspace changes
-    before commit/push; previous narrow acceptance is superseded.
-
-
-### REPO-PUSH-20260805-03 - Push all current workspace information
-
-- Prompt: Commit and push all current workspace changes so an external thesis-support agent can
-  read the repository state.
-- Status: `IN_PROGRESS`.
-- Opened: `2026-08-05T12:54:29+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `d7218b99aac05c09344f44c1409534c27524988df8cdf9e79331282a6f1e8d70`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `1`.
-- Lease expires: `2026-08-05T13:24:29+07:00`.
-- Block SHA256: `6d2529a8282805747fa105e70e462b6bdc77708a222f404cb330b53005e18b47`.
-- Acceptance: All files currently reported as changed or untracked are included in one commit,
-  the commit is pushed to origin/main, and post-push status confirms the remote contains it.
-- Skills: `agent-harness-construction,git-workflow,project-state-steward`.
-- [ ] `PUSH-03` `[IN_PROGRESS]` Commit and push all current workspace changes
-  - Next: Inventory status, stage all, commit, push, and verify remote
 
 ## Previous-Day Closeout
 
-- Source date: `2026-08-04`.
-- Completed: THESIS-20260803-14, C2V2-20260803-16, C2V2-20260804-01, HARNESS-20260804-01,
-  C2V2-20260804-02, THESIS-20260804-03, C2V2-20260804-03, C2V2-20260804-04, C2V2-20260804-05
-- Carried forward: THESIS-20260804-02, C2V2-20260804-06, TRACKING-20260804-03, C2V2-20260804-07;
-  active tasks remain resume capsules in short memory
-- Purge after: `2026-08-06T00:00:00+07:00`.
+- Source date: `2026-08-06`.
+- Completed: C2V2-20260806-04, C2V2-20260806-05, C2V2-20260806-08, CLASSIFICATION-20260806-01,
+  CLASSIFICATION-20260806-02, CLASSIFICATION-20260806-03, CLASSIFICATION-20260806-04
+- Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
+  CLASSIFICATION-20260806-05; active tasks remain resume capsules in short memory
+- Purge after: `2026-08-08T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 
