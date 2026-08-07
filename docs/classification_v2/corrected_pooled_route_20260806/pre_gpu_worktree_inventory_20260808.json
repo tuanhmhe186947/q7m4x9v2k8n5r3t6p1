@@ -72,5 +72,25 @@
     {"branch":"codex/rf-hybrid-v2-evidence-gate","head":"6e2e25cb","ahead_of_main":6,"classification":"REJECTED_EXPERIMENT","reason":"RF-hybrid v2 was closed with a mixed result and is not a current method."}
   ],
   "orphaned_accepted_content_before_retirement": 0,
-  "retirement_precondition": "All records classified; accepted references are present in main authority files or this immutable-SHA inventory. Dirty worktrees require normal removal only after their classified non-authoritative deltas are safely discarded under the authorized retirement operation."
+  "retirement_precondition": "All records classified; accepted references are present in main authority files or this immutable-SHA inventory. Dirty worktrees require normal removal only after their classified non-authoritative deltas are safely discarded under the authorized retirement operation.",
+  "retirement_result": {
+    "canonical_main_before_retirement": "67b63293f8e0aa82f140710ca3a2628fe35711f0",
+    "registered_worktrees_after": 2,
+    "filesystem_worktrees_removed": 55,
+    "orphaned_accepted_content_after_retirement": 0,
+    "git_worktree_metadata_pruned": true,
+    "retained_filesystem_worktree": {
+      "path": "C:/Users/ironh/Downloads/PIG_task_tracking",
+      "branch": "task/update-tracking",
+      "reason": "Concrete active RF_ACC23 runtime-confirmation task awaiting the user Windows power-mode change."
+    }
+  },
+  "retained_provenance_branches": [
+    "build/classification-v2-reviewed-rebuild-20260802-v1",
+    "codex/classification-v2-motion-contract",
+    "codex/classification-v2-rg04-social-executor",
+    "experiment/classification-v2-post-review-spatiotemporal-ablation-v1",
+    "feat/classification-v2-social-topk-k3-v1",
+    "fix/classification-v2-post-review-amendment-materialization-v1"
+  ]
 }
