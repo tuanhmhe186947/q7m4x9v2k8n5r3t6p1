@@ -146,3 +146,9 @@ config/hypercorn.toml
 
 # Git-managed temporary worktrees are not project source content
 .codex_worktrees/
+
+# Local reference copies of externally installed writing skills
+docs/writing_skills_bundle/
+
+# Superseded ad hoc note retained outside current versioned authority
+.agents/memory/extensions/ad_hoc/notes/2026-08-05-plan-authority-overrides-prior-pause.md
