@@ -940,9 +940,9 @@
 - Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
 - Owner token SHA256: `93394e1dbac2a1bccdb06727060dc7cb4fef3d75f5f5fd745b09a08369d75693`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `4`.
-- Lease expires: `2026-08-08T00:52:31+07:00`.
-- Block SHA256: `d9a0b0ce6ee8958fc07b909e1d5791883ccff9399bd7200602b20b6fa2de55ba`.
+- Revision: `6`.
+- Lease expires: `2026-08-08T01:18:57+07:00`.
+- Block SHA256: `20f79032c0e4a091daa23fd8dddf7b6cf95f7022bd9b8ddce560d51bb05fbfad`.
 - Ownership reason: `same-session-token-recovery`.
 - Ownership audit event: `c50ad7822af8006597eab454b639cf15a4dfba64cddc97f6995bfdb6b4932514`.
   - Timestamp: 2026-08-07T23:18:01+07:00
@@ -963,7 +963,7 @@
 - Skills: `agent-harness-construction`, `project-state-steward`, `experiment-lineage-
   reproducibility`, `dataset-contract-leakage-guard`, `safe-refactor-test-guardian`.
 - [ ] `PGM-01` `[BLOCKED]` Promote and validate accepted Phase-2B authority
-  - Next: obtain-authority-to-repair-stale-transfer-inventory-hash-then-rerun-focused-validation
+  - Next: resolve-root-versus-staged-uv-lock-authority-conflict-before-main-phase2b-validation
 - [ ] `PGM-02` `[TODO]` Inventory and classify reachable worktree knowledge
   - Next: Write a compact inventory and classify unique commits before deletion.
 - [ ] `PGM-03` `[TODO]` Consolidate authority and retire safe worktrees
