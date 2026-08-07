@@ -13,10 +13,12 @@
 - H5 bundle: externally managed, snapshot/split/cohort/schema-bound; loader
   plus two-source forward/loss/backward smoke pass. No H5 scientific training
   occurred.
-- E0: unchanged and locally ready at T6/FOLD_3/seed 20260804 with no history or
-  posture; preflight is PASS, outer test is BLOCKED, and paid authorization is
-  still NO. Next action: obtain explicit authorization, then run exactly one
-  L4 E0 engineering pilot; do not run S1 or H5 training in that session.
+- E0: local preflight remains PASS and outer test remains BLOCKED, but remote
+  launch preparation is now BLOCKED. The declared B3/T6/FOLD_3 handoff launches
+  a full multimodal variant with forbidden branches and requires a missing
+  FOLD_3 wrapper. Resolve that executable contract before any Lightning Studio,
+  transfer, paid authorization, or L4 action. See
+  `docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/`.
 
 ## Contract
 

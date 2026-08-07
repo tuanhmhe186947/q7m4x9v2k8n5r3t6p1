@@ -16,8 +16,11 @@ and never model inputs. The derived H5 feature bundle is externally managed and
 hash-bound to the reviewed snapshot, frozen split, cohort, and 46D schema.
 
 E0 is unchanged: `B3_ACTOR_T6_PLUS_GEOMETRY_MOTION`, T6, `FOLD_3`, seed
-`20260804`, no H5 and no posture. The existing E0 package/preflight and
-outer-test denial remain PASS/BLOCKED; paid execution remains unauthorized.
+`20260804`, no H5 and no posture. Its local preflight and outer-test denial
+remain PASS/BLOCKED, but its remote-launch package is now blocked: the current
+handoff launches a full multimodal variant and lacks the required FOLD_3
+wrapper. Resolve that executable-contract mismatch before any Lightning Studio,
+transfer, paid execution, or L4 switch. Paid execution remains unauthorized.
 
 ## S2 Top-K K=3 social branch at DEV_PASS (2026-08-04)
 
