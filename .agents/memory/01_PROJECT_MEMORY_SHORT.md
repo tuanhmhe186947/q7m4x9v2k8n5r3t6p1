@@ -522,13 +522,13 @@
 - Concurrency: `atomic-v1`.
 - Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
 - Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
-- Owner token SHA256: `f8e710270f53992711c03551fb019765f14788c8b540f903b80bbd1a7981eca5`.
+- Owner token SHA256: `eba1c5b17f8c4dab442a64da557d40bcdda5fe84dc26d2f405333143e8fb9f66`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `8`.
-- Lease expires: `2026-08-08T12:54:33+07:00`.
-- Block SHA256: `1aa803a974a4d7e3cbefb367d7d0a4041c702966fcb30ab33cd64ffbef92ae2f`.
+- Revision: `9`.
+- Lease expires: `2026-08-08T14:31:42+07:00`.
+- Block SHA256: `2a5480493364ca1bcc572761ed763a13bdec44dfccf9979e5cbf101662fb3a4f`.
 - Previous owner: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
-- Ownership reason: `User-authorized P2G3A local transport prep after lease expiry`.
+- Ownership reason: `P2G3A user continuation after lease expiry`.
 - Ownership audit event: `2d544993cefed325336dda61bcd6fb4f7b3e462849cd40e1ccdf05a0b815ec72`.
   - Timestamp: 2026-08-08T12:24:14+07:00
   - Action: expired-lease-takeover
@@ -541,6 +541,19 @@
   - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - Reason: User-authorized P2G3A local transport prep after lease expiry
+  - Authority: expired lease plus lock and CAS
+- Ownership audit event: `743da977734d73e6581e8f49e0f468f52b8bae3e98d5119b1946d20467beb2ab`.
+  - Timestamp: 2026-08-08T14:01:42+07:00
+  - Action: expired-lease-takeover
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 8
+  - Prior block SHA256: 1aa803a974a4d7e3cbefb367d7d0a4041c702966fcb30ab33cd64ffbef92ae2f
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: P2G3A user continuation after lease expiry
   - Authority: expired lease plus lock and CAS
 - Acceptance: Exact input authority and remote root are hash-bound; stale active handoff
   metadata is minimally repaired if required; fresh archive transport and remote parity pass;
