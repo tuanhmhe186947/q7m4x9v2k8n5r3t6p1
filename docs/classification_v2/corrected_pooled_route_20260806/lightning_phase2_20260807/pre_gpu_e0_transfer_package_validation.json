@@ -3,7 +3,7 @@
   "status": "PASS",
   "package_descriptor": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json",
-    "sha256": "2642d7fd897e75e15fdd128a64ac794c9df70fc5c7dfb275032fca8784f62200"
+    "sha256": "c2529f23c4b0f16fd2aef0d3ceadcf67e278b8924963d4765a25e8ad5aa6e567"
   },
   "transfer_source_aggregate": {
     "reconciliation_path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_transfer_source_aggregate_reconciliation.json",
@@ -21,6 +21,15 @@
     "torch_version": "2.12.1",
     "torchvision_version": "0.27.1"
   },
+  "remote_input_binding": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_input_bindings.json",
+    "sha256": "235c76df3df7838689c31eeb6f50114fb98944752009b2d1150d583135778c4e",
+    "realization": "TRANSFER_REQUIRED",
+    "logical_artifact_count": 5,
+    "physical_file_count": 245936,
+    "total_bytes": 9151758436,
+    "result": "PASS_LOCAL_AUTHORITY"
+  },
   "config_only_preflight": {
     "inspect": "PASS; B3/T6/FOLD_3/seed 20260804 resolved",
     "outer_test_negative_access": "PASS; BLOCKED",
@@ -28,5 +37,5 @@
     "model_training": false,
     "paid_execution": false
   },
-  "next_action": "After explicit later authorization, stage the declared inventory from the r2 immutable pre-GPU tag and repeat this CPU preflight before any GPU allocation."
+  "next_action": "Stage the declared inventory from the r3 immutable pre-GPU tag, verify remote byte parity and CPU preflight, and do not allocate a GPU."
 }

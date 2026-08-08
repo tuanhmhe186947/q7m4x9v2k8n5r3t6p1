@@ -3,8 +3,8 @@
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808-r2",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
     "package_descriptor": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json"
   },
   "source_aggregate_reconciliation": {
@@ -19,6 +19,15 @@
     "entry_point": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
     "launch_uses_variant_full": false,
     "outer_test_access": "BLOCKED"
+  },
+  "remote_e0_input_binding": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_input_bindings.json",
+    "sha256": "235c76df3df7838689c31eeb6f50114fb98944752009b2d1150d583135778c4e",
+    "remote_e0_input_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+    "realization": "TRANSFER_REQUIRED",
+    "logical_artifact_count": 5,
+    "physical_file_count": 245936,
+    "total_bytes": 9151758436
   },
   "entries": [
     {
@@ -59,8 +68,8 @@
       "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "scientific_role": "portable Phase-3 E0 handoff",
       "kind": "file",
-      "size_bytes": 8617,
-      "sha256": "287803961ffcb5ff8431f24a1c9a28194ce4ed5724a558ff7faffdfa472baf0a",
+      "size_bytes": 9182,
+      "sha256": "49e95d00c6b19335e04df96d78fd5cc574dd34f3187a80fcff50f39c7cbf06d8",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "classification": "COPY_TO_REMOTE",
@@ -102,15 +111,40 @@
     {
       "local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/spatial_memmap_bundle",
       "scientific_role": "B3 geometry 6D and motion 12D source arrays",
-      "kind": "directory",
-      "size_bytes": 74231,
-      "file_count": 2,
-      "manifest_sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0",
+      "kind": "remote_projection",
+      "size_bytes": 190432874,
+      "file_count": 4,
+      "source_manifest_sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0",
       "spatial_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
       "transfer_required": true,
       "remote_destination": "$REMOTE_E0_INPUT_ROOT/spatial_memmap_bundle",
       "classification": "COPY_TO_REMOTE",
-      "reason": "The E0 loader slices only bbox_xywh_n plus bbox_shape_n (6D) and motion_delta (12D)."
+      "remote_projection": {
+        "manifest_path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_b3_spatial_manifest.json",
+        "manifest_sha256": "ed9538aa0628b506c6d98ea7ff1205656e54f79614743d2822de1fd1666f12bb",
+        "remote_manifest_name": "spatial_memmap_manifest.json",
+        "arrays": [
+          {
+            "local_path": "C:/pig_runs/classification_v2_reviewed_rebuild_20260802_v1/candidates/train_ready/spatial_memmap_bundle/arrays/bbox_xywh_n.npy",
+            "remote_relative_path": "arrays/bbox_xywh_n.npy",
+            "size_bytes": 42318208,
+            "sha256": "cda2fe5f793243f1a1ebba90774728b2bfe5862e0fb5490839b6ac79c1660025"
+          },
+          {
+            "local_path": "C:/pig_runs/classification_v2_reviewed_rebuild_20260802_v1/candidates/train_ready/spatial_memmap_bundle/arrays/bbox_shape_n.npy",
+            "remote_relative_path": "arrays/bbox_shape_n.npy",
+            "size_bytes": 21159168,
+            "sha256": "f1ccf62ed9aba61232f9dad4424d6960d282ac76bf3bb67056166f7fba69eb3c"
+          },
+          {
+            "local_path": "C:/pig_runs/classification_v2_reviewed_rebuild_20260802_v1/candidates/train_ready/spatial_memmap_bundle/arrays/motion_delta.npy",
+            "remote_relative_path": "arrays/motion_delta.npy",
+            "size_bytes": 126954368,
+            "sha256": "3e3274bc429b499d31a4816083374fafa4d048aa8de42155bf4745fbbc70823c"
+          }
+        ]
+      },
+      "reason": "The original source manifest retains immutable local paths; this projection binds only the existing B3 geometry 6D and motion 12D shards to portable relative paths."
     },
     {
       "local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/model_readiness_audit/pre_gpu_autoresearch_q2_6c2f204_20260804_084638/reviewed_rgb_v1",
@@ -158,8 +192,8 @@
     "tracking artifacts",
     "checkpoints, logs, and caches unrelated to E0"
   ],
-  "remote_transfer_total_files": 246342,
-  "remote_transfer_total_size_gb": 8.974,
+  "remote_transfer_total_files": 246344,
+  "remote_transfer_total_size_gb": 9.16,
   "transfer_started": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
   "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",

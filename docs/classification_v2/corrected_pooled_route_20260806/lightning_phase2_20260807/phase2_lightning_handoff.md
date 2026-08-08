@@ -2,8 +2,8 @@
 
 ## Release anchor
 
-Use the immutable main ref `classification-v2-pre-gpu-authority-20260808-r2`.
-Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}`
+Use the immutable main ref `classification-v2-pre-gpu-authority-20260808-r3`.
+Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}`
 and work from that detached checkout only. No temporary worktree SHA is current.
 
 ## Ready-to-transfer package
@@ -16,8 +16,14 @@ selection. Its expected transfer is below 15 GiB;
 H5, posture, raw video, historical worktrees, unrelated caches, and secrets
 are excluded.
 
-Its r2 descriptor SHA-256 is
-`2642d7fd897e75e15fdd128a64ac794c9df70fc5c7dfb275032fca8784f62200`.
+Its r3 descriptor SHA-256 is
+`c2529f23c4b0f16fd2aef0d3ceadcf67e278b8924963d4765a25e8ad5aa6e567`.
+
+The required remote input root is
+`/teamspace/studios/this_studio/pig_e0_r3/inputs`, bound by
+`e0_remote_input_bindings.json`. Its spatial projection includes only the
+existing hash-bound B3 geometry and motion shards; it does not add ROI, social,
+H5, or posture inputs.
 
 Copy `next_phase_20260806_r2/e0_environment/uv.lock` verbatim as package-root
 `uv.lock` (SHA-256 `6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca`).
@@ -39,6 +45,7 @@ The repository-root lock is development-only and cannot substitute for it.
    ```bash
    E0_ROUTE=docs/classification_v2/corrected_pooled_route_20260806
    E0_AUTHORITY="$E0_ROUTE/next_phase_20260806_r2/e0_execution_authority.json"
+   E0_BINDINGS="$E0_ROUTE/lightning_phase2_20260807/e0_remote_input_bindings.json"
    uv run --frozen python \
      scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py \
      --authority "$E0_AUTHORITY" \

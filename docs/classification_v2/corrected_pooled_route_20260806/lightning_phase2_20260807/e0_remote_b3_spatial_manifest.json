@@ -1,0 +1,26 @@
+{
+  "schema_version": "classification_v2.e0_remote_b3_spatial_projection.v1",
+  "projection_role": "portable_path_projection_only",
+  "source_spatial_manifest": {
+    "path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/spatial_memmap_bundle/spatial_memmap_manifest.json",
+    "sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0"
+  },
+  "spatial_schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+  "arrays": {
+    "bbox_xywh_n": {
+      "path": "arrays/bbox_xywh_n.npy",
+      "sha256": "cda2fe5f793243f1a1ebba90774728b2bfe5862e0fb5490839b6ac79c1660025",
+      "shape": [165305, 16, 4]
+    },
+    "bbox_shape_n": {
+      "path": "arrays/bbox_shape_n.npy",
+      "sha256": "f1ccf62ed9aba61232f9dad4424d6960d282ac76bf3bb67056166f7fba69eb3c",
+      "shape": [165305, 16, 2]
+    },
+    "motion_delta": {
+      "path": "arrays/motion_delta.npy",
+      "sha256": "3e3274bc429b499d31a4816083374fafa4d048aa8de42155bf4745fbbc70823c",
+      "shape": [165305, 16, 12]
+    }
+  }
+}

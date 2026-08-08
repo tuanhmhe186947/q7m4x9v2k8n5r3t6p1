@@ -33,10 +33,16 @@
     "outer_test_access": "BLOCKED"
   },
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
-    "required_checkout": "git checkout --detach classification-v2-pre-gpu-authority-20260808",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
+    "required_checkout": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r3",
     "status": "IMMUTABLE_TAG_REQUIRED_BEFORE_REMOTE_SETUP"
+  },
+  "remote_input_bindings": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_input_bindings.json",
+    "sha256": "235c76df3df7838689c31eeb6f50114fb98944752009b2d1150d583135778c4e",
+    "remote_e0_input_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+    "realization": "TRANSFER_REQUIRED"
   },
   "do_not_execute": true,
   "download_manifest": "$E0_OUT/download_hash_manifest.json",
@@ -110,7 +116,7 @@
   },
   "installation_command": "uv sync --frozen --python 3.11 --extra pt",
   "launch_binding_note": "The canonical inner-only wrapper verifies source hashes, binds FOLD_3 train/validation roles, rejects test, and never invokes the full multimodal runner.",
-  "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --execution-authorization REQUIRED",
+  "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_input_bindings.json --output-dir $E0_OUT --device cuda --mode train --execution-authorization REQUIRED",
   "outer_test_exclusion": {
     "confusion_matrices": false,
     "data_mount": false,
@@ -130,7 +136,7 @@
     "max_wall_hours": 4.0,
     "paid_retries": 0
   },
-  "resume_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --resume-checkpoint $E0_RESUME_CHECKPOINT --execution-authorization REQUIRED",
+  "resume_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_remote_input_bindings.json --output-dir $E0_OUT --device cuda --mode train --resume-checkpoint $E0_RESUME_CHECKPOINT --execution-authorization REQUIRED",
   "schema_version": "classification_v2.e0_l4_handoff.v1",
   "status": "NOT_EXECUTED_HANDOFF_ONLY"
 }

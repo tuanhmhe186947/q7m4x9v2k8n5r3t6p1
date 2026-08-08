@@ -1,0 +1,22 @@
+{
+  "schema_version": "classification_v2.e0_remote_data_bindings.v1",
+  "status": "TRANSFER_REQUIRED_R3",
+  "remote_e0_input_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+  "paths": {
+    "effective_window_index": "/teamspace/studios/this_studio/pig_e0_r3/inputs/effective_window_index.csv",
+    "spatial_memmap_dir": "/teamspace/studios/this_studio/pig_e0_r3/inputs/spatial_memmap_bundle",
+    "rgb_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs/reviewed_rgb_v1",
+    "grouped_fold_roles": "/teamspace/studios/this_studio/pig_e0_r3/inputs/native_unit_outer_roles.csv",
+    "event_weight_manifest": "/teamspace/studios/this_studio/pig_e0_r3/inputs/fold_event_weight_manifest.csv"
+  },
+  "source_authorities": {
+    "effective_window_index_sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+    "spatial_source_manifest_sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0",
+    "remote_b3_spatial_projection": "e0_remote_b3_spatial_manifest.json",
+    "rgb_cache_index_sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68",
+    "rgb_cache_manifest_sha256": "481c703f8cd3fea907438570e391d3878ea6e1cb825e2f2ea1959ad90fd4e604",
+    "grouped_fold_roles_sha256": "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
+    "event_weight_manifest_sha256": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d"
+  },
+  "outer_test_access": "BLOCKED"
+}

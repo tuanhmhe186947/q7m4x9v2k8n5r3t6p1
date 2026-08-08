@@ -54,6 +54,10 @@ PHASE2_REMOTE_READINESS = TRANSFER_PACKAGE.with_name(
 TRANSFER_RECONCILIATION = TRANSFER_PACKAGE.with_name(
     "e0_transfer_source_aggregate_reconciliation.json"
 )
+REMOTE_INPUT_BINDINGS = TRANSFER_PACKAGE.with_name("e0_remote_input_bindings.json")
+REMOTE_SPATIAL_PROJECTION = TRANSFER_PACKAGE.with_name(
+    "e0_remote_b3_spatial_manifest.json"
+)
 E0_ENVIRONMENT_LOCK = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "next_phase_20260806_r2/e0_environment/uv.lock"
@@ -131,6 +135,12 @@ def test_e0_handoff_uses_the_canonical_inner_only_command() -> None:
     assert "--variants full" not in handoff["launch_command"]
     assert WRAPPER.name in handoff["launch_command"]
     assert "--resume-checkpoint $E0_RESUME_CHECKPOINT" in handoff["resume_command"]
+    assert handoff["pre_gpu_main_authority"]["git_ref"] == (
+        "classification-v2-pre-gpu-authority-20260808-r3"
+    )
+    remote_bindings = handoff["remote_input_bindings"]
+    assert remote_bindings["sha256"] == sha256(REMOTE_INPUT_BINDINGS.read_bytes()).hexdigest()
+    assert remote_bindings["realization"] == "TRANSFER_REQUIRED"
     assert handoff["installation_command"] == (
         "uv sync --frozen --python 3.11 --extra pt"
     )
@@ -208,7 +218,7 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
 
     assert sha256(TRANSFER_PACKAGE.read_bytes()).hexdigest() == recorded_hash
     assert package["pre_gpu_main_authority"]["git_ref"] == (
-        "classification-v2-pre-gpu-authority-20260808-r2"
+        "classification-v2-pre-gpu-authority-20260808-r3"
     )
     assert inventory["pre_gpu_main_authority"]["git_ref"] == package[
         "pre_gpu_main_authority"
@@ -227,6 +237,16 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
     ]["versioned_files"]
     assert package["effective_environment"]["required_extra"] == "pt"
     assert package["canonical_e0"]["outer_test_access"] == "BLOCKED"
+    assert package["remote_input_bindings"]["sha256"] == sha256(
+        REMOTE_INPUT_BINDINGS.read_bytes()
+    ).hexdigest()
+    assert package["remote_input_bindings"]["spatial_projection_sha256"] == sha256(
+        REMOTE_SPATIAL_PROJECTION.read_bytes()
+    ).hexdigest()
+    assert package["remote_input_bindings"]["realization"] == "TRANSFER_REQUIRED"
+    assert package["remote_input_bindings"]["path"] in package["staging_layout"][
+        "versioned_files"
+    ]
     assert validation["status"] == "PASS"
     assert validation["package_descriptor"]["sha256"] == recorded_hash
     assert readiness["pre_gpu_main_authority"]["transfer_package_sha256"] == recorded_hash
@@ -236,6 +256,44 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
         TRANSFER_RECONCILIATION.read_bytes()
     ).hexdigest()
     assert validation["config_only_preflight"]["outer_test_negative_access"] == "PASS; BLOCKED"
+
+
+def test_e0_remote_input_projection_binds_only_the_required_b3_shards() -> None:
+    inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
+    bindings = json.loads(REMOTE_INPUT_BINDINGS.read_text(encoding="utf-8"))
+    projection = json.loads(REMOTE_SPATIAL_PROJECTION.read_text(encoding="utf-8"))
+
+    assert bindings["remote_e0_input_root"].endswith("/pig_e0_r3/inputs")
+    assert set(bindings["paths"]) == {
+        "effective_window_index",
+        "spatial_memmap_dir",
+        "rgb_root",
+        "grouped_fold_roles",
+        "event_weight_manifest",
+    }
+    assert set(projection["arrays"]) == {
+        "bbox_xywh_n",
+        "bbox_shape_n",
+        "motion_delta",
+    }
+    spatial = next(
+        entry
+        for entry in inventory["entries"]
+        if entry["local_path"].endswith("/spatial_memmap_bundle")
+    )
+    remote_projection = spatial["remote_projection"]
+    assert spatial["kind"] == "remote_projection"
+    assert spatial["file_count"] == 4
+    assert remote_projection["manifest_sha256"] == sha256(
+        REMOTE_SPATIAL_PROJECTION.read_bytes()
+    ).hexdigest()
+    assert {
+        record["remote_relative_path"] for record in remote_projection["arrays"]
+    } == {
+        "arrays/bbox_xywh_n.npy",
+        "arrays/bbox_shape_n.npy",
+        "arrays/motion_delta.npy",
+    }
 
 
 def _git_blob_bytes(blob_sha1s: list[str]) -> dict[str, bytes]:
