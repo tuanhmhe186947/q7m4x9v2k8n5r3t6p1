@@ -40,7 +40,8 @@
       "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
       "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
       "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
-      "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json"
+      "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json",
+      "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_transfer_source_aggregate_reconciliation.json"
     ],
     "required_external_payload": "Exactly the transfer-required entries in remote_e0_transfer_inventory.json.",
     "excluded": [

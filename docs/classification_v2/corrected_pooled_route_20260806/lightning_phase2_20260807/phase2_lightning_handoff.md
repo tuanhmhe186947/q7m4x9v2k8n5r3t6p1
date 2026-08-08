@@ -10,13 +10,14 @@ and work from that detached checkout only. No temporary worktree SHA is current.
 
 The package contract is `pre_gpu_e0_transfer_package.json`, backed by
 `remote_e0_transfer_inventory.json`. It contains only the canonical wrapper,
-E0 authority/handoff, Python source, `pyproject.toml`, staged lock, and the
-hash-bound external data selection. Its expected transfer is below 15 GiB;
+E0 authority/handoff, Python source, `pyproject.toml`, staged lock, the
+inventory-bound reconciliation control, and the hash-bound external data
+selection. Its expected transfer is below 15 GiB;
 H5, posture, raw video, historical worktrees, unrelated caches, and secrets
 are excluded.
 
 Its r2 descriptor SHA-256 is
-`f47d22e59b15684140c59ca2f3c65d2e97937d2b91631f34e9201915860b14c0`.
+`2642d7fd897e75e15fdd128a64ac794c9df70fc5c7dfb275032fca8784f62200`.
 
 Copy `next_phase_20260806_r2/e0_environment/uv.lock` verbatim as package-root
 `uv.lock` (SHA-256 `6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca`).

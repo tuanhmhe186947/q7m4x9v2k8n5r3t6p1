@@ -7,7 +7,7 @@
     "git_ref": "classification-v2-pre-gpu-authority-20260808-r2",
     "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}",
     "transfer_package": "pre_gpu_e0_transfer_package.json",
-    "transfer_package_sha256": "f47d22e59b15684140c59ca2f3c65d2e97937d2b91631f34e9201915860b14c0"
+    "transfer_package_sha256": "2642d7fd897e75e15fdd128a64ac794c9df70fc5c7dfb275032fca8784f62200"
   },
   "paid_execution_authorization": "NO",
   "gpu_allocation_authorized": "NO",

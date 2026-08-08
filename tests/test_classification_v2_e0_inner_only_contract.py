@@ -48,6 +48,9 @@ TRANSFER_PACKAGE_SHA256 = TRANSFER_PACKAGE.with_suffix(".sha256")
 TRANSFER_PACKAGE_VALIDATION = TRANSFER_PACKAGE.with_name(
     "pre_gpu_e0_transfer_package_validation.json"
 )
+PHASE2_REMOTE_READINESS = TRANSFER_PACKAGE.with_name(
+    "phase2_remote_readiness_decision.json"
+)
 TRANSFER_RECONCILIATION = TRANSFER_PACKAGE.with_name(
     "e0_transfer_source_aggregate_reconciliation.json"
 )
@@ -200,6 +203,7 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
     package = json.loads(TRANSFER_PACKAGE.read_text(encoding="utf-8"))
     inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
     validation = json.loads(TRANSFER_PACKAGE_VALIDATION.read_text(encoding="utf-8"))
+    readiness = json.loads(PHASE2_REMOTE_READINESS.read_text(encoding="utf-8"))
     recorded_hash = TRANSFER_PACKAGE_SHA256.read_text(encoding="utf-8").split()[0]
 
     assert sha256(TRANSFER_PACKAGE.read_bytes()).hexdigest() == recorded_hash
@@ -218,10 +222,14 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
     assert package["payload_inventory"]["sha256"] == sha256(
         TRANSFER_INVENTORY.read_bytes()
     ).hexdigest()
+    assert str(TRANSFER_RECONCILIATION.relative_to(ROOT)).replace("\\", "/") in package[
+        "staging_layout"
+    ]["versioned_files"]
     assert package["effective_environment"]["required_extra"] == "pt"
     assert package["canonical_e0"]["outer_test_access"] == "BLOCKED"
     assert validation["status"] == "PASS"
     assert validation["package_descriptor"]["sha256"] == recorded_hash
+    assert readiness["pre_gpu_main_authority"]["transfer_package_sha256"] == recorded_hash
     assert validation["transfer_source_aggregate"]["file_count"] == 403
     assert validation["transfer_source_aggregate"]["total_bytes"] == 7438035
     assert validation["transfer_source_aggregate"]["reconciliation_sha256"] == sha256(
