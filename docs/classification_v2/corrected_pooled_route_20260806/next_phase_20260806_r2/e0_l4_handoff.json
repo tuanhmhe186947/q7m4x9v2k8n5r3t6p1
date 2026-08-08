@@ -33,9 +33,9 @@
     "outer_test_access": "BLOCKED"
   },
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
-    "required_checkout": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r3",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r4",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r4^{commit}",
+    "required_checkout": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r4",
     "status": "IMMUTABLE_TAG_REQUIRED_BEFORE_REMOTE_SETUP"
   },
   "remote_input_bindings": {

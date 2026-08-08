@@ -4,10 +4,10 @@
   "decision": "PRE_GPU_MAIN_TAGGED_READY_FOR_LIGHTNING_SETUP",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r4",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r4^{commit}",
     "transfer_package": "pre_gpu_e0_transfer_package.json",
-    "transfer_package_sha256": "c2529f23c4b0f16fd2aef0d3ceadcf67e278b8924963d4765a25e8ad5aa6e567"
+    "transfer_package_sha256": "e1d4c69e14d30d901fc9023b1406e8136aa890fb67e7a46ac37ed430f81f82f5"
   },
   "paid_execution_authorization": "NO",
   "gpu_allocation_authorized": "NO",

@@ -2,8 +2,8 @@
 
 ## Release anchor
 
-Use the immutable main ref `classification-v2-pre-gpu-authority-20260808-r3`.
-Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}`
+Use the immutable main ref `classification-v2-pre-gpu-authority-20260808-r4`.
+Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r4^{commit}`
 and work from that detached checkout only. No temporary worktree SHA is current.
 
 ## Ready-to-transfer package
@@ -16,8 +16,8 @@ selection. Its expected transfer is below 15 GiB;
 H5, posture, raw video, historical worktrees, unrelated caches, and secrets
 are excluded.
 
-Its r3 descriptor SHA-256 is
-`c2529f23c4b0f16fd2aef0d3ceadcf67e278b8924963d4765a25e8ad5aa6e567`.
+Its r4 descriptor SHA-256 is
+`e1d4c69e14d30d901fc9023b1406e8136aa890fb67e7a46ac37ed430f81f82f5`.
 
 The required remote input root is
 `/teamspace/studios/this_studio/pig_e0_r3/inputs`, bound by

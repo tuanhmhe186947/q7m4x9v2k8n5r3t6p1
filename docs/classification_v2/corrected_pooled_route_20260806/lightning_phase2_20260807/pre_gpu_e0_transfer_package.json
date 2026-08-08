@@ -2,9 +2,9 @@
   "schema_version": "classification_v2.pre_gpu_e0_transfer_package.v1",
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
-    "checkout_command": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r3"
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r4",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r4^{commit}",
+    "checkout_command": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r4"
   },
   "package_root": "$REMOTE_PROJECT_ROOT",
   "effective_environment": {
@@ -19,7 +19,7 @@
     "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
     "authority_sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
     "handoff_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
-    "handoff_sha256": "49e95d00c6b19335e04df96d78fd5cc574dd34f3187a80fcff50f39c7cbf06d8",
+    "handoff_sha256": "4ef0ace0098f582e1da2bb3d925e8e98ac5fdb9e1d0baec58d748f4db59aad51",
     "wrapper_path": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
     "wrapper_sha256": "64a63f2450a978aeaca8a5e42f7b438ef78f3e9291b68cdfb9a0cca4fe3afe61",
     "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
@@ -30,7 +30,7 @@
   },
   "payload_inventory": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json",
-    "sha256": "0962eed067efca963be71ecfc2ecd9dfa8bb84b0fb70f2296e4602a49304028a",
+    "sha256": "1a8f14b42cf38030934939ca71138cb9100e337ee83bba35f297570ca24002c5",
     "external_data_binding": "Entries classify source, destination, role, size, and hash; do not copy unlisted data."
   },
   "remote_input_bindings": {
@@ -44,6 +44,7 @@
   "staging_layout": {
     "versioned_files": [
       "pyproject.toml",
+      "README.md",
       "src/pig_behavior",
       "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
       "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",

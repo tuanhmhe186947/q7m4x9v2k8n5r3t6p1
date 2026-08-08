@@ -136,7 +136,7 @@ def test_e0_handoff_uses_the_canonical_inner_only_command() -> None:
     assert WRAPPER.name in handoff["launch_command"]
     assert "--resume-checkpoint $E0_RESUME_CHECKPOINT" in handoff["resume_command"]
     assert handoff["pre_gpu_main_authority"]["git_ref"] == (
-        "classification-v2-pre-gpu-authority-20260808-r3"
+        "classification-v2-pre-gpu-authority-20260808-r4"
     )
     remote_bindings = handoff["remote_input_bindings"]
     assert remote_bindings["sha256"] == sha256(REMOTE_INPUT_BINDINGS.read_bytes()).hexdigest()
@@ -218,7 +218,7 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
 
     assert sha256(TRANSFER_PACKAGE.read_bytes()).hexdigest() == recorded_hash
     assert package["pre_gpu_main_authority"]["git_ref"] == (
-        "classification-v2-pre-gpu-authority-20260808-r3"
+        "classification-v2-pre-gpu-authority-20260808-r4"
     )
     assert inventory["pre_gpu_main_authority"]["git_ref"] == package[
         "pre_gpu_main_authority"
@@ -247,6 +247,7 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
     assert package["remote_input_bindings"]["path"] in package["staging_layout"][
         "versioned_files"
     ]
+    assert "README.md" in package["staging_layout"]["versioned_files"]
     assert validation["status"] == "PASS"
     assert validation["package_descriptor"]["sha256"] == recorded_hash
     assert readiness["pre_gpu_main_authority"]["transfer_package_sha256"] == recorded_hash
@@ -294,6 +295,11 @@ def test_e0_remote_input_projection_binds_only_the_required_b3_shards() -> None:
         "arrays/bbox_shape_n.npy",
         "arrays/motion_delta.npy",
     }
+    readme_entry = next(
+        entry for entry in inventory["entries"] if entry["local_path"] == "README.md"
+    )
+    assert readme_entry["size_bytes"] == (ROOT / "README.md").stat().st_size
+    assert readme_entry["sha256"] == sha256((ROOT / "README.md").read_bytes()).hexdigest()
 
 
 def _git_blob_bytes(blob_sha1s: list[str]) -> dict[str, bytes]:

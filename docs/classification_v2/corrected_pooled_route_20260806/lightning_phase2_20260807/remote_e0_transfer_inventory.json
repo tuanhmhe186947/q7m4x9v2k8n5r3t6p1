@@ -3,8 +3,8 @@
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808-r3",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r3^{commit}",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r4",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r4^{commit}",
     "package_descriptor": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json"
   },
   "source_aggregate_reconciliation": {
@@ -69,7 +69,7 @@
       "scientific_role": "portable Phase-3 E0 handoff",
       "kind": "file",
       "size_bytes": 9182,
-      "sha256": "49e95d00c6b19335e04df96d78fd5cc574dd34f3187a80fcff50f39c7cbf06d8",
+      "sha256": "4ef0ace0098f582e1da2bb3d925e8e98ac5fdb9e1d0baec58d748f4db59aad51",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "classification": "COPY_TO_REMOTE",
@@ -85,6 +85,17 @@
       "remote_destination": "$REMOTE_PROJECT_ROOT/pyproject.toml",
       "classification": "COPY_TO_REMOTE",
       "reason": "Required together with the existing environment lock for reproducible remote CPU setup."
+    },
+    {
+      "local_path": "README.md",
+      "scientific_role": "package metadata required by pyproject.toml",
+      "kind": "file",
+      "size_bytes": 9964,
+      "sha256": "a7604496d2d915d8dcd8fbed6c962975e949d50606afee4d3f47fcb97602b208",
+      "transfer_required": true,
+      "remote_destination": "$REMOTE_PROJECT_ROOT/README.md",
+      "classification": "COPY_TO_REMOTE",
+      "reason": "pyproject.toml declares this file as project readme metadata during frozen environment realization."
     },
     {
       "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_environment/uv.lock",
@@ -192,7 +203,7 @@
     "tracking artifacts",
     "checkpoints, logs, and caches unrelated to E0"
   ],
-  "remote_transfer_total_files": 246344,
+  "remote_transfer_total_files": 246345,
   "remote_transfer_total_size_gb": 9.16,
   "transfer_started": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
