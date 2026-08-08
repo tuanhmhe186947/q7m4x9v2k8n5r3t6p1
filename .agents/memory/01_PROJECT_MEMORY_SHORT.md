@@ -517,18 +517,18 @@
 - Prompt: Phase 2G: resolve current R2/R3 E0 input and handoff authority, repair only active
   stale bindings, archive-transfer exact registered source and inputs to Lightning CPU, verify
   parity and CPU preflight, stop before GPU.
-- Status: `IN_PROGRESS`.
+- Status: `DEFERRED`.
 - Opened: `2026-08-08T09:30:06+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
 - Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
-- Owner token SHA256: `eba1c5b17f8c4dab442a64da557d40bcdda5fe84dc26d2f405333143e8fb9f66`.
+- Owner token SHA256: `f352832f0b3c17272671f9fe13feb5811565a7b292eaaceca94f871e40b646b0`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `9`.
-- Lease expires: `2026-08-08T14:31:42+07:00`.
-- Block SHA256: `2a5480493364ca1bcc572761ed763a13bdec44dfccf9979e5cbf101662fb3a4f`.
+- Revision: `17`.
+- Lease expires: `2026-08-08T17:42:23+07:00`.
+- Block SHA256: `83022adc7a86b3599d20e5acb632fa8a9eb224509bb27181881a302db4034dd3`.
 - Previous owner: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
-- Ownership reason: `P2G3A user continuation after lease expiry`.
+- Ownership reason: `same-session-token-recovery`.
 - Ownership audit event: `2d544993cefed325336dda61bcd6fb4f7b3e462849cd40e1ccdf05a0b815ec72`.
   - Timestamp: 2026-08-08T12:24:14+07:00
   - Action: expired-lease-takeover
@@ -555,6 +555,84 @@
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - Reason: P2G3A user continuation after lease expiry
   - Authority: expired lease plus lock and CAS
+- Ownership audit event: `66d4c0da89960c8c20725b7734f767e5537e8f0cf10a0f6845efa0f97c861253`.
+  - Timestamp: 2026-08-08T15:56:57+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 10
+  - Prior block SHA256: 769542e8b1b5089ad0ffdad6a39e01ec80da651a1e7f1b1290dffc399cdf6dc1
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: resume_p2g3a_fast_after_context_handoff
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `3e5d821067acfb77fa2c8614c943436b5235820ea0738dd60c7d792db4405001`.
+  - Timestamp: 2026-08-08T16:39:00+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 11
+  - Prior block SHA256: a8c5f9377dbb6c26e8d107dcacfa4dda60f5078e94588202b91b2bf3b347fcaf
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: checkpoint_p2g3a_fast_transport_preparation
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `296fed43cd4796c75087f3f10aab23ad70859d7a5d2ac9b647cb74d672fdf278`.
+  - Timestamp: 2026-08-08T16:39:52+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 12
+  - Prior block SHA256: 43c12cb01af708f8af4317df1bac9450992485c52906a9821c502d8bcbc2806a
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: record_p2g3a_fast_preparation_checkpoint
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `f2ae4a1c4b0fc3ec4bf06fb29342adaf95f7bba9e108fa236596f3faeae48168`.
+  - Timestamp: 2026-08-08T16:40:26+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 13
+  - Prior block SHA256: d03f00ef073c2ab894590408a88d5277cd2dcd1b218da3c892c0e38aea863060
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: record_p2g3a_fast_preparation_checkpoint
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `62798b2856c4824e3edd253303aa56565ec31faa12bd0693494d2303974e1c5b`.
+  - Timestamp: 2026-08-08T16:41:11+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 14
+  - Prior block SHA256: b8c260c3ff95c862102b6c5006b841495d201b46e0489592fd30c70f8e1e51a2
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: checkpoint_p2g3a_fast_in_progress
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `958687052f59a8ee812de348480f042a535352526edfdb43dc929070ea73d694`.
+  - Timestamp: 2026-08-08T16:42:23+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 15
+  - Prior block SHA256: bacb5307b577b720916b57293f461c96256e07399da7326c4a10a2f942bebd99
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: defer_p2g3_after_local_transport_ready
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
 - Acceptance: Exact input authority and remote root are hash-bound; stale active handoff
   metadata is minimally repaired if required; fresh archive transport and remote parity pass;
   CPU-only E0 preflight and outer-test block pass; no GPU or E0 training occurs.
@@ -571,10 +649,18 @@
     R3; portable five-input binding and B3 spatial projection added; source bytes unchanged;
     package and dependent hashes rebound. Focused E0 contract suite passed 12/12 under uv
     --frozen --extra pt.
-- [ ] `P2G-3` `[IN_PROGRESS]` Archive transfer and CPU-only remote preflight
-  - Next: Perform P2G-3A only: re-verify the five R4 input artifacts, create deterministic split
-    TAR transport artifacts and local roundtrip evidence outside Git, and generate but do not
-    execute upload or remote reassembly scripts. Do not connect to Lightning or transfer data.
+- [ ] `P2G-3` `[DEFERRED]` Archive transfer and CPU-only remote preflight
+  - Next: Manual next action: run C:\Users\ironh\AppData\Local\Temp\classification_v2_e0_r4_fast
+    _transport_20260808_r2\upload_p2g3a_fast_archives.ps1 from normal PowerShell, then run
+    verify_extract_p2g3a_fast.py remotely against the bound input root. Do not allocate GPU.
+
+
+
+
+
+
+
+
 
 
 
