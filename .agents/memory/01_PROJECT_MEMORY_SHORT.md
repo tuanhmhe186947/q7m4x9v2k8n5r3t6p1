@@ -517,16 +517,16 @@
 - Prompt: Phase 2G: resolve current R2/R3 E0 input and handoff authority, repair only active
   stale bindings, archive-transfer exact registered source and inputs to Lightning CPU, verify
   parity and CPU preflight, stop before GPU.
-- Status: `IN_PROGRESS`.
+- Status: `BLOCKED`.
 - Opened: `2026-08-08T09:30:06+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
 - Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
 - Owner token SHA256: `efaf36bb653e48b49dc14b8c61632c5f6c2fe2f52ca0fa7b01d7730beea2a3fc`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `5`.
-- Lease expires: `2026-08-08T12:13:26+07:00`.
-- Block SHA256: `a13451ff56d38276b66651dc514204ab48f448ecfde71e2aabc84b091a0a1883`.
+- Revision: `6`.
+- Lease expires: `2026-08-08T12:16:05+07:00`.
+- Block SHA256: `3a40cce241fcb5acc37611ab2b497a35b8d370d8fb77d87497ab2759ad92cbc5`.
 - Acceptance: Exact input authority and remote root are hash-bound; stale active handoff
   metadata is minimally repaired if required; fresh archive transport and remote parity pass;
   CPU-only E0 preflight and outer-test block pass; no GPU or E0 training occurs.
@@ -543,10 +543,18 @@
     R3; portable five-input binding and B3 spatial projection added; source bytes unchanged;
     package and dependent hashes rebound. Focused E0 contract suite passed 12/12 under uv
     --frozen --extra pt.
-- [ ] `P2G-3` `[IN_PROGRESS]` Archive transfer and CPU-only remote preflight
-  - Next: Verify the exact partial R2 tree, create and locally roundtrip-check one source-only
-    archive, transfer and parity-verify the source and declared inputs on the Lightning CPU
-    Studio, then run only CPU preflight.
+- [ ] `P2G-3` `[BLOCKED]` Archive transfer and CPU-only remote preflight
+  - Next: Blocked: direct tar-over-SSH transfer of the five-artifact 9,151,758,436-byte E0 input
+    bundle to /teamspace/studios/this_studio/pig_e0_r3/inputs exceeded the bounded execution
+    window and failed with broken pipe plus OSError Errno 22; immediate read-only remote
+    inspection confirmed the root is empty (0 files, 0 bytes). No retry, resume, overwrite, or
+    remote deletion occurred. Local read-only full-input SHA-256 inventory process PID 15476
+    remains active with no output file yet. Await explicit authorization for a byte-preserving
+    transport that can persist beyond the tool boundary without requiring both the 9.15-GB
+    archive and extracted inputs simultaneously on the 15-GB remote disk; then re-inspect the
+    empty root and make one fresh, hash-verified realization.
+
+
 
 
 ## Previous-Day Closeout
