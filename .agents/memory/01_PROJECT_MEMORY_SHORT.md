@@ -459,6 +459,59 @@
 
 
 
+### C2V2-20260808-01 - Reconcile pre-GPU transfer aggregate authority
+
+- Prompt: Phase 2D: prove the 46-byte transfer source aggregate delta file by file, repair only
+  stale provenance metadata and direct dependent package binding, create successor tag, and
+  stage exact payload without cloud, GPU, or E0.
+- Status: `DONE`.
+- Opened: `2026-08-08T07:33:27+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `292d88678a256a355965a226e2d5cc503594de7506d6d0d8bacd8ac4b71abc77`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `7`.
+- Lease expires: `2026-08-08T09:21:40+07:00`.
+- Block SHA256: `a89a8000c093a8afd396cf03c5c41df9421ceef42e6899a3a721fd91f4eaeb52`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `ad84401587f89aee8ee0b27a1baf149cf65e74a53e497dada6bbc2da365b5715`.
+  - Timestamp: 2026-08-08T08:39:25+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 5
+  - Prior block SHA256: 3fe21a2d609ede45e4a75f7c7e7f1c93c75c8422f2e4ca77d89e256376f7c48d
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: same-thread owner-token recovery after execution-host interruption before Phase 2E
+    staging
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: Prove the 403-file source aggregate file by file; change only stale transfer
+  metadata and direct dependent bindings; pass focused validators; create a successor immutable
+  tag; stage and hash the exact payload outside Git with no missing or unregistered files; do
+  not contact Lightning or execute E0.
+- Skills: `experiment-lineage-reproducibility`, `safe-refactor-test-guardian`, `project-state-
+  steward`, `agent-harness-construction`.
+- [x] `P2D-1` `[DONE]` Prove source aggregate delta
+  - Evidence: e0_transfer_source_aggregate_reconciliation.json: 403 registered files and 403
+    resolved files; one SIZE_DIFF at e0_inner_only.py; aggregate delta +46; canonical overlay
+    SHA-256 1e95eef matches current E0 authority.
+- [x] `P2D-2` `[DONE]` Repair and rebind metadata
+  - Evidence: b1d8f4fe9930baa8b8c5b80fefbfa1d36c596e9f; 11 focused E0 contract tests,
+    py_compile, Ruff, and diff checks PASS
+- [x] `P2D-3` `[DONE]` Tag and stage payload
+  - Evidence: Fresh source-only staging at C:\Users\ironh\AppData\Local\Temp\classification_v2_p
+    re_gpu_e0_r2_source403_b59d234_phase2e_019fd69a: 403 files, 7438035 bytes, deterministic
+    inventory SHA256 52dbbe0095c26e2438ea2f197960a904733634e27adda0daa2557c0bf675532d, file-
+    level parity PASS with zero missing, unregistered, path, size, or hash mismatches; focused
+    E0 contract suite 11 passed.
+
+
+
+
 ## Previous-Day Closeout
 
 - Source date: `2026-08-07`.
