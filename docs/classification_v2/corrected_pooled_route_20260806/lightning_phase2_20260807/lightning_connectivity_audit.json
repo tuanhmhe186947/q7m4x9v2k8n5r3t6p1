@@ -1,7 +1,7 @@
 {
   "schema_version": "classification_v2.lightning_connectivity_audit.v1",
   "status": "PRE_GPU_MAIN_READY_E0_AUTHORITY_FROZEN_REMOTE_NOT_CONFIGURED",
-  "pre_gpu_main_authority_ref": "classification-v2-pre-gpu-authority-20260808",
+  "pre_gpu_main_authority_ref": "classification-v2-pre-gpu-authority-20260808-r2",
   "local": {
     "vscode_version": "1.132.0",
     "vscode_available": true,

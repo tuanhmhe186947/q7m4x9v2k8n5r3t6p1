@@ -2,8 +2,8 @@
 
 ## Release anchor
 
-Use the immutable main ref `classification-v2-pre-gpu-authority-20260808`.
-Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}`
+Use the immutable main ref `classification-v2-pre-gpu-authority-20260808-r2`.
+Resolve it with `git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}`
 and work from that detached checkout only. No temporary worktree SHA is current.
 
 ## Ready-to-transfer package
@@ -14,6 +14,9 @@ E0 authority/handoff, Python source, `pyproject.toml`, staged lock, and the
 hash-bound external data selection. Its expected transfer is below 15 GiB;
 H5, posture, raw video, historical worktrees, unrelated caches, and secrets
 are excluded.
+
+Its r2 descriptor SHA-256 is
+`f47d22e59b15684140c59ca2f3c65d2e97937d2b91631f34e9201915860b14c0`.
 
 Copy `next_phase_20260806_r2/e0_environment/uv.lock` verbatim as package-root
 `uv.lock` (SHA-256 `6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca`).

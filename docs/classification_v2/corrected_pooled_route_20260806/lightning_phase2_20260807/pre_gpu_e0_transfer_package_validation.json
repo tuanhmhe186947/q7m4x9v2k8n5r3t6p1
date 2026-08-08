@@ -3,7 +3,14 @@
   "status": "PASS",
   "package_descriptor": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json",
-    "sha256": "7899771dd9cf6ef0194e71db794ddbb22d2893811fd26c16a80f90a2b68d6476"
+    "sha256": "f47d22e59b15684140c59ca2f3c65d2e97937d2b91631f34e9201915860b14c0"
+  },
+  "transfer_source_aggregate": {
+    "reconciliation_path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_transfer_source_aggregate_reconciliation.json",
+    "reconciliation_sha256": "3d0a1e644fbfcac19af6e5f43d27611e08eb01e233c1d53be0db1fd135b6343b",
+    "file_count": 403,
+    "total_bytes": 7438035,
+    "result": "PASS"
   },
   "staging": {
     "path_rule": ".tmp/pre_gpu_e0_stage_20260808 (temporary local validation only)",
@@ -21,5 +28,5 @@
     "model_training": false,
     "paid_execution": false
   },
-  "next_action": "After explicit later authorization, stage the declared inventory from the immutable pre-GPU tag and repeat this CPU preflight before any GPU allocation."
+  "next_action": "After explicit later authorization, stage the declared inventory from the r2 immutable pre-GPU tag and repeat this CPU preflight before any GPU allocation."
 }

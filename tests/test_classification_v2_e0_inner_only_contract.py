@@ -48,6 +48,9 @@ TRANSFER_PACKAGE_SHA256 = TRANSFER_PACKAGE.with_suffix(".sha256")
 TRANSFER_PACKAGE_VALIDATION = TRANSFER_PACKAGE.with_name(
     "pre_gpu_e0_transfer_package_validation.json"
 )
+TRANSFER_RECONCILIATION = TRANSFER_PACKAGE.with_name(
+    "e0_transfer_source_aggregate_reconciliation.json"
+)
 E0_ENVIRONMENT_LOCK = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "next_phase_20260806_r2/e0_environment/uv.lock"
@@ -201,7 +204,7 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
 
     assert sha256(TRANSFER_PACKAGE.read_bytes()).hexdigest() == recorded_hash
     assert package["pre_gpu_main_authority"]["git_ref"] == (
-        "classification-v2-pre-gpu-authority-20260808"
+        "classification-v2-pre-gpu-authority-20260808-r2"
     )
     assert inventory["pre_gpu_main_authority"]["git_ref"] == package[
         "pre_gpu_main_authority"
@@ -219,7 +222,116 @@ def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
     assert package["canonical_e0"]["outer_test_access"] == "BLOCKED"
     assert validation["status"] == "PASS"
     assert validation["package_descriptor"]["sha256"] == recorded_hash
+    assert validation["transfer_source_aggregate"]["file_count"] == 403
+    assert validation["transfer_source_aggregate"]["total_bytes"] == 7438035
+    assert validation["transfer_source_aggregate"]["reconciliation_sha256"] == sha256(
+        TRANSFER_RECONCILIATION.read_bytes()
+    ).hexdigest()
     assert validation["config_only_preflight"]["outer_test_negative_access"] == "PASS; BLOCKED"
+
+
+def _git_blob_bytes(blob_sha1s: list[str]) -> dict[str, bytes]:
+    request = ("\n".join(blob_sha1s) + "\n").encode("ascii")
+    completed = subprocess.run(
+        ["git", "cat-file", "--batch"],
+        cwd=ROOT,
+        input=request,
+        capture_output=True,
+        check=True,
+    )
+    payload = completed.stdout
+    offset = 0
+    blobs: dict[str, bytes] = {}
+    for expected_sha1 in blob_sha1s:
+        header_end = payload.index(b"\n", offset)
+        actual_sha1, object_type, size_text = payload[offset:header_end].decode().split()
+        assert actual_sha1 == expected_sha1
+        assert object_type == "blob"
+        size = int(size_text)
+        start = header_end + 1
+        end = start + size
+        blobs[actual_sha1] = payload[start:end]
+        assert payload[end : end + 1] == b"\n"
+        offset = end + 1
+    assert offset == len(payload)
+    return blobs
+
+
+def test_e0_transfer_source_aggregate_is_file_level_and_hash_bound() -> None:
+    inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
+    authority = json.loads(AUTHORITY.read_text(encoding="utf-8"))
+    reconciliation = json.loads(TRANSFER_RECONCILIATION.read_text(encoding="utf-8"))
+
+    source_entry = next(
+        entry for entry in inventory["entries"] if entry["local_path"] == "src/pig_behavior/**/*.py"
+    )
+    reconciliation_binding = inventory["source_aggregate_reconciliation"]
+    assert reconciliation_binding["path"] == str(TRANSFER_RECONCILIATION.relative_to(ROOT)).replace(
+        "\\", "/"
+    )
+    assert reconciliation_binding["sha256"] == sha256(
+        TRANSFER_RECONCILIATION.read_bytes()
+    ).hexdigest()
+
+    registered = reconciliation["registered_source_aggregate_inventory"]
+    resolved = reconciliation["resolved_base_plus_e0_overlay_inventory"]
+    registered_files = registered["files"]
+    resolved_files = resolved["files"]
+    assert registered["file_count"] == len(registered_files) == 403
+    assert resolved["file_count"] == len(resolved_files) == 403
+    assert registered["total_bytes"] == 7437989
+    assert resolved["total_bytes"] == 7438035
+    assert source_entry["file_count"] == resolved["file_count"]
+    assert source_entry["size_bytes"] == resolved["total_bytes"]
+
+    registered_by_path = {record["path"]: record for record in registered_files}
+    resolved_by_path = {record["path"]: record for record in resolved_files}
+    assert registered_by_path.keys() == resolved_by_path.keys()
+    join = reconciliation["file_join"]
+    assert join["only_registered_count"] == 0
+    assert join["only_resolved_count"] == 0
+    assert join["identical_count"] == 402
+    assert join["size_diff_count"] == join["delta_file_count"] == 1
+    assert join["hash_diff_same_size_count"] == 0
+    assert join["size_delta_sum"] == 46
+
+    delta = join["delta_files"]
+    assert delta == [
+        {
+            **delta[0],
+            "path": authority["module_path"],
+            "classification": "SIZE_DIFF",
+            "registered_size": 49809,
+            "resolved_size": 49855,
+            "size_delta": 46,
+            "registered_sha256": authority["execution_source_hashes"][authority["module_path"]],
+            "resolved_sha256": authority["execution_source_hashes"][authority["module_path"]],
+            "resolved_origin": "E0_OVERLAY",
+        }
+    ]
+
+    current_tree = subprocess.run(
+        ["git", "ls-tree", "-r", "HEAD", "--", "src/pig_behavior"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout
+    current_blobs = {}
+    for line in current_tree.splitlines():
+        metadata, path = line.split("\t", 1)
+        _, object_type, blob_sha1 = metadata.split()
+        if object_type == "blob" and path.endswith(".py"):
+            current_blobs[path] = blob_sha1
+    assert current_blobs.keys() == resolved_by_path.keys()
+    for record in resolved_files:
+        assert current_blobs[record["path"]] == record["git_blob_sha1"]
+
+    blobs = _git_blob_bytes([record["git_blob_sha1"] for record in resolved_files])
+    for record in resolved_files:
+        blob = blobs[record["git_blob_sha1"]]
+        assert len(blob) == record["size_bytes"]
+        assert sha256(blob).hexdigest() == record["sha256"]
 
 
 def test_canonical_wrapper_inspects_and_blocks_outer_test(tmp_path: Path) -> None:

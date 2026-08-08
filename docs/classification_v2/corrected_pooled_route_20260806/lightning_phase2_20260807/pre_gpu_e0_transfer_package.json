@@ -2,9 +2,9 @@
   "schema_version": "classification_v2.pre_gpu_e0_transfer_package.v1",
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
-    "checkout_command": "git checkout --detach classification-v2-pre-gpu-authority-20260808"
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r2",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}",
+    "checkout_command": "git checkout --detach classification-v2-pre-gpu-authority-20260808-r2"
   },
   "package_root": "$REMOTE_PROJECT_ROOT",
   "effective_environment": {
@@ -30,7 +30,7 @@
   },
   "payload_inventory": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json",
-    "sha256": "16b4f85a95f304c509f05b2cfeb53d5d146010fdade507d0df9092552280e9e9",
+    "sha256": "e4f5b7e1c25a698167516de8d7da6974ed313252821ee70b0987b18fa1e618e0",
     "external_data_binding": "Entries classify source, destination, role, size, and hash; do not copy unlisted data."
   },
   "staging_layout": {

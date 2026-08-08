@@ -3,9 +3,15 @@
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "pre_gpu_main_authority": {
-    "git_ref": "classification-v2-pre-gpu-authority-20260808",
-    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
+    "git_ref": "classification-v2-pre-gpu-authority-20260808-r2",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808-r2^{commit}",
     "package_descriptor": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json"
+  },
+  "source_aggregate_reconciliation": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/e0_transfer_source_aggregate_reconciliation.json",
+    "sha256": "3d0a1e644fbfcac19af6e5f43d27611e08eb01e233c1d53be0db1fd135b6343b",
+    "status": "CURRENT_CANONICAL_BYTES_PROVEN",
+    "resolution": "The 7bd67b9 base Git tree plus hash-bound E0 overlay totals 403 files and 7438035 bytes; the prior aggregate was stale by 46 bytes."
   },
   "canonical_execution_authority": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
@@ -19,7 +25,7 @@
       "local_path": "src/pig_behavior/**/*.py",
       "scientific_role": "exact E0 importable code base plus B3 dependencies",
       "kind": "directory_selection",
-      "size_bytes": 7437989,
+      "size_bytes": 7438035,
       "file_count": 403,
       "base_git_tree_sha": "03b5aca10b4b3718753540b83f04cc089d7739c6",
       "transfer_required": true,
