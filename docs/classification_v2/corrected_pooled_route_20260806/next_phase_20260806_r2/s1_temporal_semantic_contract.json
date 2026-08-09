@@ -1,0 +1,163 @@
+{
+  "schema_version": "classification_v2.s1_temporal_semantic_contract.v1",
+  "authority_version": "S1_TEMPORAL_SEMANTIC_CLOSURE_20260809",
+  "scope": "behavior_only_s1_primary_temporal_eligibility_and_inner_validation_evaluation",
+  "status": "CURRENT_FOR_S1_SEMANTIC_BINDING_NOT_AN_EXECUTION_OR_TRAINING_AUTHORITY",
+  "execution_code_base_commit": "034aec32d4a9789caf09d9bb24ff5f2347587868",
+  "authority_precedence": {
+    "stable_single_label_primary_contract": "CURRENT",
+    "superseding_contract_found": false,
+    "current_sources": [
+      {
+        "path": "src/pig_behavior/classification_v2/features/sequence_windows.py",
+        "sha256": "a4c05812fe4e1929866cbbda27b01bbe52692379eb6aa40ea3fe58796649712f",
+        "binding": "reviewed constituent labels must be stable; transition windows are not main-train eligible"
+      },
+      {
+        "path": "docs/classification_v2/corrected_pooled_route_20260806/temporal_view_screening_manifest.json",
+        "sha256": "6b8d589812f5ccee79b2fe3bb753f1d5c2368f63dc27fedab8869d79eaef835d",
+        "binding": "T6, T8, T12, and T16 are exact target-duration views without future frames"
+      }
+    ]
+  },
+  "bound_inputs": {
+    "effective_window_index": {
+      "path": "outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/effective_window_index.csv",
+      "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+      "rows": 165305
+    },
+    "fold_3_native_roles": {
+      "path": "outputs/classification_v2/model_readiness_audit/pre_gpu_autoresearch_q2_47103f6_20260804_133801/four_fold_roles_47103f6_20260804_153800/native_unit_outer_roles.csv",
+      "sha256": "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
+      "fold_id": "FOLD_3",
+      "allowed_roles": ["train", "validation"]
+    }
+  },
+  "primary_window_semantics": {
+    "PRIMARY_NATIVE_OWNER_REQUIRED": false,
+    "MULTI_NATIVE_WINDOW_SEMANTICS": "SHARED_SINGLE_LABEL_TARGET_SUPPORT",
+    "PRIMARY_SUPERVISED_POPULATION": "STABLE_SINGLE_LABEL_TARGET_WINDOWS_ONLY",
+    "valid_shared_window": "Every constituent canonical native unit is reviewed, label-resolved, eligible, in the same inner role, and has the same final behavior label as the window target.",
+    "invalid_shared_window": "Any differing, unresolved, ineligible, missing, or cross-role constituent native invalidates the primary window; identifiers remain traceable in the overlay audit.",
+    "forbidden_owner_rules": ["first native", "last native", "central native", "majority native", "endpoint native"]
+  },
+  "eligibility_materialization": {
+    "REPAIR_MODE": "ELIGIBILITY_FILTER",
+    "implementation": "src/pig_behavior/classification_v2/datasets/primary_temporal_eligibility.py",
+    "implementation_sha256": "3c915acadd585e67a1003373547f72b4ff0aae812687651096890268a6b6a3da",
+    "operation": "Create a row-preserving, hash-checked primary-S1 eligibility overlay over the authoritative effective-window index. Do not regenerate exact-view windows or tensors.",
+    "required_overlay_columns": [
+      "primary_s1_role",
+      "primary_s1_eligible",
+      "primary_s1_eligibility_status",
+      "primary_s1_eligibility_reason",
+      "primary_s1_effective_sample_weight",
+      "primary_s1_constituent_native_count"
+    ],
+    "retained_window_feature_reuse": "PASS",
+    "row_order_and_window_row_index_preserved": "PASS",
+    "mixed_label_primary_weight": 0.0,
+    "mixed_label_primary_training_rows": 0,
+    "event_weight_recomputation": {
+      "required": true,
+      "scope": "view-local FOLD_3 inner training population only",
+      "implementation": "src/pig_behavior/classification_v2/datasets/fold_event_weights.py",
+      "implementation_sha256": "b8ad4dd47969a2c36bfa1af85b23fae43b9c270ec410f9f303cb9422ca56f0fa",
+      "contract": "Rebind window_valid_for_main_train and window_sample_weight from the primary overlay before recomputing fold event weights; validation and test rows retain zero training weight."
+    }
+  },
+  "primary_native_evaluation": {
+    "PRIMARY_EVALUATOR": "EXPLICIT_WINDOW_TO_NATIVE_COLLAPSE",
+    "entry_point": "src/pig_behavior/classification_v2/evaluation/s1_primary_native_evaluator.py",
+    "entry_point_sha256": "00d442255d0665e6f7750966561c0f1e144d349a87bcd8664bfabfaa3cdd1adb",
+    "collapse_implementation": "src/pig_behavior/classification_v2/evaluation/native_temporal_collapse.py",
+    "collapse_implementation_sha256": "d1f6622954926a5508ed1e02aa733c99af783d08f3ed2c397595d2f4d8225b0c",
+    "MODEL_OUTPUT_UNIT": "WINDOW_ROW",
+    "PREDICTION_EXPORT_UNIT": "WINDOW_ROW",
+    "PRIMARY_METRIC_UNIT": "NATIVE_TEMPORAL_UNIT",
+    "COMPOSITE_KEY_DIRECT_PRIMARY_METRIC_ALLOWED": false,
+    "algorithm": [
+      "Require exactly one prediction for every selected validation window and reject direct temporal_unit_key model prediction input.",
+      "Explode each valid window prediction to every JSON constituent native key.",
+      "Aggregate overlapping votes per native with confidence-weighted voting.",
+      "Use the frozen canonical ten-class order for exact equal-score ties.",
+      "Require exactly one collapsed prediction for every expected eligible validation native before calculating Macro-F1."
+    ],
+    "canonical_tie_break": {
+      "source": "src/pig_behavior/classification_v2/evaluation/metrics.py",
+      "source_sha256": "a881cc605f43aa818b56ce727aff7ace3b02c7ca389aa90e5f5e97f3a20a6b22",
+      "label_order": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
+      "status": "PASS"
+    },
+    "native_prediction_coverage_gate": {
+      "required": true,
+      "missing_native_units": 0,
+      "duplicate_collapsed_native_predictions": 0,
+      "failure_behavior": "withhold primary metrics and return invalid audit"
+    }
+  },
+  "outer_isolation": {
+    "OUTER_REFUSAL_BEFORE_DATA_OPEN": "PASS",
+    "loader_rule": "Only train and validation may be requested; every other role, including test, outer, and q2_outer_00, is rejected before metadata CSV open.",
+    "hash_mismatch_rule": "A mismatched effective-index or role-authority hash is rejected before metadata CSV open.",
+    "evaluator_rule": "The S1 evaluator accepts in-memory validation rows only, does not open example payloads, and does not write export paths.",
+    "future_executor_mandatory_refusals": [
+      "test or outer role before dataset payload open",
+      "outer labels, metrics, prediction/export roots, or checkpoint selection",
+      "q2_outer_00 and registered outer aliases",
+      "role, split, authority, or input-hash mismatch",
+      "emission of oof_test artifacts"
+    ]
+  },
+  "metadata_only_audit": {
+    "primary_eligible_windows": 134401,
+    "mixed_label_windows": 3662,
+    "views": {
+      "T6": {"train_windows": 33300, "validation_windows": 6154, "inner_native_units": 27810, "train_native_units": 24475, "train_event_mass": 24475.0, "mean_train_windows_per_native": 1.3605720122574054, "median_train_windows_per_native": 1.0},
+      "T8": {"train_windows": 29383, "validation_windows": 5142, "inner_native_units": 27655, "train_native_units": 24324, "train_event_mass": 24324.0, "mean_train_windows_per_native": 2.0531573754316725, "median_train_windows_per_native": 2.0},
+      "T12": {"train_windows": 26442, "validation_windows": 4206, "inner_native_units": 27652, "train_native_units": 24320, "train_event_mass": 24320.0, "mean_train_windows_per_native": 1.9325657894736843, "median_train_windows_per_native": 2.0},
+      "T16": {"train_windows": 22693, "validation_windows": 3199, "inner_native_units": 27403, "train_native_units": 24098, "train_event_mass": 24098.0, "mean_train_windows_per_native": 2.5810025728276207, "median_train_windows_per_native": 3.0}
+    },
+    "common_t6_t8_t12_t16_inner_native_count": 27378,
+    "fixed_step_matched_screening_compatible": "YES",
+    "compatibility_rationale": "All valid single-label windows retain current temporal eligibility; view-local train-only event mass conserves exactly; a later registered fixed optimizer-step budget controls unequal update counts without inventing a primary native owner."
+  },
+  "validation_binding": {
+    "focused_test": {
+      "path": "tests/test_classification_v2_s1_primary_temporal_semantics.py",
+      "sha256": "9657f86829d7e6e2f2c0d427121a367e327fccf0ffbc49fe0590d85e0f64d859",
+      "covers": [
+        "mixed-label exclusion",
+        "same-label shared-window acceptance",
+        "legacy single-native acceptance",
+        "feature reuse and row preservation",
+        "train-only event-weight recomputation",
+        "explicit explode and confidence-weighted collapse",
+        "canonical tie handling",
+        "coverage failure",
+        "direct composite-key rejection",
+        "outer-role and hash-mismatch pre-open refusal"
+      ]
+    }
+  },
+  "non_changes": {
+    "reviewed_behavior_labels": "UNCHANGED",
+    "source_xml": "UNCHANGED",
+    "grouped_split_membership": "UNCHANGED",
+    "temporal_eligibility_construction": "UNCHANGED",
+    "exact_view_feature_tensors": "UNCHANGED",
+    "model_semantics": "UNCHANGED",
+    "R4": "UNCHANGED",
+    "GPU": "NOT_USED",
+    "training": "NOT_STARTED",
+    "outer_examples": "NOT_ACCESSED"
+  },
+  "not_authorized_by_this_contract": [
+    "native-unit-balanced sampling",
+    "optimizer, learning-rate, batch-size, precision, scheduler, or horizon freeze",
+    "checkpoint policy or seed-policy freeze",
+    "pre-S1 calibration execution",
+    "Stage-1 scientific trial execution",
+    "H5, H6, H12, H24, posture, or C2 activation"
+  ]
+}
