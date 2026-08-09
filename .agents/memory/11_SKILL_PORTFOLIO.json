@@ -53,7 +53,7 @@
         "templates/memory_maturity_candidate.json"
       ],
       "bundle_sha256":
-        "6d30270554a19bfb1152697ed6a3660aceaaec388fbad0cd88c8952e46a6a071",
+        "4d262e6405244e6ab1d69892f0a6c8c1a1c45feecc599566d38fa6ea491a0005",
       "git_identity": {
         "schema_version": "pig.git-tracked-identity.v1",
         "relative_path": ".agents/skills/project-state-steward/SKILL.md",
@@ -63,8 +63,8 @@
           "SKILL.md": "c1fef35035bb8f48a433d6ab474580e4a4c78523",
           "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
-          "scripts/manage_short_memory.py": "a7d05b278f79a746ad59abfe64e4ae181dc649e5",
-          "scripts/validate_governance_contracts.py": "1560259f3585f5885b566d3639480b615ab6c11a",
+          "scripts/manage_short_memory.py": "ea2f7cf727fe664eba9c0c8bb04b10c78bb1e823",
+          "scripts/validate_governance_contracts.py": "9d534314b88b7cc49f3d2caa0b47d06e7b83e125",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
         }

@@ -23,6 +23,7 @@ assert TASK_MANAGER_SPEC is not None
 assert TASK_MANAGER_SPEC.loader is not None
 TASK_MANAGER = importlib.util.module_from_spec(TASK_MANAGER_SPEC)
 TASK_MANAGER_SPEC.loader.exec_module(TASK_MANAGER)
+SHORT_MEMORY_RELATIVE = TASK_MANAGER.MEMORY_RELATIVE
 MATURITY_MANAGER_PATH = Path(__file__).with_name("manage_memory_maturity.py")
 MATURITY_MANAGER_SPEC = importlib.util.spec_from_file_location(
     "project_memory_maturity_manager",
@@ -486,6 +487,67 @@ def _check_short_checklist(root: Path) -> list[str]:
         if not purge_match or purge_match.group(1) != lifecycle_match.group("expires"):
             errors.append("short_previous_day_purge_mismatch")
     return errors
+
+
+def _resolve_active_short_memory_root(root: Path) -> tuple[Path | None, list[str]]:
+    """Use the manager's strict resolver for runtime coordination state."""
+    try:
+        coordination_root = TASK_MANAGER.resolve_coordination_root(root)
+    except TASK_MANAGER.LedgerError as exc:
+        return None, [f"short_coordination_{exc.code}"]
+    active_path = (coordination_root / SHORT_MEMORY_RELATIVE).resolve()
+    try:
+        active_path.relative_to(coordination_root)
+    except ValueError:
+        return None, ["short_coordination_path_escape"]
+    if not active_path.is_file():
+        return None, ["short_coordination_active_ledger_missing"]
+    return coordination_root, []
+
+
+def _check_tracked_short_memory_snapshot(
+    worktree: Path,
+    coordination_root: Path,
+) -> list[str]:
+    """Keep a noncanonical worktree snapshot governed as static Git content."""
+    resolved_worktree = worktree.resolve()
+    if resolved_worktree == coordination_root:
+        return []
+    relative_path = SHORT_MEMORY_RELATIVE.as_posix()
+    expected_blob_oid = _git_blob_oid(resolved_worktree, "HEAD", relative_path)
+    if expected_blob_oid is None:
+        return ["short_snapshot_git_head_unresolved"]
+    return _validate_git_tracked_file_identity(
+        resolved_worktree,
+        relative_path=relative_path,
+        expected_blob_oid=expected_blob_oid,
+        git_reference="HEAD",
+        error_prefix="short_snapshot",
+    )
+
+
+def _check_active_short_memory_state(
+    root: Path,
+    as_of: datetime | date | str | None,
+) -> dict[str, Any]:
+    """Validate canonical runtime state and local static snapshot separately."""
+    coordination_root, resolution_errors = _resolve_active_short_memory_root(root)
+    if coordination_root is None:
+        return {
+            "coordination_root": None,
+            "active_ledger_path": None,
+            "short_ttl": {"status": "FAIL", "errors": resolution_errors},
+            "errors": resolution_errors,
+        }
+    short_ttl = _check_short_ttl(coordination_root, as_of)
+    errors = [*short_ttl["errors"], *_check_short_checklist(coordination_root)]
+    errors.extend(_check_tracked_short_memory_snapshot(root, coordination_root))
+    return {
+        "coordination_root": str(coordination_root),
+        "active_ledger_path": str(coordination_root / SHORT_MEMORY_RELATIVE),
+        "short_ttl": short_ttl,
+        "errors": errors,
+    }
 
 
 def _check_active_memory(root: Path) -> list[str]:
@@ -1011,12 +1073,9 @@ def audit(
 ) -> dict[str, Any]:
     checks: dict[str, Any] = {}
     errors: list[str] = []
-    checks["short_ttl"] = _check_short_ttl(root, as_of)
-    if checks["short_ttl"]["status"] == "FAIL":
-        errors.extend(checks["short_ttl"]["errors"])
-    if checks["short_ttl"]["status"] == "RESET_REQUIRED":
-        errors.extend(checks["short_ttl"]["errors"])
-    errors.extend(_check_short_checklist(root))
+    checks["active_short_memory"] = _check_active_short_memory_state(root, as_of)
+    checks["short_ttl"] = checks["active_short_memory"]["short_ttl"]
+    errors.extend(checks["active_short_memory"]["errors"])
     errors.extend(_check_active_memory(root))
     errors.extend(_check_memory_maturity(root))
     errors.extend(_check_authority_index(root))

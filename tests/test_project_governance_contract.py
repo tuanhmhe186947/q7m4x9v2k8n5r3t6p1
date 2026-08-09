@@ -4,6 +4,7 @@ import importlib.util
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = (
@@ -693,3 +694,223 @@ def test_error_observation_requires_recovery_fields() -> None:
     assert "error_observation_missing:root_cause_hint" in errors
     assert "error_observation_missing:safe_retry" in errors
     assert "error_observation_missing:stop_condition" in errors
+
+
+def _short_memory_lines(
+    current: datetime,
+    *,
+    legacy_task_ids: str = "none",
+) -> list[str]:
+    previous_day = (current - timedelta(days=1)).date().isoformat()
+    expires = current + timedelta(days=1)
+    return [
+        "# Project Memory Short",
+        "",
+        "## Lifecycle",
+        "",
+        f"- Opened: `{current.date().isoformat()}`.",
+        f"- Expires: `{expires.isoformat()}`.",
+        f"- Legacy unmanaged task IDs: {legacy_task_ids}.",
+        "",
+        "## Active Task Checklist",
+        "",
+        "- None.",
+        "",
+        "## Previous-Day Closeout",
+        "",
+        f"- Source date: `{previous_day}`.",
+        "- Completed: none.",
+        "- Carried forward: none.",
+        f"- Purge after: `{expires.isoformat()}`.",
+    ]
+
+
+def _write_current_short_memory(root: Path, current: datetime) -> None:
+    _write_short_fixture(root, _short_memory_lines(current))
+
+
+def _coordination_worktree_fixture(tmp_path: Path):
+    canonical = tmp_path / "canonical"
+    canonical.mkdir()
+    _run_git(canonical, "init")
+    _run_git(canonical, "config", "user.email", "fixture@example.invalid")
+    _run_git(canonical, "config", "user.name", "Governance Fixture")
+    historical = datetime(2026, 8, 3, 8, tzinfo=timezone(timedelta(hours=7)))
+    current = historical + timedelta(days=2)
+    _write_current_short_memory(canonical, historical)
+    _run_git(canonical, "add", ".agents/memory/01_PROJECT_MEMORY_SHORT.md")
+    _run_git(canonical, "commit", "-m", "historical short memory")
+    fresh = tmp_path / "fresh"
+    _run_git(canonical, "worktree", "add", "--detach", str(fresh), "HEAD")
+    _write_current_short_memory(canonical, current)
+    validator = _load_module("coordination_validator", GOVERNANCE_VALIDATOR)
+    manager = _load_module("coordination_manager", TASK_MANAGER)
+    return canonical, fresh, validator, manager, current
+
+
+def _active_short_state(validator, root: Path, current: datetime):
+    return validator._check_active_short_memory_state(root, current)
+
+
+def test_active_short_memory_uses_canonical_shared_coordination_root(
+    tmp_path: Path,
+) -> None:
+    canonical, fresh, validator, manager, current = _coordination_worktree_fixture(
+        tmp_path
+    )
+
+    canonical_state = _active_short_state(validator, canonical, current)
+    fresh_state = _active_short_state(validator, fresh, current)
+
+    expected_ledger = canonical / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md"
+    assert canonical_state["errors"] == []
+    assert fresh_state["errors"] == []
+    assert manager.resolve_coordination_root(fresh) == canonical
+    assert fresh_state["coordination_root"] == str(canonical)
+    assert fresh_state["active_ledger_path"] == str(expected_ledger)
+
+
+def test_noncanonical_tracked_short_memory_snapshot_remains_static_governed(
+    tmp_path: Path,
+) -> None:
+    _, fresh, validator, _, current = _coordination_worktree_fixture(tmp_path)
+    snapshot = fresh / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md"
+    snapshot.write_text(snapshot.read_text(encoding="utf-8") + "changed\n", encoding="utf-8")
+
+    state = _active_short_state(validator, fresh, current)
+
+    assert "short_snapshot_git_unstaged_change" in state["errors"]
+
+
+def test_canonical_stale_and_over_budget_state_fail_from_each_worktree(
+    tmp_path: Path,
+) -> None:
+    canonical, fresh, validator, _, current = _coordination_worktree_fixture(tmp_path)
+    stale = current - timedelta(days=2)
+    _write_current_short_memory(canonical, stale)
+
+    for root in (canonical, fresh):
+        state = _active_short_state(validator, root, current)
+        assert state["short_ttl"]["status"] == "RESET_REQUIRED"
+        assert "short_memory_expired" in state["errors"]
+
+    task_id = "BUDGET-20260805-01"
+    lines = _short_memory_lines(current, legacy_task_ids=f"`{task_id}`")
+    checklist_end = lines.index("- None.")
+    task_lines = [
+        f"### {task_id} - oversized fixture",
+        "- Prompt: prove active task budgets use canonical state.",
+        "- Status: `IN_PROGRESS`.",
+        f"- Opened: `{current.isoformat()}`.",
+        "- Acceptance: validator fails the canonical oversized task.",
+        "- Skills: `project-state-steward`.",
+        "- [ ] `BUDGET-1` `[IN_PROGRESS]` Keep the fixture active.",
+        "  - Next: validate the canonical ledger.",
+        *[f"- Padding: {index}." for index in range(121)],
+    ]
+    lines[checklist_end : checklist_end + 1] = task_lines
+    _write_short_fixture(canonical, lines)
+
+    for root in (canonical, fresh):
+        state = _active_short_state(validator, root, current)
+        assert f"short_task_exceeds_120_line_budget:{task_id}" in state["errors"]
+
+
+def test_worktree_shadow_and_missing_canonical_ledger_fail_closed(
+    tmp_path: Path,
+) -> None:
+    canonical, fresh, validator, _, current = _coordination_worktree_fixture(tmp_path)
+    stale = current - timedelta(days=2)
+    _write_current_short_memory(canonical, stale)
+    _write_current_short_memory(fresh, current + timedelta(days=30))
+
+    shadow_state = _active_short_state(validator, fresh, current)
+
+    assert shadow_state["active_ledger_path"] == str(
+        canonical / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md"
+    )
+    assert "short_memory_expired" in shadow_state["errors"]
+    assert "short_snapshot_git_unstaged_change" in shadow_state["errors"]
+
+    (canonical / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md").unlink()
+    missing_state = _active_short_state(validator, fresh, current)
+
+    assert "short_coordination_short_memory_missing" in missing_state["errors"]
+
+
+def test_coordination_root_rejects_an_unauthorized_common_directory(
+    tmp_path: Path,
+) -> None:
+    manager = _load_module("unauthorized_root_manager", TASK_MANAGER)
+    worktree = tmp_path / "worktree"
+    candidate = tmp_path / "candidate"
+    other = tmp_path / "other"
+    worktree.mkdir()
+    (candidate / ".git").mkdir(parents=True)
+    (other / ".git").mkdir(parents=True)
+
+    def fake_run(command, **_kwargs):
+        root = command[2]
+        if root == str(worktree):
+            return subprocess.CompletedProcess(command, 0, f"{candidate / '.git'}\n", "")
+        if command[-1] == "--show-toplevel":
+            return subprocess.CompletedProcess(command, 0, f"{candidate}\n", "")
+        return subprocess.CompletedProcess(command, 0, f"{other / '.git'}\n", "")
+
+    with patch.object(manager.subprocess, "run", side_effect=fake_run):
+        try:
+            manager.resolve_coordination_root(worktree)
+        except manager.LedgerError as exc:
+            assert exc.code == "coordination_root_unauthorized"
+        else:
+            raise AssertionError("unauthorized coordination root was accepted")
+
+
+def test_managed_checkpoint_is_visible_from_a_fresh_worktree(
+    tmp_path: Path,
+) -> None:
+    canonical, fresh, validator, manager, current = _coordination_worktree_fixture(
+        tmp_path
+    )
+    ledger = manager.ShortMemoryLedger(manager.resolve_coordination_root(fresh))
+    before = ledger.memory_path.read_bytes()
+    owner_token = "coordination-owner-token-0123456789"
+    created = ledger.create(
+        task_id="COORD-20260805-01",
+        title="cross-worktree checkpoint fixture",
+        prompt="Prove the canonical ledger is visible from a fresh worktree.",
+        acceptance="The checkpoint updates only the canonical active ledger.",
+        skills=["project-state-steward"],
+        steps=[
+            {
+                "step_id": "COORD-1",
+                "summary": "Checkpoint the fixture.",
+                "next_action": "Record completion evidence.",
+            }
+        ],
+        active_step="COORD-1",
+        owner_session="coordination-session-0001",
+        owner_token=owner_token,
+        worktree=fresh,
+        now=current,
+    )
+    checkpointed = ledger.checkpoint(
+        task_id=created["task_id"],
+        step_id="COORD-1",
+        step_status="DONE",
+        evidence="Canonical checkpoint completed.",
+        next_action=None,
+        owner_session=created["owner_session"],
+        owner_token=owner_token,
+        worktree=fresh,
+        expected_revision=created["revision"],
+        expected_block_sha256=created["block_sha256"],
+        now=current + timedelta(minutes=1),
+    )
+
+    state = _active_short_state(validator, fresh, current + timedelta(minutes=1))
+
+    assert ledger.memory_path == canonical / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md"
+    assert ledger.memory_path.read_bytes() != before
+    assert checkpointed["task_status"] == "DONE"
+    assert state["errors"] == []

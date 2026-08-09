@@ -188,24 +188,118 @@ def _resolve_path(value: str | Path) -> Path:
     return Path(value).expanduser().resolve()
 
 
-def discover_coordination_root(worktree: Path) -> Path:
-    """Resolve the main worktree that owns the shared Git common directory."""
+def resolve_coordination_root(worktree: Path) -> Path:
+    """Resolve and verify the canonical shared Git coordination root."""
+    resolved_worktree = _resolve_path(worktree)
+    if not resolved_worktree.is_dir():
+        raise LedgerError(
+            "coordination_root_unresolved",
+            f"Worktree does not exist: {resolved_worktree}.",
+            "Use a registered Git worktree with the canonical short-memory ledger.",
+            "Do not create a worktree-local shadow ledger.",
+        )
     result = subprocess.run(
-        ["git", "-C", str(worktree), "rev-parse", "--git-common-dir"],
+        ["git", "-C", str(resolved_worktree), "rev-parse", "--git-common-dir"],
         check=False,
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
-        return ROOT
-    common = Path(result.stdout.strip())
+        raise LedgerError(
+            "coordination_root_unresolved",
+            "Git could not resolve the shared common directory for the worktree.",
+            "Run from a registered Git worktree or specify the canonical root.",
+            "Do not infer active coordination state from a checked-out snapshot.",
+        )
+    common_value = result.stdout.strip()
+    if not common_value:
+        raise LedgerError(
+            "coordination_root_unresolved",
+            "Git returned an empty shared common-directory path.",
+            "Repair the Git worktree registration before retrying.",
+            "Do not continue with an ambiguous coordination root.",
+        )
+    common = Path(common_value)
     if not common.is_absolute():
-        common = (worktree / common).resolve()
-    if common.name == ".git":
-        candidate = common.parent
-        if (candidate / MEMORY_RELATIVE).is_file():
-            return candidate
-    return ROOT
+        common = (resolved_worktree / common).resolve()
+    if common.name != ".git" or not common.is_dir():
+        raise LedgerError(
+            "coordination_root_invalid",
+            f"Git common directory is not a canonical .git directory: {common}.",
+            "Repair the Git worktree topology before retrying.",
+            "Do not use a coordination root outside the registered project.",
+        )
+    candidate = common.parent.resolve()
+    top_level = subprocess.run(
+        ["git", "-C", str(candidate), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if top_level.returncode != 0 or not top_level.stdout.strip():
+        raise LedgerError(
+            "coordination_root_invalid",
+            f"The candidate coordination root is not a Git worktree: {candidate}.",
+            "Repair the canonical worktree before retrying.",
+            "Do not accept an unverified coordination root.",
+        )
+    if _resolve_path(top_level.stdout.strip()) != candidate:
+        raise LedgerError(
+            "coordination_root_unauthorized",
+            "Git top-level resolution does not match the shared coordination root.",
+            "Use the canonical worktree associated with the common Git directory.",
+            "Do not route coordination state outside the authorized project root.",
+        )
+    candidate_common = subprocess.run(
+        ["git", "-C", str(candidate), "rev-parse", "--git-common-dir"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    candidate_common_value = candidate_common.stdout.strip()
+    if candidate_common.returncode != 0 or not candidate_common_value:
+        raise LedgerError(
+            "coordination_root_invalid",
+            "The candidate root cannot resolve its shared Git common directory.",
+            "Repair the canonical worktree before retrying.",
+            "Do not accept an unverified coordination root.",
+        )
+    candidate_common_path = Path(candidate_common_value)
+    if not candidate_common_path.is_absolute():
+        candidate_common_path = (candidate / candidate_common_path).resolve()
+    if candidate_common_path != common:
+        raise LedgerError(
+            "coordination_root_unauthorized",
+            "The candidate root does not share the worktree Git common directory.",
+            "Use the root registered for this Git worktree set.",
+            "Do not route coordination state to another project.",
+        )
+    memory_path = (candidate / MEMORY_RELATIVE).resolve()
+    try:
+        memory_path.relative_to(candidate)
+    except ValueError as exc:
+        raise LedgerError(
+            "coordination_root_unauthorized",
+            "The active short-memory path escapes the canonical root.",
+            "Repair the manager path constants before retrying.",
+            "Do not follow an escaped active-ledger path.",
+        ) from exc
+    if not memory_path.is_file():
+        raise LedgerError(
+            "short_memory_missing",
+            f"Short memory does not exist at {memory_path}.",
+            "Restore the canonical active ledger through the standard manager.",
+            "Do not create a second shadow ledger.",
+        )
+    return candidate
+
+
+def discover_coordination_root(worktree: Path) -> Path:
+    """Preserve manager fallback behavior for callers without Git topology."""
+    try:
+        return resolve_coordination_root(worktree)
+    except LedgerError:
+        return ROOT
 
 
 def _active_section_bounds(text: str) -> tuple[int, int]:
