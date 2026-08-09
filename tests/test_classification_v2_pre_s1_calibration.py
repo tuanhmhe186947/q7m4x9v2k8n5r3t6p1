@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -233,6 +234,69 @@ def test_hash_and_population_helpers_fail_closed() -> None:
     assert mixed["primary_s1_eligibility_status"].eq("MIXED_LABEL").all()
 
 
+def test_real_data_cpu_preflight_proves_inner_population_and_b1_inputs(
+    tmp_path: Path,
+) -> None:
+    base = _population()
+    train = _rows("train", calibration.EXPECTED_TRAIN_WINDOWS, prefix="real-train")
+    train["primary_s1_eligibility_status"] = "SINGLE_LABEL"
+    validation = _rows(
+        "validation",
+        calibration.EXPECTED_VALIDATION_WINDOWS,
+        prefix="real-validation",
+    )
+    population = calibration.CalibrationPopulation(
+        train=train,
+        validation=validation,
+        expected_native_units=pd.DataFrame(),
+        load_batch=base.load_batch,
+        close=lambda: None,
+        data_hashes={"synthetic_real_data_preflight": "a" * 64},
+        binding_audit={
+            "coverage": {
+                "train_windows_bound": calibration.EXPECTED_TRAIN_WINDOWS,
+                "validation_windows_bound": calibration.EXPECTED_VALIDATION_WINDOWS,
+                "missing_windows": 0,
+                "duplicate_windows": 0,
+                "bad_sequence_length": 0,
+                "role_violations": 0,
+                "cross_video_violations": 0,
+            }
+        },
+        image_load_audit=lambda: {
+            "source_image_loads": 0,
+            "packed_image_cache_hits": 24,
+        },
+    )
+    plan = replace(
+        _plan(tmp_path, "real_data_preflight"),
+        engineering_smoke=False,
+        device_name="cuda",
+    )
+
+    report = calibration.run_real_data_cpu_preflight(plan, population, sample_size=2)
+
+    assert report["status"] == "PASS"
+    assert report["primary_train_windows_loaded"] == calibration.EXPECTED_TRAIN_WINDOWS
+    assert (
+        report["primary_validation_windows_loaded"]
+        == calibration.EXPECTED_VALIDATION_WINDOWS
+    )
+    assert report["outer_windows_loaded"] == 0
+    assert report["real_rgb_decode_sample"] == {
+        "status": "PASS",
+        "windows": 4,
+        "cache_only": True,
+    }
+    assert report["b1_effective_inputs"] == [
+        "actor_rgb_T6",
+        "causal_frame_offsets",
+        "actor_observed_mask",
+        "registered_zero_default_quality_controls",
+        "registered_zero_default_availability_controls",
+    ]
+
+
 def test_primary_evaluator_rejects_composite_direct_missing_and_duplicate_native_predictions(
 ) -> None:
     validation = _rows("validation", 2, prefix="eval")
@@ -264,3 +328,74 @@ def test_primary_evaluator_rejects_composite_direct_missing_and_duplicate_native
     )
     with pytest.raises(Exception, match="coverage mismatch"):
         calibration.evaluate_primary_s1_validation(duplicate, validation, expected)
+
+
+def test_real_output_containment_resolves_root_output_junction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "repository"
+    root.mkdir()
+    configured_namespace = (
+        root
+        / "outputs"
+        / "classification_v2"
+        / "s1_post_temporal_closure_20260809"
+        / "pre_s1_calibration"
+    )
+    resolved_namespace = tmp_path / "external_outputs" / "pre_s1_calibration"
+    target = resolved_namespace / "path_portability_probe"
+    original_resolve = Path.resolve
+
+    def resolve_with_output_junction(path: Path, *args: object, **kwargs: object) -> Path:
+        if path == configured_namespace:
+            return resolved_namespace
+        return original_resolve(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", resolve_with_output_junction)
+    calibration._assert_safe_output_root(
+        target,
+        outputs_root=root / "outputs",
+        engineering_smoke=False,
+    )
+
+
+def test_external_outputs_root_realizes_hash_bound_input_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worktree = tmp_path / "worktree"
+    external_outputs = tmp_path / "external_outputs"
+    worktree.mkdir()
+    external_outputs.mkdir()
+    monkeypatch.setattr(
+        calibration,
+        "_read_json",
+        lambda _path: json.loads(AUTHORITY.read_text(encoding="utf-8")),
+    )
+    plan = calibration.create_calibration_plan(
+        AUTHORITY,
+        repository_root=worktree,
+        outputs_root=external_outputs,
+        output_dir=(
+            external_outputs
+            / "classification_v2"
+            / "s1_post_temporal_closure_20260809"
+            / "pre_s1_calibration"
+            / "path_realization_probe"
+        ),
+        run_id="path_realization_probe",
+        device_name="cpu",
+        engineering_smoke=True,
+    )
+    resolved = calibration._resolve_root(
+        plan.repository_root,
+        plan.authority["path_roots"]["S1_DERIVED"],
+        outputs_root=plan.outputs_root,
+    )
+    assert resolved == (
+        external_outputs
+        / "classification_v2"
+        / "s1_post_temporal_closure_20260809"
+        / "s1_primary_f3_32d5b53c_20260809_retry2"
+    )

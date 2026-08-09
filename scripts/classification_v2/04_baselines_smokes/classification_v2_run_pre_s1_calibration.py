@@ -23,6 +23,7 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Run the PRE-S1 calibration only.")
     parser.add_argument("--authority", type=Path, required=True)
+    parser.add_argument("--outputs-root", type=Path, required=True)
     parser.add_argument("--data-bindings", type=Path, required=True)
     parser.add_argument("--resume-checkpoint", type=Path)
     parser.add_argument("--run-id")
@@ -39,6 +40,7 @@ def main() -> None:
         raise SystemExit("PRE-S1 calibration requires its exact execution authorization token")
     plan = create_calibration_plan(
         args.authority,
+        outputs_root=args.outputs_root.resolve(),
         run_id=args.run_id,
         device_name=args.device,
         data_bindings_path=args.data_bindings,

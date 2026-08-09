@@ -44,11 +44,15 @@ from pig_behavior.classification_v2.models.balanced.registry import (
     model_spec_contract,
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+from pig_behavior.classification_v2.training.pre_s1_rgb_binding import (
+    DATA_BINDINGS_SCHEMA,
+    RgbBindingError,
+    resolve_execution_rgb_binding,
+)
 
 AUTHORITY_SCHEMA = "classification_v2.s1_control_and_pre_s1_calibration_authority.v1"
 CHECKPOINT_SCHEMA = "classification_v2.pre_s1_calibration_checkpoint.v1"
 PREDICTION_SCHEMA = "classification_v2.pre_s1_calibration_window_prediction.v1"
-DATA_BINDINGS_SCHEMA = "classification_v2.pre_s1_calibration_data_bindings.v1"
 RUN_KIND = "PRE_S1_CALIBRATION"
 MODEL_ID = "B1_ACTOR_T6_SEQUENCE"
 VIEW = "T6"
@@ -57,6 +61,7 @@ SEED = 20260804
 MAX_STEPS = 6246
 EVAL_STEPS = (2082, 4164, 6246)
 EXPECTED_TRAIN_WINDOWS = 33300
+EXPECTED_VALIDATION_WINDOWS = 6154
 EXPECTED_EVENT_WEIGHT_SHA256 = (
     "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72"
 )
@@ -77,6 +82,7 @@ class CalibrationPlan:
     """Resolved immutable calibration contract and non-scientific run identity."""
 
     repository_root: Path
+    outputs_root: Path
     authority_path: Path
     authority_sha256: str
     authority: Mapping[str, Any]
@@ -105,12 +111,15 @@ class CalibrationPopulation:
     load_batch: Callable[[pd.DataFrame, torch.device], ModelBatch]
     close: Callable[[], None]
     data_hashes: Mapping[str, str]
+    binding_audit: Mapping[str, Any] | None = None
+    image_load_audit: Callable[[], Mapping[str, Any]] | None = None
 
 
 def create_calibration_plan(
     authority_path: Path,
     *,
     repository_root: Path | None = None,
+    outputs_root: Path | None = None,
     output_dir: Path | None = None,
     run_id: str | None = None,
     device_name: str = "cuda",
@@ -130,6 +139,9 @@ def create_calibration_plan(
         raise PreS1CalibrationError("real calibration requires the authorized CUDA route")
     authority_path = authority_path.resolve()
     root = (repository_root or _repository_root(authority_path)).resolve()
+    resolved_outputs_root = (outputs_root or root / "outputs").resolve()
+    if not resolved_outputs_root.is_dir():
+        raise PreS1CalibrationError("calibration outputs root is unavailable")
     authority = _read_json(authority_path)
     authority_hash = _sha256_file(authority_path)
     if not engineering_smoke and authority_hash != CANONICAL_AUTHORITY_SHA256:
@@ -137,14 +149,23 @@ def create_calibration_plan(
     _validate_authority(authority)
     chosen_run_id = run_id or _new_run_id(engineering_smoke)
     _validate_run_id(chosen_run_id)
-    default_parent = root / "outputs" / "classification_v2" / "s1_post_temporal_closure_20260809"
+    default_parent = (
+        resolved_outputs_root
+        / "classification_v2"
+        / "s1_post_temporal_closure_20260809"
+    )
     namespace = "engineering_smoke" if engineering_smoke else "pre_s1_calibration"
     target = (output_dir or default_parent / namespace / chosen_run_id).resolve()
-    _assert_safe_output_root(target, root=root, engineering_smoke=engineering_smoke)
+    _assert_safe_output_root(
+        target,
+        outputs_root=resolved_outputs_root,
+        engineering_smoke=engineering_smoke,
+    )
     if target.exists() and not allow_existing_output:
         raise PreS1CalibrationError(f"immutable calibration output already exists={target}")
     return CalibrationPlan(
         repository_root=root,
+        outputs_root=resolved_outputs_root,
         authority_path=authority_path,
         authority_sha256=authority_hash,
         authority=authority,
@@ -163,10 +184,26 @@ def preflight_calibration(plan: CalibrationPlan) -> dict[str, str]:
         raise PreS1CalibrationError("authority bytes changed after plan resolution")
     authority = plan.authority
     roots = authority["path_roots"]
-    derived = _resolve_root(plan.repository_root, roots["S1_DERIVED"])
-    route = _resolve_root(plan.repository_root, roots["S1_ROUTE"])
-    route_base = _resolve_root(plan.repository_root, roots["S1_ROUTE_BASE"])
-    grouped = _resolve_root(plan.repository_root, roots["GROUPED_ROLE_AUTHORITY"])
+    derived = _resolve_root(
+        plan.repository_root,
+        roots["S1_DERIVED"],
+        outputs_root=plan.outputs_root,
+    )
+    route = _resolve_root(
+        plan.repository_root,
+        roots["S1_ROUTE"],
+        outputs_root=plan.outputs_root,
+    )
+    route_base = _resolve_root(
+        plan.repository_root,
+        roots["S1_ROUTE_BASE"],
+        outputs_root=plan.outputs_root,
+    )
+    grouped = _resolve_root(
+        plan.repository_root,
+        roots["GROUPED_ROLE_AUTHORITY"],
+        outputs_root=plan.outputs_root,
+    )
     hashes = {
         "s1_authority": plan.authority_sha256,
         "temporal_semantic": _verify_artifact(
@@ -199,7 +236,11 @@ def preflight_calibration(plan: CalibrationPlan) -> dict[str, str]:
             "FOLD_3 role authority",
         ),
         "effective_window": _verify_artifact(
-            _resolve_root(plan.repository_root, roots["EFFECTIVE_WINDOW_INDEX"])
+            _resolve_root(
+                plan.repository_root,
+                roots["EFFECTIVE_WINDOW_INDEX"],
+                outputs_root=plan.outputs_root,
+            )
             / authority["derived_population"]["source_bindings"]
             ["effective_window_index"]["relative_path"],
             authority["derived_population"]["source_bindings"]["effective_window_index"]["sha256"],
@@ -217,15 +258,19 @@ def preflight_calibration(plan: CalibrationPlan) -> dict[str, str]:
     return hashes
 
 
-def load_canonical_population(
+def load_canonical_inner_rows(
     plan: CalibrationPlan,
     hashes: Mapping[str, str],
-) -> CalibrationPopulation:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Select exactly T6/FOLD_3 inner rows; image payload remains unopened."""
 
     _assert_permitted_scope("train")
     _assert_permitted_scope("validation")
-    derived = _resolve_root(plan.repository_root, plan.authority["path_roots"]["S1_DERIVED"])
+    derived = _resolve_root(
+        plan.repository_root,
+        plan.authority["path_roots"]["S1_DERIVED"],
+        outputs_root=plan.outputs_root,
+    )
     eligibility_path = (
         derived
         / plan.authority["derived_population"]["eligibility_artifact"]
@@ -306,13 +351,17 @@ def load_canonical_population(
     _require_columns(expected, {"temporal_unit_key", "behavior_label"}, "expected natives")
     if expected["temporal_unit_key"].astype(str).duplicated().any():
         raise PreS1CalibrationError("expected validation natives are duplicated")
-    return _population_from_rows(
-        weighted,
-        validation.reset_index(drop=True),
-        expected.reset_index(drop=True),
-        hashes,
-        plan,
-    )
+    return weighted, validation.reset_index(drop=True), expected.reset_index(drop=True)
+
+
+def load_canonical_population(
+    plan: CalibrationPlan,
+    hashes: Mapping[str, str],
+) -> CalibrationPopulation:
+    """Attach only an already-proven inner RGB binding to canonical rows."""
+
+    train, validation, expected = load_canonical_inner_rows(plan, hashes)
+    return _population_from_rows(train, validation, expected, hashes, plan)
 
 
 def run_pre_s1_calibration(
@@ -431,59 +480,34 @@ def _population_from_rows(
 
     if plan.data_bindings_path is None:
         raise PreS1CalibrationError("real calibration requires a hash-bound RGB data-bindings file")
-    bindings = _read_json(plan.data_bindings_path)
-    if bindings.get("schema_version") != DATA_BINDINGS_SCHEMA:
-        raise PreS1CalibrationError("unsupported pre-S1 RGB data-bindings schema")
-    rgb = bindings.get("rgb")
-    if not isinstance(rgb, dict):
-        raise PreS1CalibrationError("RGB data bindings are absent")
-    required = {
-        "root",
-        "frame_context_sha256",
-        "window_context_sha256",
-        "packed_cache_sha256",
-        "packed_index_sha256",
-    }
-    if set(rgb) != required:
-        raise PreS1CalibrationError(
-            "RGB data bindings must contain only the exact hash-bound fields"
+    requested_roles = pd.concat(
+        [
+            train.loc[:, ["window_id", "primary_s1_role"]],
+            validation.loc[:, ["window_id", "primary_s1_role"]],
+        ],
+        ignore_index=True,
+    )
+    try:
+        rgb_binding = resolve_execution_rgb_binding(
+            data_bindings_path=plan.data_bindings_path,
+            requested_roles=requested_roles,
+            authority_sha256=plan.authority_sha256,
+            provenance_hashes=hashes,
         )
-    root = Path(str(rgb["root"])).resolve()
-    frame_path = root / "image_context_v2" / "image_frame_context_manifest.csv"
-    window_path = root / "image_context_v2" / "image_window_context_manifest.csv"
-    cache_path = root / "actor_rgb_64_full" / "packed_rgb_64_letterbox.npy"
-    index_path = root / "actor_rgb_64_full" / "packed_image_cache_index.csv"
-    image_hashes = {
-        "rgb_frame_context": _verify_artifact(
-            frame_path, str(rgb["frame_context_sha256"]), "RGB frame context"
-        ),
-        "rgb_window_context": _verify_artifact(
-            window_path, str(rgb["window_context_sha256"]), "RGB window context"
-        ),
-        "rgb_packed_cache": _verify_artifact(
-            cache_path, str(rgb["packed_cache_sha256"]), "RGB packed cache"
-        ),
-        "rgb_packed_index": _verify_artifact(
-            index_path, str(rgb["packed_index_sha256"]), "RGB packed index"
-        ),
-    }
+    except (FileNotFoundError, RgbBindingError) as exc:
+        raise PreS1CalibrationError(str(exc)) from exc
     dataset = ClassificationV2ImageSequenceDataset(
         ImageSequenceDatasetConfig(
-            frame_context_csv=frame_path,
-            window_context_csv=window_path,
-            packed_image_cache_npy=cache_path,
-            packed_image_cache_index_csv=index_path,
+            frame_context_csv=rgb_binding.frame_context_path,
+            window_context_csv=rgb_binding.window_context_path,
+            packed_image_cache_npy=rgb_binding.packed_cache_path,
+            packed_image_cache_index_csv=rgb_binding.packed_index_path,
             image_size=64,
             require_complete=True,
             require_cached_images=True,
         )
     )
     requested = set(train["window_id"].astype(str)) | set(validation["window_id"].astype(str))
-    dataset.windows = (
-        dataset.windows.loc[dataset.windows["window_id"].astype(str).isin(requested)]
-        .copy()
-        .reset_index(drop=True)
-    )
     lookup = {str(value): index for index, value in enumerate(dataset.windows["window_id"])}
     if set(lookup) != requested:
         dataset.close()
@@ -522,8 +546,107 @@ def _population_from_rows(
         expected,
         load_batch,
         dataset.close,
-        {**hashes, **image_hashes},
+        {**hashes, **rgb_binding.hashes},
+        binding_audit=rgb_binding.audit,
+        image_load_audit=dataset.image_load_audit,
     )
+
+
+def run_real_data_cpu_preflight(
+    plan: CalibrationPlan,
+    population: CalibrationPopulation,
+    *,
+    sample_size: int = 16,
+) -> dict[str, Any]:
+    """Prove real inner population and RGB loading without optimizer steps."""
+
+    if plan.engineering_smoke:
+        raise PreS1CalibrationError("real-data preflight refuses engineering-smoke plans")
+    if sample_size <= 0:
+        raise PreS1CalibrationError("real-data preflight sample size must be positive")
+    if len(population.train) != EXPECTED_TRAIN_WINDOWS:
+        raise PreS1CalibrationError("real-data preflight train population count mismatch")
+    if len(population.validation) != EXPECTED_VALIDATION_WINDOWS:
+        raise PreS1CalibrationError("real-data preflight validation population count mismatch")
+    _require_columns(
+        population.train,
+        {"primary_s1_role", "primary_s1_eligibility_status", "window_id"},
+        "real-data train population",
+    )
+    _require_columns(
+        population.validation,
+        {"primary_s1_role", "window_id"},
+        "real-data validation population",
+    )
+    if not population.train["primary_s1_role"].astype(str).eq("train").all():
+        raise PreS1CalibrationError("non-train role entered real-data preflight")
+    if not population.validation["primary_s1_role"].astype(str).eq("validation").all():
+        raise PreS1CalibrationError("non-validation role entered real-data preflight")
+    mixed_rows = int(
+        population.train["primary_s1_eligibility_status"].astype(str).eq("MIXED_LABEL").sum()
+    )
+    if mixed_rows:
+        raise PreS1CalibrationError("mixed-label row entered real-data preflight")
+    if not population.binding_audit:
+        raise PreS1CalibrationError("real-data preflight requires RGB binding audit")
+    coverage = population.binding_audit.get("coverage", {})
+    required_coverage = {
+        "train_windows_bound": EXPECTED_TRAIN_WINDOWS,
+        "validation_windows_bound": EXPECTED_VALIDATION_WINDOWS,
+        "missing_windows": 0,
+        "duplicate_windows": 0,
+        "bad_sequence_length": 0,
+        "role_violations": 0,
+        "cross_video_violations": 0,
+    }
+    for key, expected_value in required_coverage.items():
+        if coverage.get(key) != expected_value:
+            raise PreS1CalibrationError(
+                f"real-data RGB binding coverage mismatch={key}:{coverage.get(key)}"
+            )
+
+    _assert_b1_contract()
+    cpu = torch.device("cpu")
+    decoded_windows = 0
+    for rows in (population.train, population.validation):
+        sample = _deterministic_preflight_rows(rows, sample_size=sample_size)
+        batch = population.load_batch(sample, cpu)
+        if tuple(batch.target.images.shape[1:]) != (6, 3, 64, 64):
+            raise PreS1CalibrationError("real-data B1 RGB tensor shape drifted")
+        if batch.target.valid_mask.shape != (len(sample), 6):
+            raise PreS1CalibrationError("real-data B1 observed-mask shape drifted")
+        decoded_windows += len(sample)
+    image_audit = population.image_load_audit() if population.image_load_audit else {}
+    if image_audit:
+        if image_audit.get("source_image_loads") != 0:
+            raise PreS1CalibrationError("real-data preflight fell back to source media")
+        minimum_cache_hits = decoded_windows * 6
+        if image_audit.get("packed_image_cache_hits", 0) < minimum_cache_hits:
+            raise PreS1CalibrationError("real-data preflight did not decode packed RGB cache")
+    return {
+        "status": "PASS",
+        "primary_train_windows_expected": EXPECTED_TRAIN_WINDOWS,
+        "primary_train_windows_loaded": len(population.train),
+        "primary_validation_windows_expected": EXPECTED_VALIDATION_WINDOWS,
+        "primary_validation_windows_loaded": len(population.validation),
+        "mixed_label_training_rows": mixed_rows,
+        "outer_windows_loaded": 0,
+        "rgb_binding_coverage": coverage,
+        "real_rgb_decode_sample": {
+            "status": "PASS",
+            "windows": decoded_windows,
+            "cache_only": True,
+        },
+        "real_data_b1_input_audit": "PASS",
+        "b1_effective_inputs": _b1_effective_inputs(),
+        "image_load_audit": image_audit,
+    }
+
+
+def _deterministic_preflight_rows(rows: pd.DataFrame, *, sample_size: int) -> pd.DataFrame:
+    count = min(len(rows), sample_size)
+    indexes = np.linspace(0, len(rows) - 1, num=count, dtype=int)
+    return rows.iloc[indexes].reset_index(drop=True)
 
 
 def _make_b1_batch(
@@ -862,7 +985,12 @@ def _reject_frozen_overrides(overrides: Mapping[str, object] | None) -> None:
         )
 
 
-def _assert_safe_output_root(path: Path, *, root: Path, engineering_smoke: bool) -> None:
+def _assert_safe_output_root(
+    path: Path,
+    *,
+    outputs_root: Path,
+    engineering_smoke: bool,
+) -> None:
     leaf = path.name.lower()
     forbidden_leaf = {
         token
@@ -874,12 +1002,11 @@ def _assert_safe_output_root(path: Path, *, root: Path, engineering_smoke: bool)
             "outer/test prediction or export root refused before dataset payload access"
         )
     real_namespace = (
-        root
-        / "outputs"
+        outputs_root
         / "classification_v2"
         / "s1_post_temporal_closure_20260809"
         / "pre_s1_calibration"
-    )
+    ).resolve()
     if not engineering_smoke and not path.is_relative_to(real_namespace):
         raise PreS1CalibrationError(
             "real calibration output root is outside the isolated namespace"
@@ -891,7 +1018,14 @@ def _validate_run_id(run_id: str) -> None:
         raise PreS1CalibrationError("invalid or outer-scoped calibration run ID")
 
 
-def _resolve_root(root: Path, parts: Sequence[str]) -> Path:
+def _resolve_root(
+    root: Path,
+    parts: Sequence[str],
+    *,
+    outputs_root: Path,
+) -> Path:
+    if parts and parts[0] == "outputs":
+        return outputs_root.joinpath(*parts[1:])
     return root.joinpath(*parts)
 
 
@@ -1004,7 +1138,14 @@ def _git_sha() -> str | None:
 
 
 __all__ = [
-    "CalibrationPlan", "CalibrationPopulation", "PreS1CalibrationError",
-    "create_calibration_plan", "load_canonical_population", "preflight_calibration",
+    "CalibrationPlan",
+    "CalibrationPopulation",
+    "DATA_BINDINGS_SCHEMA",
+    "PreS1CalibrationError",
+    "create_calibration_plan",
+    "load_canonical_inner_rows",
+    "load_canonical_population",
+    "preflight_calibration",
+    "run_real_data_cpu_preflight",
     "run_pre_s1_calibration",
 ]
