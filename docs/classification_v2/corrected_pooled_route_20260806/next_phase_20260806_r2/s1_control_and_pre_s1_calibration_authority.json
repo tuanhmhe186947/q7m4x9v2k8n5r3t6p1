@@ -1,0 +1,436 @@
+{
+  "schema_version": "classification_v2.s1_control_and_pre_s1_calibration_authority.v1",
+  "status": "FROZEN_CONTROLS_PENDING_PRE_S1_CALIBRATION",
+  "authority_scope": "behavior_only_S1_inner_development_only",
+  "authority_classification": "NEW_USER_APPROVED_S1_CONTROL_DECISION",
+  "path_roots": {
+    "S1_ROUTE": [
+      "docs",
+      "classification_v2",
+      "corrected_pooled_route_20260806",
+      "next_phase_20260806_r2"
+    ],
+    "S1_ROUTE_BASE": ["docs", "classification_v2", "corrected_pooled_route_20260806"],
+    "S1_DERIVED_PARENT": [
+      "outputs",
+      "classification_v2",
+      "s1_post_temporal_closure_20260809"
+    ],
+    "S1_DERIVED": [
+      "outputs",
+      "classification_v2",
+      "s1_post_temporal_closure_20260809",
+      "s1_primary_f3_32d5b53c_20260809_retry2"
+    ],
+    "EFFECTIVE_WINDOW_INDEX": [
+      "outputs",
+      "classification_v2",
+      "agent_audits",
+      "post_review_frame_amendment_materialization_fa028cb_20260803_224700"
+    ],
+    "GROUPED_ROLE_AUTHORITY": [
+      "outputs",
+      "classification_v2",
+      "model_readiness_audit",
+      "pre_gpu_autoresearch_q2_47103f6_20260804_133801",
+      "four_fold_roles_47103f6_20260804_153800"
+    ]
+  },
+  "created_from": {
+    "temporal_semantic_closure": {
+      "path_root": "S1_ROUTE",
+      "relative_path": "s1_temporal_semantic_contract.json",
+      "sha256": "71188b5f13ab9214882d5f336b33e9fe7b42acd705cf175da39bee2221f21d85"
+    },
+    "temporal_view_manifest": {
+      "path_root": "S1_ROUTE_BASE",
+      "relative_path": "temporal_view_screening_manifest.json",
+      "sha256": "6b8d589812f5ccee79b2fe3bb753f1d5c2368f63dc27fedab8869d79eaef835d"
+    },
+    "experiment_funnel": {
+      "path_root": "S1_ROUTE_BASE",
+      "relative_path": "experiment_funnel.json",
+      "sha256": "e9d37f49386e91a0dd49a067b964d2475a8bb7ceb18089c42ff8cfd9acf9c80b"
+    }
+  },
+  "temporal_semantic_closure": {
+    "status": "PASS",
+    "stable_single_label_primary_contract": "CURRENT",
+    "primary_native_owner_required": false,
+    "multi_native_window_semantics": "SHARED_SINGLE_LABEL_TARGET_SUPPORT",
+    "primary_training_population": "ALL_VALID_SINGLE_LABEL_WINDOWS",
+    "mixed_label_primary_windows_after_repair": 0,
+    "d3_native_unit_balanced_sampling": "NOT_USED",
+    "retained_window_feature_reuse": "PASS"
+  },
+  "derived_population": {
+    "fold_id": "FOLD_3",
+    "allowed_roles": ["train", "validation"],
+    "eligibility_artifact": {
+      "path_root": "S1_DERIVED",
+      "relative_path": "fold3_primary_inner_eligibility.csv",
+      "sha256": "e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c",
+      "rows": 134970,
+      "outer_rows_written": 0
+    },
+    "derivation_audit": {
+      "path_root": "S1_DERIVED",
+      "relative_path": "s1_primary_derived_artifacts_audit.json",
+      "sha256": "c1d17f648ff2dd979028ec46b562d93f85f414f7c4d9babf019d13e9a71a0abd"
+    },
+    "source_bindings": {
+      "effective_window_index": {
+        "path_root": "EFFECTIVE_WINDOW_INDEX",
+        "relative_path": "effective_window_index.csv",
+        "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1"
+      },
+      "grouped_role_authority": {
+        "path_root": "GROUPED_ROLE_AUTHORITY",
+        "relative_path": "native_unit_outer_roles.csv",
+        "sha256": "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
+        "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+      },
+      "materializer": {
+        "path_parts": [
+          "scripts",
+          "classification_v2",
+          "02_train_ready_exports",
+          "classification_v2_materialize_s1_primary_authorities.py"
+        ],
+        "sha256": "a544a0b45ba1f0bff036a02a58d7207522782c8239a6f7bc7de723d6e882ba5e"
+      }
+    },
+    "per_view": {
+      "T6": {
+        "eligible_train_windows": 33300,
+        "eligible_validation_windows": 6154,
+        "eligible_inner_native_units": 27810,
+        "train_event_mass": 24475.0,
+        "mixed_label_training_rows": 0,
+        "event_weight_artifact": {
+          "path_root": "S1_DERIVED",
+          "relative_path": "fold3_t6_event_weights.csv",
+          "sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72",
+          "check_relative_path": "fold3_t6_weight_check.json",
+          "check_sha256": "1bde2b6830d758a305ccb1c20b512fe70de46971e3481daeebf856bc23ba6c47"
+        },
+        "validation_native_population": {
+          "expected_native_units": 3335,
+          "sha256": "b62a3c0a11ef178c2aced15eb6d7f6372ad0a226a8d0df318278640be09d351f"
+        }
+      },
+      "T8": {
+        "eligible_train_windows": 29383,
+        "eligible_validation_windows": 5142,
+        "eligible_inner_native_units": 27655,
+        "train_event_mass": 24324.0,
+        "mixed_label_training_rows": 0,
+        "event_weight_artifact": {
+          "path_root": "S1_DERIVED",
+          "relative_path": "fold3_t8_event_weights.csv",
+          "sha256": "2e6e54bc298232b4026e16d400712d89748db7933c0f0cf2a1c271412fb9c7d9",
+          "check_relative_path": "fold3_t8_weight_check.json",
+          "check_sha256": "61fc3728cb6480717f15da550c764d7f9836a3a15433346041ef9f8444db4f69"
+        },
+        "validation_native_population": {
+          "expected_native_units": 3331,
+          "sha256": "f34cf1e7208fefdd562f6317a0c1e6efc72e9a5d5442656d200f9e2790eb7406"
+        }
+      },
+      "T12": {
+        "eligible_train_windows": 26442,
+        "eligible_validation_windows": 4206,
+        "eligible_inner_native_units": 27652,
+        "train_event_mass": 24320.0,
+        "mixed_label_training_rows": 0,
+        "event_weight_artifact": {
+          "path_root": "S1_DERIVED",
+          "relative_path": "fold3_t12_event_weights.csv",
+          "sha256": "b44b448629513255d65c82299cfde1930cf5d4011b066f4d8d90b30cbdc2d6a4",
+          "check_relative_path": "fold3_t12_weight_check.json",
+          "check_sha256": "99ccc31400b4e9cee829f0c288950048225553316e5d8c6c33450eb445c30ba1"
+        },
+        "validation_native_population": {
+          "expected_native_units": 3332,
+          "sha256": "c57a8688510ad3be1f61998567f8a06c76c03ce69aa744b673f91f299157de23"
+        }
+      },
+      "T16": {
+        "eligible_train_windows": 22693,
+        "eligible_validation_windows": 3199,
+        "eligible_inner_native_units": 27403,
+        "train_event_mass": 24098.0,
+        "mixed_label_training_rows": 0,
+        "event_weight_artifact": {
+          "path_root": "S1_DERIVED",
+          "relative_path": "fold3_t16_event_weights.csv",
+          "sha256": "de3764236b49bde95f8eb1cce1508e1677a8ec7e85c6cf29a91dc6010056b7ac",
+          "check_relative_path": "fold3_t16_weight_check.json",
+          "check_sha256": "1bfd2b35d53f1a03af4681cf7b38e26d0891802d86f31348adb64b88baa5314f"
+        },
+        "validation_native_population": {
+          "expected_native_units": 3305,
+          "sha256": "f4d9ba954bce1c6c33bd91781475169c7d34e13abe0b0678167a5766a284b98d"
+        }
+      }
+    },
+    "mixed_label_audit_only_windows": {
+      "T6": 0,
+      "T8": 956,
+      "T12": 956,
+      "T16": 1750,
+      "primary_eligible_rows": 0,
+      "training_rows": 0
+    },
+    "common_t6_t8_t12_t16_cohort": {
+      "purpose": "diagnostic only; never the automatic primary population",
+      "native_units": 27378,
+      "path_root": "S1_DERIVED",
+      "relative_path": "fold3_common_t6_t8_t12_t16_native_units.csv",
+      "sha256": "cb66f0b5079c1727d9726c499cb52d2fb428b0d9db2ff60b4be83600606f38a8",
+      "class_support": {
+        "drink": 545,
+        "eat": 2793,
+        "fight": 2460,
+        "social-nose": 1101,
+        "explore": 6721,
+        "lying": 2681,
+        "stand": 959,
+        "move": 521,
+        "sitting": 9511,
+        "playwithtoy": 86
+      }
+    },
+    "failed_or_rejected_derivations": [
+      {
+        "path_root": "S1_DERIVED_PARENT",
+        "relative_path": "s1_primary_f3_32d5b53c_20260809",
+        "status": "FAILED_TIMEOUT_PARTIAL",
+        "promotion_allowed": false
+      },
+      {
+        "path_root": "S1_DERIVED_PARENT",
+        "relative_path": "s1_primary_f3_32d5b53c_20260809_retry1",
+        "status": "REJECTED_STAGE1_SCOPE_INCLUDED_S6_DIAGNOSTIC_ROWS",
+        "promotion_allowed": false
+      }
+    ]
+  },
+  "budget_scope": {
+    "stage6_autoresearch_max_trials": 24,
+    "behavior_only_s1_global_gpu_hour_ceiling": 48,
+    "global_gpu_hour_ceiling_semantics": [
+      "hard paid-compute safety ceiling",
+      "not a compute target or an authorization to consume 48 GPU-hours",
+      "every stage retains its registered run limit and retention gate",
+      "Stage 6 requires both its 24-trial limit and remaining global GPU time",
+      "reaching the ceiling requires STOP and never automatic expansion"
+    ],
+    "registered_stage_maxima_preserved": {
+      "stage_1_total_max": 8,
+      "stage_2_total_max": 20,
+      "stage_3_total_max": 7,
+      "stage_4_total_max": 8,
+      "stage_6_total_max": 24
+    },
+    "historical_permit_reconciliation": [
+      "24 applies only to Stage 6.",
+      "Older aggregate wording remains historical and is not rewritten."
+    ]
+  },
+  "fixed_stage_1_to_4_controls": {
+    "authority_classification": "NEW_S1_CONTROL_DECISION",
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0,
+    "batch_size": 16,
+    "precision": "FP32",
+    "scheduler": "none",
+    "rationale": [
+      "AdamW and learning rate 0.003 have implementation precedent.",
+      "Weight decay 0 has current E0/q2 implementation precedent.",
+      "Batch size 16 and FP32 are realized on the authorized NVIDIA L4 environment.",
+      "No scheduler minimizes configuration entropy and has current precedent.",
+      "No optimizer, learning-rate, batch-size, or scheduler search is allowed in Stages 1-4."
+    ],
+    "not_recovered_from_historical_authority": true,
+    "excluded_historical_imports": [
+      "E0 16-step budget",
+      "q2_outer_00 role bindings",
+      "historical outer model-selection results"
+    ]
+  },
+  "matched_training_policy": {
+    "primary_training_population": "ALL_VALID_SINGLE_LABEL_WINDOWS",
+    "event_mass_weighting": "CORRECTED_FOLD_3_TRAIN_ONLY",
+    "same_optimizer_step_budget_required": true,
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "fixed_training_steps": "UNRESOLVED_PENDING_PRE_S1_CALIBRATION",
+    "fixed_epochs_allowed": false,
+    "coverage_differences_by_view_remain_reportable": true
+  },
+  "checkpoint_and_seed_policy": {
+    "early_stopping": "DISABLED",
+    "scientific_ranking_checkpoint": "FIXED_STEP_ENDPOINT",
+    "best_validation_checkpoint": "DIAGNOSTIC_ONLY_NEVER_PRIMARY_RANKING",
+    "recovery_checkpoints": "PERMITTED",
+    "initial_screening_seed": 20260804,
+    "confirmation_seeds": [20260805, 20260806],
+    "confirmation_rule": "Only retained candidates receive the two confirmation seeds.",
+    "matched_arms_use_identical_seeds": true,
+    "c2_authorized": false
+  },
+  "inner_role_binding": {
+    "inner_fold": "FOLD_3",
+    "train_role": "train",
+    "validation_role": "validation",
+    "validation_inner_fold_id": 2,
+    "binding_status": "PASS",
+    "forbidden_roles": ["test", "outer", "q2_outer_00"]
+  },
+  "primary_evaluation": {
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
+    "model_output_unit": "WINDOW_ROW",
+    "required_path": "EXPLICIT_WINDOW_TO_NATIVE_COLLAPSE",
+    "composite_key_direct_primary_metric_allowed": false,
+    "native_prediction_coverage": "COMPLETE",
+    "missing_or_duplicate_native_prediction": "FAIL",
+    "evaluator": {
+      "path": "src/pig_behavior/classification_v2/evaluation/s1_primary_native_evaluator.py",
+      "sha256": "00d442255d0665e6f7750966561c0f1e144d349a87bcd8664bfabfaa3cdd1adb"
+    },
+    "collapse": {
+      "path": "src/pig_behavior/classification_v2/evaluation/native_temporal_collapse.py",
+      "sha256": "d1f6622954926a5508ed1e02aa733c99af783d08f3ed2c397595d2f4d8225b0c",
+      "tie_break": "CANONICAL_TEN_CLASS_ORDER",
+      "binding_status": "PASS"
+    }
+  },
+  "pre_s1_calibration": {
+    "status": "AUTHORIZED_NOT_EXECUTED",
+    "run_kind": "PRE_S1_CALIBRATION",
+    "scientific_trial": false,
+    "claim_grade_result": false,
+    "model_promotion_allowed": false,
+    "temporal_selection_allowed": false,
+    "feature_selection_allowed": false,
+    "outer_access_allowed": false,
+    "reference_configuration": {
+      "id": "B1_ACTOR_T6_SEQUENCE",
+      "role": "registered Stage-1 parent/control",
+      "registry_path_root": "S1_ROUTE_BASE",
+      "registry_relative_path": "candidate_model_family_registry.json",
+      "registry_sha256": "3767bec0ecfd01ff05c2514d06ddcec0a51253dd9dc9cad0329f129a1bbd8527"
+    },
+    "temporal_view": "T6",
+    "seed": 20260804,
+    "controls": "fixed_stage_1_to_4_controls",
+    "training_population": "ALL_VALID_SINGLE_LABEL_WINDOWS",
+    "event_weight_sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72",
+    "t6_steps_per_pass": 2082,
+    "max_steps": 6246,
+    "maximum_observation_envelope": "three complete corrected T6 training passes",
+    "event_snapshots_at_steps": [2082, 4164, 6246],
+    "adaptive_early_stop": "FORBIDDEN_EXCEPT_NUMERICAL_DATA_ROLE_RESOURCE_OR_SAFETY_FAILURE",
+    "final_s1_horizon_decision": "EXPLICIT_USER_DECISION_REQUIRED_AFTER_TRAJECTORY_REVIEW",
+    "required_telemetry": [
+      "training_loss",
+      "inner_validation_native_unit_macro_f1",
+      "per_class_f1",
+      "rare_class_guardrail_state",
+      "native_prediction_coverage",
+      "completed_optimizer_steps",
+      "gpu_model",
+      "gpu_count",
+      "pytorch_version",
+      "cuda_version",
+      "start_timestamp",
+      "end_timestamp",
+      "wall_clock_seconds",
+      "training_seconds",
+      "seconds_per_step",
+      "peak_vram_mb",
+      "authority_hash",
+      "configuration_hash",
+      "data_split_eligibility_event_weight_hashes",
+      "checkpoint_hash",
+      "prediction_hash"
+    ]
+  },
+  "outer_active_refusal_contract": {
+    "status": "PASS_BY_REQUIRED_EXECUTOR_CONTRACT",
+    "must_reject_before_payload_open": [
+      "test and outer roles including split-authority aliases",
+      "q2_outer_00",
+      "outer label bindings",
+      "outer metric bindings",
+      "outer prediction or export roots",
+      "outer checkpoint selection",
+      "role or hash mismatch"
+    ],
+    "must_assert": ["no oof_test artifact is emitted", "no outer metric is computed"],
+    "outer_feedback": "FORBIDDEN"
+  },
+  "output_and_resume_contract": {
+    "output_path_root": "S1_DERIVED_PARENT",
+    "calibration_output_relative_path": "pre_s1_calibration/<unique_calibration_id>",
+    "s1_output_relative_path": "s1_trials/<unique_trial_id>",
+    "output_roots": "UNIQUE_AND_IMMUTABLE",
+    "resume_requires_identical": [
+      "run_or_trial_id",
+      "scientific_authority_hash",
+      "configuration_hash",
+      "seed",
+      "inner_role_bindings",
+      "eligibility_hash",
+      "event_weight_hash",
+      "data_and_split_hashes",
+      "hardware_authority"
+    ],
+    "changed_scientific_configuration": "NEW_RUN_ID_REQUIRED",
+    "failed_runs": "IDENTIFIABLE_AND_NOT_PROMOTABLE"
+  },
+  "registered_funnel_preservation": {
+    "status": "PASS",
+    "h5_entry_gate": "PRESERVED_STAGE_4_ONLY",
+    "h6_h12_h24_active": false,
+    "posture_active": false,
+    "c2_access": "BLOCKED",
+    "r4_moved": false
+  },
+  "readiness": {
+    "ready_to_implement_pre_s1_calibration_executor": true,
+    "ready_to_run_pre_s1_calibration": false,
+    "ready_to_start_s1": false,
+    "unresolved_user_decisions": [
+      {
+        "id": "S1_FIXED_TRAINING_STEPS",
+        "question": "Which optimizer-step horizon is sufficient after calibration review?",
+        "authority": "explicit user decision after PRE-S1 calibration"
+      }
+    ]
+  },
+  "forbidden_in_this_authority": [
+    "GPU allocation or execution",
+    "calibration execution",
+    "S1 execution",
+    "outer access",
+    "reviewed-label changes",
+    "source-data changes",
+    "split-membership changes",
+    "model-semantic changes",
+    "R4 movement"
+  ]
+}
