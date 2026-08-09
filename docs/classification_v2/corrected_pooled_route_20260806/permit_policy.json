@@ -1,14 +1,22 @@
 {
   "schema_version": "classification_v2.corrected_pooled_route.permit_policy.v1",
-  "status": "E0_READY_S1_BLOCKED_C2_BLOCKED",
+  "status": "E0_EXECUTED_S1_BEHAVIOR_ONLY_READY_C2_BLOCKED",
   "single_use_permit_rule": true,
-  "no_paid_compute_launched": true,
+  "no_paid_compute_launched": false,
+  "governance_reconciliation": {
+    "prior_blocked_state_preserved": true,
+    "prior_e0_status": "NOT_EXECUTED",
+    "prior_no_paid_compute_launched": true,
+    "reconciliation_scope": "execution_and_permit_metadata_only",
+    "scientific_semantics_changed": false,
+    "r4_moved": false
+  },
   "provider_assumption": {"gpu_rate_usd_per_hour": 2.5, "provider": "generic single-GPU remote provider; replace with selected provider before permit issuance", "rate_is": "planning assumption, not an invoice"},
   "permits": [
     {
       "id": "E0",
       "name": "paid_remote_engineering_pilot",
-      "status": "READY_TO_ISSUE_AFTER_PACKAGE_VALIDATION",
+      "status": "EXECUTED_PASS",
       "scientific_claim_boundary": "engineering evidence only; no model-selection or paper claim",
       "prerequisites": ["current B0-B3 engineering evidence", "input package hashes", "environment specification", "checkpoint contract", "bounded budget", "timeout and stop rule", "download and hash verification procedure"],
       "registered_model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
@@ -35,17 +43,60 @@
       "expected_outputs": ["run_manifest.json", "environment.json", "artifact_manifest.json", "checkpoint_manifest.json", "checkpoint.pt", "prediction_manifest.json", "predictions.csv", "metrics.json", "resume_audit.json", "runtime_vram.json", "download_hash_manifest.json"],
       "success_criteria": ["planned manifest precedes execution", "forced interruption is preserved", "real resume reaches the registered endpoint", "prediction export is linked to one checkpoint and fold", "downloaded hashes match remote manifest", "no outer-test access", "no automatic promotion"],
       "failure_recovery": ["retain failure evidence", "invalidate the permit", "do not reuse the run ID", "fix the smallest failed contract", "issue a new permit only after revalidation"]
+      ,"completion_evidence": {
+        "remote_output_root": "/teamspace/studios/this_studio/pig_e0_r3/outputs/p2g3c_e0_r4_l4_20260809/",
+        "completed_training_steps": 16,
+        "checkpoint_sha256": "5e84b53d5e575312ad0b172f4fd4c515763cb953392b5edc7a8f654b9cabb9ec",
+        "prediction_export_coverage": "80/80",
+        "outer_test_access": "BLOCKED",
+        "gpu_device": "NVIDIA_L4",
+        "torch_version": "2.12.1+cu130",
+        "required_extra": "pt",
+        "runtime_prefix": "uv run --frozen --extra pt python"
+      }
     },
     {
       "id": "S1",
       "name": "paid_inner_screening_and_bounded_autoresearch",
-      "status": "BLOCKED",
+      "status": "READY_FOR_BEHAVIOR_ONLY_INNER_DEVELOPMENT",
       "scientific_claim_boundary": "inner selection evidence only; not a headline paper result",
       "prerequisites": ["E0 PASS", "A12-A PASS", "A12-B PASS", "search space frozen", "inner roles frozen", "outer-test access technically blocked", "budget and stop rules frozen", "remote lineage and independent checker PASS"],
       "budget": {"max_trials": 24, "max_gpu_hours": 48.0, "max_cost_usd": 120.0, "disk_ceiling_gb": 50},
       "stop_rule": "trial, GPU-hour, cost, patience, timeout, failure, disk or outer-access ceiling",
       "auto_promotion": false,
-      "blocking_evidence": "A12-B construction-overlap proof is not currently located; A12-A may pass but S1 cannot be opened on A12-A alone"
+      "behavior_only_permit": "PASS",
+      "scope": "INNER_DEVELOPMENT_ONLY",
+      "outer_feedback": "FORBIDDEN",
+      "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
+      "complete_prediction_coverage": "REQUIRED",
+      "rare_class_guardrails": "REQUIRED",
+      "hardware_authority": {
+        "gpu_family": "NVIDIA_L4",
+        "gpu_count": 1,
+        "fixed_for_matched_comparisons": true,
+        "change_requires": "new_registered_experiment"
+      },
+      "runtime_resource_recording": ["wall_clock_seconds", "training_seconds", "seconds_per_step_where_available", "peak_vram_mb", "gpu_model", "cuda_pytorch_environment", "trial_status"],
+      "a12_b_authority": {
+        "proof_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/revised_a12b_construction_overlap_proof.json",
+        "proof_sha256": "32a3266c955027a53945e42f293920a0c6ea1691508d37a9b8f4517e62e4d88a",
+        "construction_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/cvat_legacy_duplicate_removal_authority.json",
+        "construction_authority_sha256": "f723a1c36a84ed21b7384bc55ed0b1cb49bcf5d3d5f9ca84efa7c12c9c0bf4be",
+        "route_validator_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/corrected_route_validator_report.json",
+        "route_validator_status": "PASS"
+      },
+      "temporal_boundary": {
+        "initial_history": "NONE",
+        "causal_history_candidate": "H5",
+        "matched_comparison": "T6_vs_T6_PLUS_H5",
+        "H6_H12_H24_active": false
+      },
+      "posture_auxiliary": {
+        "default_input": false,
+        "stage_status": "BLOCKED_UNTIL_POSTURE_AUTHORITY_RESOLVED",
+        "does_not_block_behavior_only_s1": true
+      },
+      "blocking_evidence": "None for behavior-only S1; posture auxiliary remains blocked separately"
     },
     {
       "id": "C2",
@@ -59,5 +110,5 @@
     }
   ],
   "permit_invalidation": ["code SHA or tree hash change", "snapshot/split/event-weight/schema/cache hash change", "model/view/loss/seed/fold change", "environment contract change", "output-root collision", "outer-test access", "resume hash mismatch"],
-  "exact_next_action": "Issue and execute one E0 remote engineering pilot for B3_ACTOR_T6_PLUS_GEOMETRY_MOTION on one inner fold and seed 20260804 only after the committed package validator passes; do not launch it in this task."
+  "exact_next_action": "Create a unique behavior-only S1 run manifest and execute only after the registered per-trial permit, NVIDIA_L4 hardware, lineage, output, and outer-isolation gates are checked; posture auxiliary remains blocked."
 }
