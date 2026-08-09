@@ -54,6 +54,21 @@
       ],
       "bundle_sha256":
         "6d30270554a19bfb1152697ed6a3660aceaaec388fbad0cd88c8952e46a6a071",
+      "git_identity": {
+        "schema_version": "pig.git-tracked-identity.v1",
+        "relative_path": ".agents/skills/project-state-steward/SKILL.md",
+        "git_reference": "HEAD",
+        "blob_oid": "c1fef35035bb8f48a433d6ab474580e4a4c78523",
+        "bundle_blob_oids": {
+          "SKILL.md": "c1fef35035bb8f48a433d6ab474580e4a4c78523",
+          "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
+          "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
+          "scripts/manage_short_memory.py": "a7d05b278f79a746ad59abfe64e4ae181dc649e5",
+          "scripts/validate_governance_contracts.py": "1560259f3585f5885b566d3639480b615ab6c11a",
+          "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
+          "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
+        }
+      },
       "tool_api_dependencies": ["filesystem", "git", "python", "pytest"],
       "selected_date": "2026-07-31",
       "last_reviewed": "2026-08-04",
@@ -72,6 +87,16 @@
       "file_sha256": "23714eb71ef07752e7b2ab50216730b1a8e855cb2ecbf5f0ac76e54dcfb59290",
       "bundle_paths": ["SKILL.md", "agents/openai.yaml"],
       "bundle_sha256": "11dac78847682b0bc7be500a43e801ba0d3f3a0081dce4a6019cb53bfd7f4c09",
+      "git_identity": {
+        "schema_version": "pig.git-tracked-identity.v1",
+        "relative_path": ".agents/skills/thesis-evidence-writing/SKILL.md",
+        "git_reference": "HEAD",
+        "blob_oid": "6efb0da90ad27d908079c30ef8cd646b1be0af14",
+        "bundle_blob_oids": {
+          "SKILL.md": "6efb0da90ad27d908079c30ef8cd646b1be0af14",
+          "agents/openai.yaml": "3c23e1d37788d2b21955ad661ebd8f0a2fb982c4"
+        }
+      },
       "tool_api_dependencies": ["filesystem", "source-artifacts", "structured-writing"],
       "selected_date": "2026-08-02",
       "last_reviewed": "2026-08-02",
@@ -248,6 +273,20 @@
       ],
       "bundle_sha256":
         "0b7dbe215bae5de1db70ce932c3cc76fc05a3f7e9aa4d0d9ef961a9b4239397c",
+      "git_identity": {
+        "schema_version": "pig.git-tracked-identity.v1",
+        "relative_path": ".agents/skills/andrej-karpathy-skills/SKILL.md",
+        "git_reference": "HEAD",
+        "blob_oid": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
+        "bundle_blob_oids": {
+          "SKILL.md": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
+          "references/CLAUDE.md": "daced9bd64f25908ebedeb4701fb406985dc8366",
+          "references/CURSOR.md": "d1f69408b4f2428b8c9c72cef1eb751317e0f71d",
+          "references/EXAMPLES.md": "6c4283595e031f158870cd38e4e39d281332d621",
+          "references/README.md": "7cf07a786532bebe01c65179c8e2c3a98cc0a09b",
+          "references/README.zh.md": "1228d8ccbe8f2075948c5202410ffd0dc8b0b042"
+        }
+      },
       "tool_api_dependencies": ["git", "python", "experiment-ledger"],
       "selected_date": "2026-07-31",
       "last_reviewed": "2026-07-31",
@@ -276,6 +315,22 @@
       ],
       "bundle_sha256":
         "7b9d20fb35e23d7357bc0dca683b73bda1875dd5ae9a6cdb875fe19d65fb48cb",
+      "git_identity": {
+        "schema_version": "pig.git-tracked-identity.v1",
+        "relative_path": ".agents/skills/tracking-experiment-guardian/SKILL.md",
+        "git_reference": "HEAD",
+        "blob_oid": "7c8c3bec9f4765747ff90ed98122b2dab1f22c3f",
+        "bundle_blob_oids": {
+          "SKILL.md": "7c8c3bec9f4765747ff90ed98122b2dab1f22c3f",
+          "agents/openai.yaml": "addfef7e84a6865149ecad1f8ede5bee3fb063d5",
+          "checks/check_manifest.json": "1e43554bb9a6f9d46ed7e3dc37a968fdb22ea140",
+          "examples/scenario.md": "cb54560d7abf2d2777cd515f65cfade520bb5e08",
+          "scripts/build_hard_event_windows.py": "f82aa66a0631d46ed663514826bed700a187b55f",
+          "scripts/replay_post_video_geometry.py": "cd73e180b5c56b745e43f9a9a8ee5ccb397da278",
+          "scripts/replay_post_video_identity.py": "9b4fbb3602f73042c069392fa4e9d415c13f2b2b",
+          "templates/promotion_decision.example.json": "0f97c890a961d1caaaa2d51526a7323f92f3a6bc"
+        }
+      },
       "tool_api_dependencies": ["filesystem", "git", "tracking-evaluator"],
       "selected_date": "2026-07-31",
       "last_reviewed": "2026-07-31",
@@ -301,6 +356,19 @@
       ],
       "bundle_sha256":
         "d44116429042ceb9f916fbb18a885983546e896353791780538d0df675527267",
+      "git_identity": {
+        "schema_version": "pig.git-tracked-identity.v1",
+        "relative_path": ".agents/skills/safe-refactor-test-guardian/SKILL.md",
+        "git_reference": "HEAD",
+        "blob_oid": "27ac244a3dc8f5e6151bebf766371119019110ce",
+        "bundle_blob_oids": {
+          "SKILL.md": "27ac244a3dc8f5e6151bebf766371119019110ce",
+          "agents/openai.yaml": "d7157433e40e0a9b171329c41009088fc17fa95f",
+          "checks/check_manifest.json": "1fee28675adbebf378f43187f53c29a9ec20e502",
+          "examples/scenario.md": "d4fffdc961cc5270904f4e362384f5ba0f5cf2ae",
+          "templates/change_report.json": "ec15b195591c8f573964be6cec534d61399f07a0"
+        }
+      },
       "tool_api_dependencies": ["pytest", "ruff", "git"],
       "selected_date": "2026-07-31",
       "last_reviewed": "2026-07-31",

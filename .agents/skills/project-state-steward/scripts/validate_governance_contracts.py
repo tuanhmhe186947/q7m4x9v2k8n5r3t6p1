@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import re
+import subprocess
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -136,6 +137,23 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_raw_file_identity(
+    path: Path,
+    *,
+    expected_sha256: str,
+    error_prefix: str,
+) -> list[str]:
+    """Validate an external immutable file by its exact stored bytes."""
+    expected = expected_sha256.lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected):
+        return [f"{error_prefix}_raw_hash_invalid"]
+    if not path.is_file():
+        return [f"{error_prefix}_raw_file_missing"]
+    if _sha256(path) != expected:
+        return [f"{error_prefix}_raw_hash_mismatch"]
+    return []
+
+
 def _bundle_sha256(base: Path, relative_paths: list[str]) -> str:
     resolved_base = base.resolve()
     digest = hashlib.sha256()
@@ -153,6 +171,101 @@ def _bundle_sha256(base: Path, relative_paths: list[str]) -> str:
         digest.update(resolved.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def _git(root: Path, arguments: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(root), *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _git_relative_path(relative_path: str) -> str | None:
+    candidate = Path(relative_path)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    normalized = candidate.as_posix()
+    return normalized if normalized not in {"", "."} else None
+
+
+def _git_blob_oid(root: Path, reference: str, relative_path: str) -> str | None:
+    result = _git(
+        root,
+        ["rev-parse", "--verify", f"{reference}:{relative_path}"],
+    )
+    value = result.stdout.strip().lower()
+    if result.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value):
+        return None
+    return value
+
+
+def _git_index_blob_oid(root: Path, relative_path: str) -> str | None:
+    result = _git(root, ["rev-parse", "--verify", f":{relative_path}"])
+    value = result.stdout.strip().lower()
+    if result.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value):
+        return None
+    return value
+
+
+def _git_worktree_blob_oid(root: Path, relative_path: str) -> str | None:
+    result = _git(
+        root,
+        ["hash-object", f"--path={relative_path}", "--", relative_path],
+    )
+    value = result.stdout.strip().lower()
+    if result.returncode or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value):
+        return None
+    return value
+
+
+def _validate_git_tracked_file_identity(
+    root: Path,
+    *,
+    relative_path: str,
+    expected_blob_oid: str,
+    git_reference: str,
+    error_prefix: str,
+) -> list[str]:
+    """Validate one tracked file without conflating clean checkout EOL with content."""
+    normalized = _git_relative_path(relative_path)
+    expected = expected_blob_oid.lower()
+    if normalized is None:
+        return [f"{error_prefix}_git_path_invalid"]
+    if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", expected):
+        return [f"{error_prefix}_git_blob_invalid"]
+    if not (root / normalized).is_file():
+        return [f"{error_prefix}_git_file_missing"]
+    tracked = _git(root, ["ls-files", "--error-unmatch", "--", normalized])
+    if tracked.returncode:
+        return [f"{error_prefix}_git_path_untracked"]
+
+    errors: list[str] = []
+    referenced_blob = _git_blob_oid(root, git_reference, normalized)
+    if referenced_blob is None:
+        errors.append(f"{error_prefix}_git_reference_unresolved")
+    elif referenced_blob != expected:
+        errors.append(f"{error_prefix}_git_blob_mismatch")
+
+    head_blob = _git_blob_oid(root, "HEAD", normalized)
+    if head_blob is None:
+        errors.append(f"{error_prefix}_git_head_unresolved")
+    elif head_blob != expected:
+        errors.append(f"{error_prefix}_git_head_blob_mismatch")
+
+    index_blob = _git_index_blob_oid(root, normalized)
+    if index_blob is None:
+        errors.append(f"{error_prefix}_git_index_unresolved")
+    elif index_blob != expected:
+        errors.append(f"{error_prefix}_git_staged_change")
+
+    worktree_blob = _git_worktree_blob_oid(root, normalized)
+    if worktree_blob is None:
+        errors.append(f"{error_prefix}_git_worktree_content_unresolved")
+    elif index_blob is not None and worktree_blob != index_blob:
+        errors.append(f"{error_prefix}_git_unstaged_change")
+    return errors
 
 
 def _project_timezone() -> timezone:
@@ -483,10 +596,30 @@ def _check_charter(root: Path) -> list[str]:
     if not sidecar.is_file():
         errors.append("charter_hash_sidecar_missing")
     else:
-        expected = _read(sidecar).split()[0].lower()
-        actual = _sha256(root / ".agents" / "memory" / "12_PROJECT_CHARTER.md")
-        if expected != actual:
-            errors.append("charter_hash_mismatch")
+        legacy = _read(sidecar).split()
+        if not legacy or not re.fullmatch(r"[0-9a-f]{64}", legacy[0].lower()):
+            errors.append("charter_legacy_raw_hash_invalid")
+    identity_path = root / ".agents" / "memory" / "12_PROJECT_CHARTER.git_identity.json"
+    if not identity_path.is_file():
+        errors.append("charter_git_identity_missing")
+        return errors
+    identity = _load_json(identity_path)
+    if identity.get("schema_version") != "pig.git-tracked-identity.v1":
+        errors.append("charter_git_identity_schema_invalid")
+        return errors
+    relative_path = ".agents/memory/12_PROJECT_CHARTER.md"
+    if identity.get("relative_path") != relative_path:
+        errors.append("charter_git_identity_path_mismatch")
+        return errors
+    errors.extend(
+        _validate_git_tracked_file_identity(
+            root,
+            relative_path=relative_path,
+            expected_blob_oid=str(identity.get("blob_oid", "")),
+            git_reference=str(identity.get("git_reference", "")),
+            error_prefix="charter",
+        )
+    )
     return errors
 
 
@@ -641,25 +774,64 @@ def _check_skill_portfolio(root: Path) -> list[str]:
         if not source.is_file():
             errors.append(f"skill_missing_file:{skill_id}:{source}")
             continue
-        expected = str(skill.get("file_sha256", "")).lower()
-        actual = _sha256(source)
-        if expected != actual:
-            errors.append(f"skill_hash_mismatch:{skill_id}")
         if skill.get("source_root") == "project":
+            identity = skill.get("git_identity")
+            if not isinstance(identity, dict):
+                errors.append(f"skill_git_identity_missing:{skill_id}")
+                continue
+            relative_path = str(skill.get("relative_path", ""))
+            if identity.get("schema_version") != "pig.git-tracked-identity.v1":
+                errors.append(f"skill_git_identity_schema_invalid:{skill_id}")
+            elif identity.get("relative_path") != relative_path:
+                errors.append(f"skill_git_identity_path_mismatch:{skill_id}")
+            else:
+                errors.extend(
+                    _validate_git_tracked_file_identity(
+                        root,
+                        relative_path=relative_path,
+                        expected_blob_oid=str(identity.get("blob_oid", "")),
+                        git_reference=str(identity.get("git_reference", "")),
+                        error_prefix=f"skill:{skill_id}",
+                    )
+                )
             bundle_paths = skill.get("bundle_paths")
-            expected_bundle = str(skill.get("bundle_sha256", "")).lower()
             if not isinstance(bundle_paths, list) or not bundle_paths:
                 errors.append(f"skill_bundle_paths_missing:{skill_id}")
-            elif not expected_bundle:
+            elif not skill.get("bundle_sha256"):
                 errors.append(f"skill_bundle_hash_missing:{skill_id}")
             else:
-                try:
-                    actual_bundle = _bundle_sha256(source.parent, bundle_paths)
-                except ValueError as exc:
-                    errors.append(f"{skill_id}:{exc}")
+                bundle_oids = (
+                    identity.get("bundle_blob_oids")
+                    if isinstance(identity, dict)
+                    else None
+                )
+                if not isinstance(bundle_oids, dict):
+                    errors.append(f"skill_bundle_git_identity_missing:{skill_id}")
                 else:
-                    if expected_bundle != actual_bundle:
-                        errors.append(f"skill_bundle_hash_mismatch:{skill_id}")
+                    for bundle_relative in bundle_paths:
+                        normalized = Path(bundle_relative).as_posix()
+                        bundle_path = (
+                            Path(relative_path).parent / normalized
+                        ).as_posix()
+                        errors.extend(
+                            _validate_git_tracked_file_identity(
+                                root,
+                                relative_path=bundle_path,
+                                expected_blob_oid=str(bundle_oids.get(normalized, "")),
+                                git_reference=str(identity.get("git_reference", "")),
+                                error_prefix=(
+                                    f"skill_bundle:{skill_id}:{normalized}"
+                                ),
+                            )
+                        )
+        else:
+            raw_errors = _validate_raw_file_identity(
+                source,
+                expected_sha256=str(skill.get("file_sha256", "")),
+                error_prefix=f"skill:{skill_id}",
+            )
+            if raw_errors:
+                errors.append(f"skill_hash_mismatch:{skill_id}")
         if not _nonempty(skill.get("version_or_commit")):
             errors.append(f"skill_missing_version:{skill_id}")
         if not _nonempty(skill.get("proof_task")):
@@ -696,21 +868,42 @@ def _check_eval_harness(root: Path) -> list[str]:
     if manifest.get("minimum_runs", 0) < 3:
         errors.append("eval_minimum_runs_below_three")
     pinned_files = {
-        "task_sha256": suite / "tasks.json",
-        "judge_sha256": suite / "judge.py",
-        "runner_sha256": suite / "run_regression.py",
+        "task_sha256": ".agents/evals/agent_governance/tasks.json",
+        "judge_sha256": ".agents/evals/agent_governance/judge.py",
+        "runner_sha256": ".agents/evals/agent_governance/run_regression.py",
         "validator_sha256": (
-            root
-            / ".agents"
-            / "skills"
-            / "project-state-steward"
-            / "scripts"
-            / "validate_governance_contracts.py"
+            ".agents/skills/project-state-steward/scripts/"
+            "validate_governance_contracts.py"
         ),
     }
-    for field, path in pinned_files.items():
-        if manifest.get(field) != _sha256(path):
-            errors.append(f"eval_manifest_hash_mismatch:{field}")
+    for field in pinned_files:
+        legacy = str(manifest.get(field, "")).lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", legacy):
+            errors.append(f"eval_manifest_legacy_raw_hash_invalid:{field}")
+
+    identity = manifest.get("tracked_git_identity")
+    if not isinstance(identity, dict):
+        errors.append("eval_manifest_git_identity_missing")
+    elif identity.get("schema_version") != "pig.git-tracked-identity-set.v1":
+        errors.append("eval_manifest_git_identity_schema_invalid")
+    else:
+        blob_oids = identity.get("blob_oids")
+        if not isinstance(blob_oids, dict):
+            errors.append("eval_manifest_git_identity_blob_map_missing")
+        else:
+            expected_paths = set(pinned_files.values())
+            if set(blob_oids) != expected_paths:
+                errors.append("eval_manifest_git_identity_path_set_mismatch")
+            for field, relative_path in pinned_files.items():
+                errors.extend(
+                    _validate_git_tracked_file_identity(
+                        root,
+                        relative_path=relative_path,
+                        expected_blob_oid=str(blob_oids.get(relative_path, "")),
+                        git_reference=str(identity.get("git_reference", "")),
+                        error_prefix=f"eval:{field}",
+                    )
+                )
     tasks = _load_json(suite / "tasks.json").get("tasks", [])
     task_ids = {task.get("id") for task in tasks}
     expected_ids = {f"AR-{index:03d}" for index in range(1, 26)}

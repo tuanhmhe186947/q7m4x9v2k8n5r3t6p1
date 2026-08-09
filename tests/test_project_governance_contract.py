@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -23,6 +24,188 @@ def _load_module(name: str, path: Path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _run_git(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        ["git", "-C", str(root), *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return result
+
+
+def _tracked_identity_fixture(tmp_path: Path, line_ending: str = "\n"):
+    _run_git(tmp_path, "init")
+    _run_git(tmp_path, "config", "user.email", "fixture@example.invalid")
+    _run_git(tmp_path, "config", "user.name", "Governance Fixture")
+    checkout_eol = "crlf" if line_ending == "\r\n" else "lf"
+    (tmp_path / ".gitattributes").write_text(
+        f"governed.txt text eol={checkout_eol}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "governed.txt").write_text(
+        f"first{line_ending}second{line_ending}",
+        encoding="utf-8",
+        )
+    _run_git(tmp_path, "add", ".gitattributes", "governed.txt")
+    _run_git(tmp_path, "commit", "-m", "fixture")
+    blob_oid = _run_git(tmp_path, "rev-parse", "HEAD:governed.txt").stdout.strip()
+    validator = _load_module("tracked_identity_validator", GOVERNANCE_VALIDATOR)
+    return validator, blob_oid
+
+
+def _tracked_identity_errors(
+    validator,
+    root: Path,
+    blob_oid: str,
+    **overrides: str,
+) -> list[str]:
+    identity = {
+        "relative_path": "governed.txt",
+        "expected_blob_oid": blob_oid,
+        "git_reference": "HEAD",
+        "error_prefix": "tracked",
+    }
+    identity.update(overrides)
+    return validator._validate_git_tracked_file_identity(root, **identity)
+
+
+def test_tracked_identity_accepts_clean_lf_checkout(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+
+    assert _tracked_identity_errors(validator, tmp_path, blob_oid) == []
+
+
+def test_tracked_identity_accepts_clean_crlf_checkout(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path, line_ending="\r\n")
+    path = tmp_path / "governed.txt"
+
+    assert b"\r\n" in path.read_bytes()
+    assert _run_git(tmp_path, "diff", "--quiet", "--", "governed.txt")
+    assert _tracked_identity_errors(validator, tmp_path, blob_oid) == []
+
+
+def test_tracked_identity_rejects_one_character_edit(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+    (tmp_path / "governed.txt").write_text("first\nthird\n", encoding="utf-8")
+
+    errors = _tracked_identity_errors(validator, tmp_path, blob_oid)
+
+    assert "tracked_git_unstaged_change" in errors
+
+
+def test_tracked_identity_rejects_added_line(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+    (tmp_path / "governed.txt").write_text(
+        "first\nsecond\nthird\n",
+        encoding="utf-8",
+    )
+
+    assert "tracked_git_unstaged_change" in _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+    )
+
+
+def test_tracked_identity_rejects_deleted_line(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+    (tmp_path / "governed.txt").write_text("first\n", encoding="utf-8")
+
+    assert "tracked_git_unstaged_change" in _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+    )
+
+
+def test_tracked_identity_rejects_staged_change(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+    (tmp_path / "governed.txt").write_text("first\nthird\n", encoding="utf-8")
+    _run_git(tmp_path, "add", "governed.txt")
+
+    assert "tracked_git_staged_change" in _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+    )
+
+
+def test_tracked_identity_rejects_wrong_expected_blob(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+
+    errors = _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+        expected_blob_oid="0" * 40,
+    )
+
+    assert "tracked_git_blob_mismatch" in errors
+    assert "tracked_git_head_blob_mismatch" in errors
+
+
+def test_tracked_identity_rejects_wrong_reference_or_path(tmp_path: Path) -> None:
+    validator, blob_oid = _tracked_identity_fixture(tmp_path)
+
+    reference_errors = _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+        git_reference="missing-reference",
+    )
+    path_errors = _tracked_identity_errors(
+        validator,
+        tmp_path,
+        blob_oid,
+        relative_path="missing.txt",
+    )
+
+    assert "tracked_git_reference_unresolved" in reference_errors
+    assert "tracked_git_file_missing" in path_errors
+
+
+def test_external_raw_identity_rejects_changed_byte(tmp_path: Path) -> None:
+    validator = _load_module("external_raw_validator", GOVERNANCE_VALIDATOR)
+    artifact = tmp_path / "external.artifact"
+    artifact.write_bytes(b"external-v1\x00")
+    expected = validator._sha256(artifact)
+    artifact.write_bytes(b"external-v1\x01")
+
+    assert validator._validate_raw_file_identity(
+        artifact,
+        expected_sha256=expected,
+        error_prefix="external",
+    ) == ["external_raw_hash_mismatch"]
+
+
+def test_external_raw_identity_accepts_unchanged_artifact(tmp_path: Path) -> None:
+    validator = _load_module("external_raw_unchanged_validator", GOVERNANCE_VALIDATOR)
+    artifact = tmp_path / "external.artifact"
+    artifact.write_bytes(b"external-v1\x00")
+
+    assert validator._validate_raw_file_identity(
+        artifact,
+        expected_sha256=validator._sha256(artifact),
+        error_prefix="external",
+    ) == []
+
+
+def test_binary_artifact_remains_raw_byte_bound(tmp_path: Path) -> None:
+    validator = _load_module("binary_raw_validator", GOVERNANCE_VALIDATOR)
+    artifact = tmp_path / "external.bin"
+    artifact.write_bytes(b"\x00\r\n\xff\x10")
+    expected = validator._sha256(artifact)
+    artifact.write_bytes(b"\x00\n\xff\x10")
+
+    assert validator._validate_raw_file_identity(
+        artifact,
+        expected_sha256=expected,
+        error_prefix="binary",
+    ) == ["binary_raw_hash_mismatch"]
 
 
 def test_project_memory_contract_is_valid() -> None:
