@@ -343,10 +343,10 @@ def rotate_stage1_execution_permits(
             )
         predecessor_bundle_path = Path(predecessor_binding_bundle_path).resolve()
         predecessor_bundle = _read_json(predecessor_bundle_path)
-        _validate_binding_bundle(
+        _validate_confirmation_repair_predecessor_bundle(
             predecessor_bundle,
             authority_sha256,
-            expected_views=seed_authorization.confirmation_candidates,
+            confirmation_candidates=seed_authorization.confirmation_candidates,
         )
         predecessor_bundle_sha256 = _sha256_file(predecessor_bundle_path)
         if predecessor_bundle_sha256 == binding_bundle_sha256:
@@ -998,6 +998,39 @@ def _validate_binding_bundle(
     views = bundle.get("views")
     if not isinstance(views, Mapping) or set(views) != set(expected_views):
         raise Stage1ExecutionAuthorizationError("binding bundle view set drifted")
+
+
+def _validate_confirmation_repair_predecessor_bundle(
+    bundle: Mapping[str, Any],
+    authority_sha256: str,
+    *,
+    confirmation_candidates: Sequence[str],
+) -> None:
+    """Accept only the two registered predecessor shapes for provenance repair."""
+
+    views = bundle.get("views")
+    if not isinstance(views, Mapping):
+        raise Stage1ExecutionAuthorizationError("binding bundle view set drifted")
+    view_set = set(views)
+    candidate_set = set(confirmation_candidates)
+    if view_set == candidate_set:
+        _validate_binding_bundle(
+            bundle,
+            authority_sha256,
+            expected_views=confirmation_candidates,
+        )
+        return
+    if view_set != set(VIEWS):
+        raise Stage1ExecutionAuthorizationError("binding bundle view set drifted")
+    if set(bundle) != {"schema_version", "authority", "views"}:
+        raise Stage1ExecutionAuthorizationError(
+            "legacy confirmation predecessor bundle fields drifted"
+        )
+    _validate_binding_bundle(
+        bundle,
+        authority_sha256,
+        expected_views=VIEWS,
+    )
 
 
 def _scientific_binding_sha256(data_bindings_path: Path) -> str:

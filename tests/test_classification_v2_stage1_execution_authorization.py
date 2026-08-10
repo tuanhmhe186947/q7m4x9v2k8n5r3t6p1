@@ -521,6 +521,92 @@ def test_confirmation_provenance_repair_supersedes_exact_predecessor(
     assert verified.permit_id == replacement.permit_id
 
 
+def test_confirmation_repair_accepts_hash_bound_legacy_all_view_predecessor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, _predecessor, permits, _scientific = _confirmation_permits(
+        tmp_path,
+        monkeypatch,
+    )
+    legacy_bundle, legacy_scientific = _binding_bundle(
+        tmp_path,
+        filename="legacy_all_view_bindings.json",
+    )
+    previous_payload = json.loads(
+        permits["T6"].path.read_text(encoding="utf-8")
+    )
+    previous_payload["rgb_binding_bundle_sha256"] = sha256(
+        legacy_bundle.read_bytes()
+    ).hexdigest()
+    previous_payload["scientific_rgb_binding_sha256"] = legacy_scientific["T6"]
+    permits["T6"].path.write_text(
+        json.dumps(previous_payload),
+        encoding="utf-8",
+    )
+    repaired_bundle, repaired_scientific = _repaired_confirmation_bundle(tmp_path)
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    rotation = authorization.rotate_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=repaired_bundle,
+        views=("T6",),
+        reason="repair hash-bound legacy all-view confirmation predecessor",
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+        rotation_mode=(
+            authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+        ),
+        predecessor_binding_bundle_path=legacy_bundle,
+    )["T6"]
+
+    assert rotation.previous.payload["rgb_binding_bundle_sha256"] == sha256(
+        legacy_bundle.read_bytes()
+    ).hexdigest()
+    assert rotation.replacement.payload["scientific_rgb_binding_sha256"] == (
+        repaired_scientific["T6"]
+    )
+
+
+def test_confirmation_repair_rejects_augmented_legacy_predecessor_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, _predecessor, _permits_by_view, _scientific = (
+        _confirmation_permits(tmp_path, monkeypatch)
+    )
+    legacy_bundle, _legacy_scientific = _binding_bundle(
+        tmp_path,
+        filename="augmented_legacy_all_view_bindings.json",
+    )
+    legacy_payload = json.loads(legacy_bundle.read_text(encoding="utf-8"))
+    legacy_payload["unregistered_change"] = True
+    legacy_bundle.write_text(json.dumps(legacy_payload), encoding="utf-8")
+    repaired_bundle, _repaired = _repaired_confirmation_bundle(tmp_path)
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="legacy confirmation predecessor bundle fields drifted",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="reject augmented legacy predecessor",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+            predecessor_binding_bundle_path=legacy_bundle,
+        )
+
+
 def test_superseded_permit_cannot_be_consumed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
