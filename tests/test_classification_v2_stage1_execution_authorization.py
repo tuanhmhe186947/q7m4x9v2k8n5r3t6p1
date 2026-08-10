@@ -134,10 +134,14 @@ def test_creator_issues_four_exact_per_arm_permits(
         assert permit.payload["outer_access_allowed"] is False
 
 
-def test_creator_refuses_a_dirty_permit_issuer(tmp_path: Path) -> None:
+def test_creator_refuses_a_dirty_permit_issuer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     bundle, _ = _binding_bundle(tmp_path)
     outputs = tmp_path / "outputs"
     outputs.mkdir()
+    monkeypatch.setattr(authorization, "_git_status", lambda _root: " M dirty.py")
 
     with pytest.raises(authorization.Stage1ExecutionAuthorizationError, match="clean"):
         authorization.create_stage1_execution_permits(
