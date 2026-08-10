@@ -26,3 +26,9 @@ The post-S1 runner receives explicit canonical code SHA, host-binding output
 path, verified media root, and RGB source root. It may materialize only the
 registered T6 inner population. No outer/test rows, source retransmission,
 backbone, H5, posture, or other scientific family enters this lifecycle.
+
+Before a remote preflight, deploy the complete canonical `src/pig_behavior`
+package (or a hash-verified import-equivalent closure), not only the post-S1
+entry modules. The remote import preflight must pass before a binding is
+materialized or a model is constructed; a missing module is an execution
+packaging blocker and requires Studio release before correction.
