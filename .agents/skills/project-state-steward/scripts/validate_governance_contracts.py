@@ -400,7 +400,16 @@ def _check_short_checklist(root: Path) -> list[str]:
         task_body = checklist[task_match.start():end]
         task_id = task_match.group("task_id")
         task_ids.append(task_id)
-        if len(task_body.splitlines()) > 120:
+        status_match = re.search(
+            r"^- Status:\s*`(?P<status>[A-Z_]+)`\.?\r?$",
+            task_body,
+            re.MULTILINE,
+        )
+        task_status = status_match.group("status") if status_match else None
+        if (
+            task_status not in TERMINAL_CHECKLIST_STATES
+            and len(task_body.splitlines()) > 120
+        ):
             errors.append(f"short_task_exceeds_120_line_budget:{task_id}")
         for marker in required_task_markers:
             if marker not in task_body:
@@ -409,12 +418,6 @@ def _check_short_checklist(root: Path) -> list[str]:
         is_managed = (
             f"- Concurrency: `{TASK_MANAGER.CONCURRENCY_SCHEMA}`." in task_body
         )
-        status_match = re.search(
-            r"^- Status:\s*`(?P<status>[A-Z_]+)`\.?\r?$",
-            task_body,
-            re.MULTILINE,
-        )
-        task_status = status_match.group("status") if status_match else None
         task_date = date.fromisoformat(task_id.rsplit("-", 2)[-2])
         if opened is not None and task_date != opened:
             if task_date > opened or not is_managed:

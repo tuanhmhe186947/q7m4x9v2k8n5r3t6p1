@@ -850,6 +850,33 @@ def test_canonical_stale_and_over_budget_state_fail_from_each_worktree(
         assert f"short_task_exceeds_120_line_budget:{task_id}" in state["errors"]
 
 
+def test_terminal_task_history_does_not_consume_active_task_budget(
+    tmp_path: Path,
+) -> None:
+    canonical, fresh, validator, _, current = _coordination_worktree_fixture(tmp_path)
+    task_id = "TERMINAL-20260805-01"
+    lines = _short_memory_lines(current, legacy_task_ids=f"`{task_id}`")
+    checklist_end = lines.index("- None.")
+    task_lines = [
+        f"### {task_id} - retained terminal history",
+        "- Prompt: retain a completed task until rollover.",
+        "- Status: `DONE`.",
+        f"- Opened: `{current.isoformat()}`.",
+        "- Acceptance: terminal history remains structurally valid.",
+        "- Skills: `project-state-steward`.",
+        "- [x] `TERMINAL-1` `[DONE]` Preserve the completion record.",
+        "  - Evidence: completion was verified before the terminal checkpoint.",
+        *[f"- Historical detail: {index}." for index in range(121)],
+    ]
+    lines[checklist_end : checklist_end + 1] = task_lines
+    _write_short_fixture(canonical, lines)
+
+    for root in (canonical, fresh):
+        state = _active_short_state(validator, root, current)
+        assert f"short_task_exceeds_120_line_budget:{task_id}" not in state["errors"]
+        assert state["errors"] == []
+
+
 def test_worktree_shadow_and_missing_canonical_ledger_fail_closed(
     tmp_path: Path,
 ) -> None:
