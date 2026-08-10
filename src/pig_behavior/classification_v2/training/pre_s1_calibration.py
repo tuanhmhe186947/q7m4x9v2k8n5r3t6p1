@@ -144,9 +144,17 @@ def create_calibration_plan(
         raise PreS1CalibrationError("calibration outputs root is unavailable")
     authority = _read_json(authority_path)
     authority_hash = _sha256_file(authority_path)
+    _validate_authority(authority)
+    if not engineering_smoke and (
+        authority["pre_s1_calibration"].get("status")
+        == "COMPLETED_VALID_HORIZON_FROZEN"
+    ):
+        raise PreS1CalibrationError(
+            "new PRE-S1 calibration is forbidden after the valid trajectory "
+            "was frozen"
+        )
     if not engineering_smoke and authority_hash != CANONICAL_AUTHORITY_SHA256:
         raise PreS1CalibrationError("canonical S1 authority hash mismatch")
-    _validate_authority(authority)
     chosen_run_id = run_id or _new_run_id(engineering_smoke)
     _validate_run_id(chosen_run_id)
     default_parent = (
@@ -931,6 +939,12 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
         raise PreS1CalibrationError("unsupported S1 calibration authority schema")
     calibration = authority.get("pre_s1_calibration", {})
     controls = authority.get("fixed_stage_1_to_4_controls", {})
+    allowed_calibration_statuses = {
+        "AUTHORIZED_NOT_EXECUTED",
+        "COMPLETED_VALID_HORIZON_FROZEN",
+    }
+    if calibration.get("status") not in allowed_calibration_statuses:
+        raise PreS1CalibrationError("PRE-S1 calibration status authority drifted")
     if (
         calibration.get("reference_configuration", {}).get("id") != MODEL_ID
         or calibration.get("temporal_view") != VIEW
@@ -953,11 +967,13 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
     }
     if controls != expected_controls:
         raise PreS1CalibrationError("frozen S1 optimizer controls mismatch")
-    if (
-        authority.get("matched_training_policy", {}).get("fixed_training_steps")
-        != "UNRESOLVED_PENDING_PRE_S1_CALIBRATION"
-    ):
-        raise PreS1CalibrationError("executor may not choose the final S1 training horizon")
+    fixed_steps = authority.get("matched_training_policy", {}).get(
+        "fixed_training_steps"
+    )
+    if fixed_steps not in {"UNRESOLVED_PENDING_PRE_S1_CALIBRATION", 4164}:
+        raise PreS1CalibrationError("unsupported final S1 training horizon authority")
+    if calibration.get("status") == "COMPLETED_VALID_HORIZON_FROZEN" and fixed_steps != 4164:
+        raise PreS1CalibrationError("completed PRE-S1 authority must bind 4164 steps")
     if authority.get("inner_role_binding", {}).get("forbidden_roles") != [
         "test",
         "outer",

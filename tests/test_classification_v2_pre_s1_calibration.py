@@ -234,6 +234,20 @@ def test_hash_and_population_helpers_fail_closed() -> None:
     assert mixed["primary_s1_eligibility_status"].eq("MIXED_LABEL").all()
 
 
+def test_completed_calibration_authority_refuses_a_second_real_calibration(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(calibration.PreS1CalibrationError, match="forbidden"):
+        calibration.create_calibration_plan(
+            AUTHORITY,
+            repository_root=ROOT,
+            output_dir=tmp_path / "second_real_calibration",
+            run_id="second_real_calibration",
+            device_name="cuda",
+            engineering_smoke=False,
+        )
+
+
 def test_real_data_cpu_preflight_proves_inner_population_and_b1_inputs(
     tmp_path: Path,
 ) -> None:

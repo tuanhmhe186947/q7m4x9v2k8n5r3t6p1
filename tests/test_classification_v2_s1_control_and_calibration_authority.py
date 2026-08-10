@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,6 +9,7 @@ AUTHORITY = Path(
     "next_phase_20260806_r2/"
     "s1_control_and_pre_s1_calibration_authority.json"
 )
+LAUNCH_PACKET = AUTHORITY.with_name("s1_stage1_l4_launch_packet_20260810.json")
 
 
 def _load() -> dict[str, object]:
@@ -17,7 +19,7 @@ def _load() -> dict[str, object]:
 def test_s1_budget_controls_steps_checkpoint_and_seed_contract() -> None:
     authority = _load()
 
-    assert authority["status"] == "FROZEN_CONTROLS_PENDING_PRE_S1_CALIBRATION"
+    assert authority["status"] == "POST_CALIBRATION_HORIZON_FROZEN_STAGE1_CPU_PREFLIGHT_PENDING"
     budget = authority["budget_scope"]
     assert budget["stage6_autoresearch_max_trials"] == 24
     assert budget["behavior_only_s1_global_gpu_hour_ceiling"] == 48
@@ -47,7 +49,8 @@ def test_s1_budget_controls_steps_checkpoint_and_seed_contract() -> None:
     policy = authority["matched_training_policy"]
     assert policy["primary_training_population"] == "ALL_VALID_SINGLE_LABEL_WINDOWS"
     assert policy["training_budget_unit"] == "OPTIMIZER_STEPS"
-    assert policy["fixed_training_steps"] == "UNRESOLVED_PENDING_PRE_S1_CALIBRATION"
+    assert policy["fixed_training_steps"] == 4164
+    assert policy["matched_stage_1_to_4_max_steps"] == 4164
     assert policy["fixed_epochs_allowed"] is False
 
     checkpoint = authority["checkpoint_and_seed_policy"]
@@ -93,7 +96,7 @@ def test_pre_s1_calibration_is_nonclaim_grade_and_step_bounded() -> None:
     authority = _load()
     calibration = authority["pre_s1_calibration"]
 
-    assert calibration["status"] == "AUTHORIZED_NOT_EXECUTED"
+    assert calibration["status"] == "COMPLETED_VALID_HORIZON_FROZEN"
     assert calibration["reference_configuration"]["id"] == "B1_ACTOR_T6_SEQUENCE"
     assert calibration["temporal_view"] == "T6"
     assert calibration["seed"] == 20260804
@@ -117,3 +120,56 @@ def test_pre_s1_calibration_is_nonclaim_grade_and_step_bounded() -> None:
         "PRESERVED_STAGE_4_ONLY"
     )
     assert authority["registered_funnel_preservation"]["c2_access"] == "BLOCKED"
+
+
+def test_user_approved_horizon_and_stage1_temporal_scope_are_bound() -> None:
+    authority = _load()
+
+    decision = authority["calibration_decision_authority"]
+    assert decision["selected_horizon"] == 4164
+    assert decision["selection_rule"] == "REGISTERED_TRAJECTORY_REVIEW"
+    assert len(decision["sha256"]) == 64
+
+    stage1 = authority["stage_1_temporal_screening"]
+    assert stage1["status"] == "CPU_PREFLIGHT_AUTHORIZED_GPU_EXECUTION_NOT_AUTHORIZED"
+    assert stage1["run_kind"] == "S1_STAGE1_TEMPORAL_SCREENING"
+    assert stage1["temporal_views"] == ["T6", "T8", "T12", "T16"]
+    assert stage1["max_steps"] == 4164
+    assert stage1["evaluation_steps"] == [4164]
+    assert stage1["common_cohort"]["native_units"] == 27378
+    assert stage1["outer_access_allowed"] is False
+    assert stage1["gpu_execution_authorized"] is False
+
+
+def test_future_l4_launch_packet_is_exact_but_not_an_execution_authorization() -> None:
+    packet = json.loads(LAUNCH_PACKET.read_text(encoding="utf-8"))
+
+    assert packet["status"] == "CPU_PREFLIGHT_PASS_FUTURE_COMMANDS_ONLY"
+    boundary = packet["authority_boundary"]
+    assert boundary["stage1_gpu_execution_authorized"] is False
+    assert boundary["not_a_launch_authorization"] is True
+    assert boundary["required_future_execution_authorization"] == (
+        "S1_STAGE1_GPU_EXECUTION_AUTHORIZED"
+    )
+    assert boundary["required_hardware"] == {
+        "gpu_count": 1,
+        "gpu_name": "NVIDIA L4",
+    }
+    assert packet["bound_authorities"]["s1_authority_sha256"] == hashlib.sha256(
+        AUTHORITY.read_bytes()
+    ).hexdigest()
+
+    prefix = packet["invocation"]["command_argv_prefix"]
+    assert prefix[:6] == ["uv", "run", "--frozen", "--extra", "pt", "python"]
+    assert "--max-steps" not in prefix
+    assert "--execution-authorization" in prefix
+    assert set(packet["arms"]) == {"T6", "T8", "T12", "T16"}
+    for view, arm in packet["arms"].items():
+        suffix = arm["command_argv_suffix"]
+        assert suffix[:2] == ["--view", view]
+        assert suffix[2:4] == [
+            "--data-bindings",
+            f"${{S1_STAGE1_{view}_DATA_BINDINGS}}",
+        ]
+        assert suffix[4:] == ["--trial-id", arm["trial_id"]]
+        assert arm["trial_id"].endswith("steps4164")

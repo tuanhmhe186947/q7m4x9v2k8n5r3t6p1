@@ -1,0 +1,99 @@
+{
+  "schema_version": "classification_v2.s1_pre_s1_calibration_horizon_decision.v1",
+  "status": "FROZEN",
+  "authority_classification": "USER_APPROVED_POST_CALIBRATION_CONTROL_DECISION",
+  "decision_scope": "behavior_only_S1_to_S4_common_optimizer_step_control",
+  "calibration": {
+    "run_id": "pre_s1_b1_t6_f3_20260810_52d62718",
+    "run_kind": "PRE_S1_CALIBRATION",
+    "claim_grade_result": false,
+    "scientific_trial": false,
+    "git_sha": "52d62718853f86adbbb33d896310fc24ae941203",
+    "calibration_authority": {
+      "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
+      "sha256": "948d242201a4df86e2a2a11861e41a9d928d67b695c454357dd74b39fdd77766"
+    },
+    "rgb_binding": {
+      "path": "/teamspace/studios/this_studio/pig_e0_r3/outputs/pre_s1_calibration_bindings/pre_s1_t6_f3_rgb_binding_20260810_ed097228/scientific_rgb_binding.json",
+      "sha256": "2b922a0c9a1e2abfbed1b06885f618df41d88d30a78e378a4b38438d347b9f2f"
+    },
+    "event_weight": {
+      "path": "outputs/classification_v2/s1_post_temporal_closure_20260809/s1_primary_f3_32d5b53c_20260809_retry2/fold3_t6_event_weights.csv",
+      "sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72"
+    },
+    "artifact_hashes": {
+      "run_manifest": "07f15475fb49b68ca4cef7a459bb1d03c39980660becf3c5c64a85fc4f7cb25f",
+      "result": "f5c89fb4e0649b14a73a7eb94dd4218d5db755224e4507b2c28e42d03ca8872e",
+      "runtime": "7d233a21b069ab0191e4ecba5a0bd430c4e7167a45de46a1c8b51f8d0381363e"
+    },
+    "native_coverage": {
+      "expected": 3335,
+      "predicted": 3335,
+      "missing": 0,
+      "duplicate": 0,
+      "out_of_population": 0,
+      "valid": true
+    },
+    "snapshots": {
+      "2082": {
+        "training_loss": 1.2923003435134888,
+        "native_macro_f1": 0.26960233508139925,
+        "metric_sha256": "e4d75b7dc3c010d272c87592dc9350c3f7cc6d080e5ff9254b8e774a2c5bfe09",
+        "checkpoint_sha256": "1d4da17f1986bc14bc383324b2501197fdd4583b5e541ef66b125f8c01f1a62b",
+        "window_predictions_sha256": "3ba09408e27057ce15dadd0717ada6b61aa70b2fcf04e32fc13d5fb554abcba5",
+        "native_predictions_sha256": "aaf6b0b6960ca8634d5b567dd00e7d31520389082bb264b6cb88660d30f36a95"
+      },
+      "4164": {
+        "training_loss": 0.9005398154258728,
+        "native_macro_f1": 0.3629868671396542,
+        "metric_sha256": "0e756ae183d07a692cc5f12ac7848bd422d14d29a2e35da87c8d9ccfde7224ca",
+        "checkpoint_sha256": "fdd511059028b7dbaf5020e9fd7c4cf815938355e1f2e0af925293ad60793ef3",
+        "window_predictions_sha256": "27f9b8d004c97785ae3244d0492ea0901e5427cec55cec2d6eb9d4f78f7704a7",
+        "native_predictions_sha256": "eb4cf734e15e3bc374698317c9f38ed74a2d8044fb59e02738b508af8b10686a"
+      },
+      "6246": {
+        "training_loss": 1.5012657642364502,
+        "native_macro_f1": 0.32789962087282465,
+        "metric_sha256": "e5d60b081bd257ff6af16372275d3ac90ffb21d91f96d012165cc5bcceb9c022",
+        "checkpoint_sha256": "b5070bf24461d863a039a2513cb8d7c7810f403b62c28fa91d03e26b19d15ce7",
+        "window_predictions_sha256": "809502f605dc5b987045ac93ab9bc1f943890803f99ac8079fdb12d8ebe69152",
+        "native_predictions_sha256": "f798460525626b8dee82f690df5deb424bba57ba9e35bba432e8c4c411d0fe06"
+      }
+    },
+    "runtime": {
+      "start_timestamp": "2026-08-09T21:15:51.154484+00:00",
+      "end_timestamp": "2026-08-09T21:18:54.931421+00:00",
+      "wall_clock_seconds": 183.77691516600044,
+      "seconds_per_step": 0.02942313723439008,
+      "gpu_model": "NVIDIA L4",
+      "gpu_count": 1,
+      "telemetry_status": "PASS"
+    }
+  },
+  "selection": {
+    "selection_rule": "REGISTERED_TRAJECTORY_REVIEW",
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "selected_horizon": 4164,
+    "rejected_short_horizon": {
+      "steps": 2082,
+      "reason": "primary metric remained substantially below the later registered snapshot"
+    },
+    "rejected_long_horizon": {
+      "steps": 6246,
+      "reason": "primary native Macro-F1 declined relative to 4164"
+    },
+    "interpretation_boundary": "No convergence threshold was invented and 4164 is not a globally optimal duration claim."
+  },
+  "rare_class_interpretation": {
+    "fight_f1": "0 at all calibration snapshots",
+    "later_snapshot_observation": "At 6246 move and playwithtoy became non-zero and social-nose improved relative to 4164 while overall native Macro-F1 declined.",
+    "decision_rule": "No rare-class calibration threshold was registered; the primary native-unit ten-class Macro-F1 retains control and later registered stages study difficult classes."
+  },
+  "non_authorized_actions": [
+    "select a different horizon automatically",
+    "run a new PRE-S1 calibration",
+    "start a Stage-1 GPU trial",
+    "access outer-test data or metrics",
+    "change labels, data, splits, temporal semantics, model semantics, or R4"
+  ]
+}

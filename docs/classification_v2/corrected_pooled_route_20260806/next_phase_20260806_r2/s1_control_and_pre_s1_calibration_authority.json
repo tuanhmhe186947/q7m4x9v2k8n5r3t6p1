@@ -1,8 +1,8 @@
 {
   "schema_version": "classification_v2.s1_control_and_pre_s1_calibration_authority.v1",
-  "status": "FROZEN_CONTROLS_PENDING_PRE_S1_CALIBRATION",
+  "status": "POST_CALIBRATION_HORIZON_FROZEN_STAGE1_CPU_PREFLIGHT_PENDING",
   "authority_scope": "behavior_only_S1_inner_development_only",
-  "authority_classification": "NEW_USER_APPROVED_S1_CONTROL_DECISION",
+  "authority_classification": "USER_APPROVED_POST_CALIBRATION_CONTROL_DECISION",
   "path_roots": {
     "S1_ROUTE": [
       "docs",
@@ -52,6 +52,13 @@
       "relative_path": "experiment_funnel.json",
       "sha256": "e9d37f49386e91a0dd49a067b964d2475a8bb7ceb18089c42ff8cfd9acf9c80b"
     }
+  },
+  "calibration_decision_authority": {
+    "path_root": "S1_ROUTE",
+    "relative_path": "s1_pre_s1_calibration_horizon_decision_20260810.json",
+    "sha256": "8c5e00c6f94b6acf173bb5b0ad25c0f6006d0f4022ac6b764f8140c132620dc9",
+    "selected_horizon": 4164,
+    "selection_rule": "REGISTERED_TRAJECTORY_REVIEW"
   },
   "temporal_semantic_closure": {
     "status": "PASS",
@@ -265,7 +272,8 @@
     "event_mass_weighting": "CORRECTED_FOLD_3_TRAIN_ONLY",
     "same_optimizer_step_budget_required": true,
     "training_budget_unit": "OPTIMIZER_STEPS",
-    "fixed_training_steps": "UNRESOLVED_PENDING_PRE_S1_CALIBRATION",
+    "fixed_training_steps": 4164,
+    "matched_stage_1_to_4_max_steps": 4164,
     "fixed_epochs_allowed": false,
     "coverage_differences_by_view_remain_reportable": true
   },
@@ -319,7 +327,7 @@
     }
   },
   "pre_s1_calibration": {
-    "status": "AUTHORIZED_NOT_EXECUTED",
+    "status": "COMPLETED_VALID_HORIZON_FROZEN",
     "run_kind": "PRE_S1_CALIBRATION",
     "scientific_trial": false,
     "claim_grade_result": false,
@@ -344,7 +352,7 @@
     "maximum_observation_envelope": "three complete corrected T6 training passes",
     "event_snapshots_at_steps": [2082, 4164, 6246],
     "adaptive_early_stop": "FORBIDDEN_EXCEPT_NUMERICAL_DATA_ROLE_RESOURCE_OR_SAFETY_FAILURE",
-    "final_s1_horizon_decision": "EXPLICIT_USER_DECISION_REQUIRED_AFTER_TRAJECTORY_REVIEW",
+    "final_s1_horizon_decision": "USER_APPROVED_4164_OPTIMIZER_STEPS",
     "required_telemetry": [
       "training_loss",
       "inner_validation_native_unit_macro_f1",
@@ -368,6 +376,32 @@
       "checkpoint_hash",
       "prediction_hash"
     ]
+  },
+  "stage_1_temporal_screening": {
+    "status": "CPU_PREFLIGHT_AUTHORIZED_GPU_EXECUTION_NOT_AUTHORIZED",
+    "run_kind": "S1_STAGE1_TEMPORAL_SCREENING",
+    "reference_configuration": {
+      "id": "B1_ACTOR_T6_SEQUENCE",
+      "view_substitution": "B1_ACTOR_T6_SEQUENCE with view substituted and no other semantic change",
+      "forbidden_feature_families": ["H5", "H6", "H12", "H24", "posture", "ROI", "social"]
+    },
+    "temporal_views": ["T6", "T8", "T12", "T16"],
+    "initial_seed": 20260804,
+    "confirmation_seeds": [20260805, 20260806],
+    "max_steps": 4164,
+    "evaluation_steps": [4164],
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "early_stopping": "DISABLED",
+    "scientific_ranking_checkpoint": "FIXED_STEP_ENDPOINT",
+    "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
+    "primary_evaluation_path": "EXPLICIT_WINDOW_TO_NATIVE_COLLAPSE",
+    "common_cohort": {
+      "native_units": 27378,
+      "purpose": "MATCHED_DIAGNOSTIC_ONLY_NEVER_PRIMARY_TRAINING_POPULATION",
+      "metric": "COMMON_COHORT_NATIVE_MACRO_F1"
+    },
+    "outer_access_allowed": false,
+    "gpu_execution_authorized": false
   },
   "outer_active_refusal_contract": {
     "status": "PASS_BY_REQUIRED_EXECUTOR_CONTRACT",
@@ -413,19 +447,20 @@
   "readiness": {
     "ready_to_implement_pre_s1_calibration_executor": true,
     "ready_to_run_pre_s1_calibration": false,
+    "ready_to_implement_stage_1_temporal_screening_executor": true,
+    "ready_to_run_stage_1_initial_screen": false,
     "ready_to_start_s1": false,
-    "unresolved_user_decisions": [
-      {
-        "id": "S1_FIXED_TRAINING_STEPS",
-        "question": "Which optimizer-step horizon is sufficient after calibration review?",
-        "authority": "explicit user decision after PRE-S1 calibration"
-      }
+    "unresolved_user_decisions": [],
+    "required_before_stage_1_gpu_execution": [
+      "registered Stage-1 executor implementation",
+      "all-view CPU preflight",
+      "governance, leakage, and hash gates",
+      "exact future L4 commands"
     ]
   },
   "forbidden_in_this_authority": [
-    "GPU allocation or execution",
-    "calibration execution",
-    "S1 execution",
+    "new PRE-S1 calibration execution",
+    "Stage-1 paid GPU execution before its registered authorization gates",
     "outer access",
     "reviewed-label changes",
     "source-data changes",
