@@ -1,0 +1,1773 @@
+{
+  "schema_version": "classification_v2.s1_stage1_temporal_confirmation_evidence.v1",
+  "status": "ARTIFACT_VERIFIED_INNER_DEVELOPMENT_CONFIRMATION_EVIDENCE",
+  "scope": {
+    "execution_phase": "STAGE1_CONFIRMATION",
+    "runner_run_kind": "S1_STAGE1_TEMPORAL_SCREENING",
+    "candidates": [
+      "T6",
+      "T16"
+    ],
+    "initial_seed": 20260804,
+    "confirmation_seeds": [
+      20260805,
+      20260806
+    ],
+    "fixed_optimizer_steps": 4164,
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "confirmation_resolution": 64,
+    "model_realization": "B1_STAGE1_UNCHANGED",
+    "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
+    "common_cohort_metric": "COMMON_COHORT_NATIVE_MACRO_F1",
+    "common_cohort_metric_role": "DIAGNOSTIC_ONLY",
+    "outer_examples_accessed": false,
+    "claim_grade_result": false,
+    "scientific_promotion_allowed": false
+  },
+  "bound_authorities": {
+    "s1_control_and_pre_s1_calibration_authority.json": {
+      "relative_path": "s1_control_and_pre_s1_calibration_authority.json",
+      "sha256": "9daf6a3bda89678c2b3ddd6ba9a0132fa1be16b583bfafb1cc76eb610ff8b1e4"
+    },
+    "s1_stage1_initial_temporal_screen_evidence_20260810.json": {
+      "relative_path": "s1_stage1_initial_temporal_screen_evidence_20260810.json",
+      "sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1"
+    },
+    "s1_stage1_temporal_retention_authority_20260810.json": {
+      "relative_path": "s1_stage1_temporal_retention_authority_20260810.json",
+      "sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+    },
+    "s1_stage1_confirmation_l4_launch_packet_20260810.json": {
+      "relative_path": "s1_stage1_confirmation_l4_launch_packet_20260810.json",
+      "sha256": "00156594c1e4bec397be427f983eb412f320233ee6415a77d8370915f6fcbc31"
+    },
+    "s1_stage1_confirmation_execution_addendum_20260810_v2.json": {
+      "relative_path": "s1_stage1_confirmation_execution_addendum_20260810_v2.json",
+      "sha256": "c2153c825e6b9438dbe1fe3d3fccf7ca6a1ee2f0e330e7b4bef4727b6de381bf"
+    },
+    "s1_stage1_lightning_resource_naming_contract_20260810_v2.json": {
+      "relative_path": "s1_stage1_lightning_resource_naming_contract_20260810_v2.json",
+      "sha256": "96a2f40600524c66d3b2abe06c4b80880f58330adbbda78ceea08a7d0ca441bf"
+    }
+  },
+  "execution_identity": {
+    "code_sha": "c6be291c9b4b76ea02360f92926656d11bd2fe4e",
+    "lightning_resource_naming_contract_version": "20260810-v2",
+    "teamspace": "pig-project",
+    "studio": "pig-gpu-l4",
+    "ssh_alias": "lightning-pig-gcp",
+    "gpu_model": "NVIDIA L4",
+    "gpu_count": 1,
+    "remote_project_root": "/teamspace/studios/this_studio/pig_e0_r3",
+    "remote_input_root": "/inputs",
+    "remote_input_reused": true,
+    "remote_input_parity": {
+      "status": "PASS",
+      "files": 245936,
+      "bytes": 9151758436
+    },
+    "full_input_retransmitted": false,
+    "rgb_64_parity": "BITWISE_IDENTICAL",
+    "rgb_packed_cache_sha256": "4c7981daa884a8b82181c15f2b0179ba6b728bc997307fce2b96e1cf3971af2f",
+    "confirmation_binding_bundle_sha256_by_seed": {
+      "20260805": "9da593c96a5aacfccfebf4d377b812a65b511ac3965495213e982faac694741b",
+      "20260806": "2045da0e533b905b5a65eb05e4aecf97ae51bad4bc94392fab9e49d610154768"
+    },
+    "resource_preflight": "PASS",
+    "studio_final_status": "Stopped",
+    "studio_final_status_observed_at": "2026-08-11T00:05:59.4340403+07:00",
+    "studio_final_status_evidence": "authenticated Lightning control-plane list returned Stopped"
+  },
+  "artifact_source": {
+    "remote_persistent_root": "lit://ironheart211224/pig-project/studios/pig-gpu-l4/pig_e0_r3/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials",
+    "local_transfer_audit": "All four trial directories were transferred to the bounded execution worktree; every declared artifact matched size and SHA256 before closeout.",
+    "large_artifacts_committed_to_git": false,
+    "artifact_manifests_verified": 4,
+    "artifact_entries_verified": 52
+  },
+  "permit_history": {
+    "old_pre_fix_permit_reused": false,
+    "old_pre_fix_permit_disposition": "NOT_REUSED; superseded by fresh code-and-binding-bound arm permits",
+    "registered_permits_consumed": 4
+  },
+  "trials": {
+    "T6_seed20260805": {
+      "trial_id": "s1_stage1_t6_seed20260805_steps4164",
+      "view": "T6",
+      "seed": 20260805,
+      "valid": true,
+      "completed_steps": 4164,
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "execution_permit": {
+        "permit_id": "9009e558f27c4571b0973a26188f559e",
+        "permit_sha256": "3f4f1f302e37173774da8f7da7332acf49a06f829c3f70eb626c3bd3ff59cd88",
+        "status": "CONSUMED",
+        "code_sha": "c6be291c9b4b76ea02360f92926656d11bd2fe4e",
+        "rgb_binding_bundle_sha256": "9da593c96a5aacfccfebf4d377b812a65b511ac3965495213e982faac694741b",
+        "confirmation_authority_sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+      },
+      "fixed_controls": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.003,
+        "weight_decay": 0.0,
+        "batch_size": 16,
+        "precision": "FP32",
+        "scheduler": "none",
+        "early_stopping": "DISABLED"
+      },
+      "primary_native_macro_f1": 0.049026708918062475,
+      "common_cohort_native_macro_f1": 0.051565507332809235,
+      "primary_per_class": {
+        "drink": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 13,
+          "predicted": 0,
+          "tp": 0
+        },
+        "eat": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 834,
+          "predicted": 0,
+          "tp": 0
+        },
+        "explore": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 494,
+          "predicted": 0,
+          "tp": 0
+        },
+        "fight": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 15,
+          "predicted": 0,
+          "tp": 0
+        },
+        "lying": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 470,
+          "predicted": 0,
+          "tp": 0
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 69,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 47,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.3247376311844078,
+          "recall": 1.0,
+          "f1": 0.4902670891806248,
+          "support": 1083,
+          "predicted": 3335,
+          "tp": 1083
+        },
+        "social-nose": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 231,
+          "predicted": 0,
+          "tp": 0
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 79,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "common_cohort_per_class": {
+        "drink": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 545,
+          "predicted": 0,
+          "tp": 0
+        },
+        "eat": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 2793,
+          "predicted": 0,
+          "tp": 0
+        },
+        "explore": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 6721,
+          "predicted": 0,
+          "tp": 0
+        },
+        "fight": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 2460,
+          "predicted": 0,
+          "tp": 0
+        },
+        "lying": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 2681,
+          "predicted": 0,
+          "tp": 0
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 521,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 86,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.347395719190591,
+          "recall": 1.0,
+          "f1": 0.5156550733280924,
+          "support": 9511,
+          "predicted": 27378,
+          "tp": 9511
+        },
+        "social-nose": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 1101,
+          "predicted": 0,
+          "tp": 0
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 959,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "primary_coverage": {
+        "valid": true,
+        "expected": 3335,
+        "predicted": 3335,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 3335,
+        "window_prediction_rows": 6154,
+        "window_predictions_joined": 6154,
+        "exploded_temporal_votes": 6154,
+        "errors": [],
+        "warnings": []
+      },
+      "common_cohort_coverage": {
+        "valid": true,
+        "expected": 27378,
+        "predicted": 27378,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 27378,
+        "window_prediction_rows": 39019,
+        "window_predictions_joined": 39019,
+        "exploded_temporal_votes": 39019,
+        "errors": [],
+        "warnings": []
+      },
+      "inner_role_evidence": {
+        "roles": [
+          "train",
+          "validation"
+        ],
+        "outer_access_allowed": false
+      },
+      "rare_class_guardrails": {
+        "decision": "OBSERVATION_ONLY_REGISTERED_STAGE1_GUARDRAILS",
+        "fight": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 15,
+          "tp": 0
+        },
+        "social_nose": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 231,
+          "tp": 0
+        },
+        "weak_rare_support": {
+          "drink": 13,
+          "eat": 834,
+          "explore": 494,
+          "fight": 15,
+          "lying": 470,
+          "move": 69,
+          "playwithtoy": 47,
+          "sitting": 1083,
+          "social-nose": 231,
+          "stand": 79
+        }
+      },
+      "fight_primary_native": {
+        "gt": 15,
+        "predicted": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "sitting": 15
+        }
+      },
+      "runtime": {
+        "start_timestamp": "2026-08-10T16:06:14.107645+00:00",
+        "end_timestamp": "2026-08-10T16:08:51.344910+00:00",
+        "wall_clock_seconds": 157.23720845599973,
+        "training_seconds": 157.23720845599973,
+        "seconds_per_step": 0.037761097131604165,
+        "completed_steps": 4164,
+        "gpu_name": "NVIDIA L4",
+        "gpu_count": 1,
+        "peak_vram_mb": 60.63916015625,
+        "pytorch_version": "2.12.1+cu130",
+        "cuda_version": "13.0",
+        "configuration_hash": "5dd14c14e66998858defc93349608cc9339c2fcf5da22cfd7e635dded16d142a",
+        "consumed_gpu_hours": 0.04367700234888881
+      },
+      "artifact_audit": {
+        "manifest_sha256": "beaf0ed946affd8e84558312edd2aaf5001c430538837e600e12a6bea9d5b2f3",
+        "declared_artifacts": 13,
+        "verified_artifacts": 13,
+        "status": "PASS",
+        "artifacts": [
+          {
+            "relative_path": "checkpoints/step_002082.json",
+            "sha256": "93f7ddc6a1c85666bb89ac455cb2a16071454986e75cd822414fb684fa7ef831",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_002082.pt",
+            "sha256": "2419cfdb96ae07e055389d6753afb3be932a7fa32e5efa8080efd191ccfa8fd8",
+            "size_bytes": 886873
+          },
+          {
+            "relative_path": "checkpoints/step_004164.json",
+            "sha256": "f8e42206553abe657ac5285d7169e8d436b7a1860398893d081b1b3f4753e3c3",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_004164.pt",
+            "sha256": "384cf13280046edd13ea6d49d1a60f73b8edb62ce8ef606d1660258eb002b58a",
+            "size_bytes": 913497
+          },
+          {
+            "relative_path": "manifest/execution_permit.json",
+            "sha256": "5b343144f94e6c42e2dd5a0492a4539a1c5b85649a6f802528b343152a205671",
+            "size_bytes": 694
+          },
+          {
+            "relative_path": "manifest/result.json",
+            "sha256": "92c4bd2eee6281d4e95e1ff394462ef39159e0d9ea69ad9e95badf4db319ce8c",
+            "size_bytes": 126122
+          },
+          {
+            "relative_path": "manifest/run_manifest.json",
+            "sha256": "a21bfc4a17342000b469660db981474a888771d81b10ec31dca142b420f38640",
+            "size_bytes": 7535
+          },
+          {
+            "relative_path": "metrics/step_004164.json",
+            "sha256": "f078af5a1a86cd5ccfc57174fedf4076d44c849f9702c35d7a529505f00a5c35",
+            "size_bytes": 20224
+          },
+          {
+            "relative_path": "predictions/step_004164_common_native.csv",
+            "sha256": "85d1939240c430ecef1cbef5117a3c4d690c4e09a71a9e94169ef9427cce77e9",
+            "size_bytes": 9064593
+          },
+          {
+            "relative_path": "predictions/step_004164_common_windows.csv",
+            "sha256": "484b2693530c7b57b97f5d8d8b4e365cfef499b21ae70a1912cb1d49a15dff5a",
+            "size_bytes": 5798342
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_native.csv",
+            "sha256": "c0032ca06fa9cf28fdae4ebb9b1c93badef4a8fb37257a89bb2f31d7b7482a5b",
+            "size_bytes": 1222606
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_windows.csv",
+            "sha256": "92f3af1e4d8fc90893e7d0599b9e0ddeb5d051a6601ac637f26edd5d8b4593b4",
+            "size_bytes": 885338
+          },
+          {
+            "relative_path": "runtime/runtime.json",
+            "sha256": "29e28ffbeeee5a915d3cf3091a85ac55bea6d2b02ec9ead18af3388387394e59",
+            "size_bytes": 3029
+          }
+        ]
+      }
+    },
+    "T16_seed20260805": {
+      "trial_id": "s1_stage1_t16_seed20260805_steps4164",
+      "view": "T16",
+      "seed": 20260805,
+      "valid": true,
+      "completed_steps": 4164,
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "execution_permit": {
+        "permit_id": "b4236a7f98d84f1db9fdad5ffdbff1b8",
+        "permit_sha256": "f646d3ebc36a82222156508264b5d759fb66153d48d634b642492dfc95c312bc",
+        "status": "CONSUMED",
+        "code_sha": "c6be291c9b4b76ea02360f92926656d11bd2fe4e",
+        "rgb_binding_bundle_sha256": "9da593c96a5aacfccfebf4d377b812a65b511ac3965495213e982faac694741b",
+        "confirmation_authority_sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+      },
+      "fixed_controls": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.003,
+        "weight_decay": 0.0,
+        "batch_size": 16,
+        "precision": "FP32",
+        "scheduler": "none",
+        "early_stopping": "DISABLED"
+      },
+      "primary_native_macro_f1": 0.3142242582965234,
+      "common_cohort_native_macro_f1": 0.3594294962515425,
+      "primary_per_class": {
+        "drink": {
+          "precision": 0.07692307692307693,
+          "recall": 0.07692307692307693,
+          "f1": 0.07692307692307693,
+          "support": 13,
+          "predicted": 13,
+          "tp": 1
+        },
+        "eat": {
+          "precision": 0.8593913955928646,
+          "recall": 0.9820143884892086,
+          "f1": 0.9166200335758254,
+          "support": 834,
+          "predicted": 953,
+          "tp": 819
+        },
+        "explore": {
+          "precision": 0.6181818181818182,
+          "recall": 0.4857142857142857,
+          "f1": 0.5439999999999999,
+          "support": 490,
+          "predicted": 385,
+          "tp": 238
+        },
+        "fight": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 11,
+          "predicted": 156,
+          "tp": 0
+        },
+        "lying": {
+          "precision": 0.80625,
+          "recall": 0.274468085106383,
+          "f1": 0.40952380952380957,
+          "support": 470,
+          "predicted": 160,
+          "tp": 129
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 64,
+          "predicted": 1,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 43,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.7145187601957586,
+          "recall": 0.8156424581005587,
+          "f1": 0.7617391304347826,
+          "support": 1074,
+          "predicted": 1226,
+          "tp": 876
+        },
+        "social-nose": {
+          "precision": 0.340632603406326,
+          "recall": 0.5957446808510638,
+          "f1": 0.4334365325077399,
+          "support": 235,
+          "predicted": 411,
+          "tp": 140
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 71,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "common_cohort_per_class": {
+        "drink": {
+          "precision": 0.08823529411764706,
+          "recall": 0.044036697247706424,
+          "f1": 0.05875152998776009,
+          "support": 545,
+          "predicted": 272,
+          "tp": 24
+        },
+        "eat": {
+          "precision": 0.5286724273369993,
+          "recall": 0.9638381668456857,
+          "f1": 0.6828154724159797,
+          "support": 2793,
+          "predicted": 5092,
+          "tp": 2692
+        },
+        "explore": {
+          "precision": 0.5693537859007833,
+          "recall": 0.5191191786936468,
+          "f1": 0.5430772822787766,
+          "support": 6721,
+          "predicted": 6128,
+          "tp": 3489
+        },
+        "fight": {
+          "precision": 0.3404120443740095,
+          "recall": 0.43658536585365854,
+          "f1": 0.38254674977738207,
+          "support": 2460,
+          "predicted": 3155,
+          "tp": 1074
+        },
+        "lying": {
+          "precision": 0.8897984886649875,
+          "recall": 0.5270421484520701,
+          "f1": 0.6619817287420942,
+          "support": 2681,
+          "predicted": 1588,
+          "tp": 1413
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 521,
+          "predicted": 1,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 86,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.8296247818499127,
+          "recall": 0.7997056040374303,
+          "f1": 0.8143904919963596,
+          "support": 9511,
+          "predicted": 9168,
+          "tp": 7606
+        },
+        "social-nose": {
+          "precision": 0.35106382978723405,
+          "recall": 0.6294277929155313,
+          "f1": 0.4507317073170732,
+          "support": 1101,
+          "predicted": 1974,
+          "tp": 693
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 959,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "primary_coverage": {
+        "valid": true,
+        "expected": 3305,
+        "predicted": 3305,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 3305,
+        "window_prediction_rows": 3199,
+        "window_predictions_joined": 3199,
+        "exploded_temporal_votes": 7715,
+        "errors": [],
+        "warnings": []
+      },
+      "common_cohort_coverage": {
+        "valid": true,
+        "expected": 27378,
+        "predicted": 27378,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 27378,
+        "window_prediction_rows": 25892,
+        "window_predictions_joined": 25892,
+        "exploded_temporal_votes": 69879,
+        "errors": [],
+        "warnings": []
+      },
+      "inner_role_evidence": {
+        "roles": [
+          "train",
+          "validation"
+        ],
+        "outer_access_allowed": false
+      },
+      "rare_class_guardrails": {
+        "decision": "OBSERVATION_ONLY_REGISTERED_STAGE1_GUARDRAILS",
+        "fight": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 156,
+          "recall": 0.0,
+          "support": 11,
+          "tp": 0
+        },
+        "social_nose": {
+          "f1": 0.4334365325077399,
+          "precision": 0.340632603406326,
+          "predicted": 411,
+          "recall": 0.5957446808510638,
+          "support": 235,
+          "tp": 140
+        },
+        "weak_rare_support": {
+          "drink": 13,
+          "eat": 834,
+          "explore": 490,
+          "fight": 11,
+          "lying": 470,
+          "move": 64,
+          "playwithtoy": 43,
+          "sitting": 1074,
+          "social-nose": 235,
+          "stand": 71
+        }
+      },
+      "fight_primary_native": {
+        "gt": 11,
+        "predicted": 156,
+        "tp": 0,
+        "fp": 156,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "eat": 4,
+          "social-nose": 3,
+          "explore": 2,
+          "sitting": 2
+        }
+      },
+      "runtime": {
+        "start_timestamp": "2026-08-10T16:13:19.256860+00:00",
+        "end_timestamp": "2026-08-10T16:16:59.997152+00:00",
+        "wall_clock_seconds": 220.74022794600023,
+        "training_seconds": 220.74022794600023,
+        "seconds_per_step": 0.0530115821195966,
+        "completed_steps": 4164,
+        "gpu_name": "NVIDIA L4",
+        "gpu_count": 1,
+        "peak_vram_mb": 127.3759765625,
+        "pytorch_version": "2.12.1+cu130",
+        "cuda_version": "13.0",
+        "configuration_hash": "007f61bf9039942c0bd4f19d6fb8f258658532f91c3c0a82479869f863d17fc4",
+        "consumed_gpu_hours": 0.06131672998500006
+      },
+      "artifact_audit": {
+        "manifest_sha256": "b01d9b0f40e253bdc5b76fc06328d81acef849152207ba0012b4c7e14b9e533b",
+        "declared_artifacts": 13,
+        "verified_artifacts": 13,
+        "status": "PASS",
+        "artifacts": [
+          {
+            "relative_path": "checkpoints/step_002082.json",
+            "sha256": "3348b74b5feb16349ba034ff86ce91ee98cbc2f37d3068a6d238fd39d064412d",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_002082.pt",
+            "sha256": "5959714867f6e969838a32d5e2c1d00646f8c360528e5b48501222487eb4cd2b",
+            "size_bytes": 886873
+          },
+          {
+            "relative_path": "checkpoints/step_004164.json",
+            "sha256": "afbb6f44def5e717a250da6dbc50c7c29efafd47a22315fd73efc53663d78529",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_004164.pt",
+            "sha256": "a76f1e336308b354bde67ea90d3747adf3507121c0db446115a70c6dabb40e2d",
+            "size_bytes": 913497
+          },
+          {
+            "relative_path": "manifest/execution_permit.json",
+            "sha256": "5cec83aa2d83c982be07c139aab7c439ed8f743063a0599a796917a5e99bb37c",
+            "size_bytes": 696
+          },
+          {
+            "relative_path": "manifest/result.json",
+            "sha256": "f82575380ced62be54992aae31f1d783ac0bd03aabda54cbe54482a7804b7d8c",
+            "size_bytes": 128083
+          },
+          {
+            "relative_path": "manifest/run_manifest.json",
+            "sha256": "be06347802d09b62d6312cf3ff23ed3ea94dd06e040dac525976121707f3d079",
+            "size_bytes": 7545
+          },
+          {
+            "relative_path": "metrics/step_004164.json",
+            "sha256": "9549dbc3039c2a4b3f75c6e66a4bda7c98d477ec370b3c95dec63f9be76c93ef",
+            "size_bytes": 21590
+          },
+          {
+            "relative_path": "predictions/step_004164_common_native.csv",
+            "sha256": "a8cbc722427d652530c695b17d3090eb4cc627fb1380296121ee6c7829ce7422",
+            "size_bytes": 13077705
+          },
+          {
+            "relative_path": "predictions/step_004164_common_windows.csv",
+            "sha256": "fa65dfe47b8f2c4a13426e0d1f6d558709226de2e3e863274907c93c3c06809d",
+            "size_bytes": 3883704
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_native.csv",
+            "sha256": "98dbd87d3c24a0478482efd48f3f2b62561401625482658c50c006ff59b3299c",
+            "size_bytes": 1399126
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_windows.csv",
+            "sha256": "46855bac1dab6d053a1e05757e23cd93fbeb27080a9db8984ae41221e2ebd018",
+            "size_bytes": 456501
+          },
+          {
+            "relative_path": "runtime/runtime.json",
+            "sha256": "0ec23d50e69a7585e4c3068a8c1ca3f14c4ac2e1077568644962fc8e405e2371",
+            "size_bytes": 3029
+          }
+        ]
+      }
+    },
+    "T6_seed20260806": {
+      "trial_id": "s1_stage1_t6_seed20260806_steps4164",
+      "view": "T6",
+      "seed": 20260806,
+      "valid": true,
+      "completed_steps": 4164,
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "execution_permit": {
+        "permit_id": "a3549d5fdf634be9aad0fc477a529a06",
+        "permit_sha256": "8746a2547889f4dab65a7e445776e94e2be21dacf423efbfca9db721c6fcb0eb",
+        "status": "CONSUMED",
+        "code_sha": "c6be291c9b4b76ea02360f92926656d11bd2fe4e",
+        "rgb_binding_bundle_sha256": "2045da0e533b905b5a65eb05e4aecf97ae51bad4bc94392fab9e49d610154768",
+        "confirmation_authority_sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+      },
+      "fixed_controls": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.003,
+        "weight_decay": 0.0,
+        "batch_size": 16,
+        "precision": "FP32",
+        "scheduler": "none",
+        "early_stopping": "DISABLED"
+      },
+      "primary_native_macro_f1": 0.3346715056647214,
+      "common_cohort_native_macro_f1": 0.4139645985246183,
+      "primary_per_class": {
+        "drink": {
+          "precision": 0.6666666666666666,
+          "recall": 0.15384615384615385,
+          "f1": 0.25,
+          "support": 13,
+          "predicted": 3,
+          "tp": 2
+        },
+        "eat": {
+          "precision": 0.8276892430278885,
+          "recall": 0.9964028776978417,
+          "f1": 0.9042437431991296,
+          "support": 834,
+          "predicted": 1004,
+          "tp": 831
+        },
+        "explore": {
+          "precision": 0.45077720207253885,
+          "recall": 0.3522267206477733,
+          "f1": 0.39545454545454545,
+          "support": 494,
+          "predicted": 386,
+          "tp": 174
+        },
+        "fight": {
+          "precision": 0.0035087719298245615,
+          "recall": 0.06666666666666667,
+          "f1": 0.006666666666666667,
+          "support": 15,
+          "predicted": 285,
+          "tp": 1
+        },
+        "lying": {
+          "precision": 0.6804597701149425,
+          "recall": 0.6297872340425532,
+          "f1": 0.6541436464088398,
+          "support": 470,
+          "predicted": 435,
+          "tp": 296
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 69,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 47,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.7751295336787565,
+          "recall": 0.6906740535549399,
+          "f1": 0.73046875,
+          "support": 1083,
+          "predicted": 965,
+          "tp": 748
+        },
+        "social-nose": {
+          "precision": 0.3852140077821012,
+          "recall": 0.42857142857142855,
+          "f1": 0.4057377049180328,
+          "support": 231,
+          "predicted": 257,
+          "tp": 99
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 79,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "common_cohort_per_class": {
+        "drink": {
+          "precision": 0.8016194331983806,
+          "recall": 0.363302752293578,
+          "f1": 0.5000000000000001,
+          "support": 545,
+          "predicted": 247,
+          "tp": 198
+        },
+        "eat": {
+          "precision": 0.5991313789359392,
+          "recall": 0.9878267096312209,
+          "f1": 0.7458772641254393,
+          "support": 2793,
+          "predicted": 4605,
+          "tp": 2759
+        },
+        "explore": {
+          "precision": 0.46160856687172475,
+          "recall": 0.3014432376134504,
+          "f1": 0.36471647164716475,
+          "support": 6721,
+          "predicted": 4389,
+          "tp": 2026
+        },
+        "fight": {
+          "precision": 0.28396694214876034,
+          "recall": 0.6983739837398374,
+          "f1": 0.4037602820211516,
+          "support": 2460,
+          "predicted": 6050,
+          "tp": 1718
+        },
+        "lying": {
+          "precision": 0.8072153325817362,
+          "recall": 0.8011935844834017,
+          "f1": 0.804193186072632,
+          "support": 2681,
+          "predicted": 2661,
+          "tp": 2148
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 521,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 86,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.8681583062672922,
+          "recall": 0.7588055935232888,
+          "f1": 0.809807001795332,
+          "support": 9511,
+          "predicted": 8313,
+          "tp": 7217
+        },
+        "social-nose": {
+          "precision": 0.5085354896675651,
+          "recall": 0.5140781108083561,
+          "f1": 0.5112917795844626,
+          "support": 1101,
+          "predicted": 1113,
+          "tp": 566
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 959,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "primary_coverage": {
+        "valid": true,
+        "expected": 3335,
+        "predicted": 3335,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 3335,
+        "window_prediction_rows": 6154,
+        "window_predictions_joined": 6154,
+        "exploded_temporal_votes": 6154,
+        "errors": [],
+        "warnings": []
+      },
+      "common_cohort_coverage": {
+        "valid": true,
+        "expected": 27378,
+        "predicted": 27378,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 27378,
+        "window_prediction_rows": 39019,
+        "window_predictions_joined": 39019,
+        "exploded_temporal_votes": 39019,
+        "errors": [],
+        "warnings": []
+      },
+      "inner_role_evidence": {
+        "roles": [
+          "train",
+          "validation"
+        ],
+        "outer_access_allowed": false
+      },
+      "rare_class_guardrails": {
+        "decision": "OBSERVATION_ONLY_REGISTERED_STAGE1_GUARDRAILS",
+        "fight": {
+          "f1": 0.006666666666666667,
+          "precision": 0.0035087719298245615,
+          "predicted": 285,
+          "recall": 0.06666666666666667,
+          "support": 15,
+          "tp": 1
+        },
+        "social_nose": {
+          "f1": 0.4057377049180328,
+          "precision": 0.3852140077821012,
+          "predicted": 257,
+          "recall": 0.42857142857142855,
+          "support": 231,
+          "tp": 99
+        },
+        "weak_rare_support": {
+          "drink": 13,
+          "eat": 834,
+          "explore": 494,
+          "fight": 15,
+          "lying": 470,
+          "move": 69,
+          "playwithtoy": 47,
+          "sitting": 1083,
+          "social-nose": 231,
+          "stand": 79
+        }
+      },
+      "fight_primary_native": {
+        "gt": 15,
+        "predicted": 285,
+        "tp": 1,
+        "fp": 284,
+        "fn": 14,
+        "precision": 0.0035087719298245615,
+        "recall": 0.06666666666666667,
+        "f1": 0.006666666666666667,
+        "gt_fight_confusions": {
+          "eat": 5,
+          "explore": 3,
+          "lying": 3,
+          "sitting": 3
+        }
+      },
+      "runtime": {
+        "start_timestamp": "2026-08-10T16:22:40.980056+00:00",
+        "end_timestamp": "2026-08-10T16:25:37.957938+00:00",
+        "wall_clock_seconds": 176.9778054909998,
+        "training_seconds": 176.9778054909998,
+        "seconds_per_step": 0.04250187451753117,
+        "completed_steps": 4164,
+        "gpu_name": "NVIDIA L4",
+        "gpu_count": 1,
+        "peak_vram_mb": 60.63916015625,
+        "pytorch_version": "2.12.1+cu130",
+        "cuda_version": "13.0",
+        "configuration_hash": "5dd14c14e66998858defc93349608cc9339c2fcf5da22cfd7e635dded16d142a",
+        "consumed_gpu_hours": 0.04916050152527772
+      },
+      "artifact_audit": {
+        "manifest_sha256": "31b565cc56b3b7ff4b1ccaa18a04fdbc35a7280250b3a4209109bcb14529cef5",
+        "declared_artifacts": 13,
+        "verified_artifacts": 13,
+        "status": "PASS",
+        "artifacts": [
+          {
+            "relative_path": "checkpoints/step_002082.json",
+            "sha256": "ddb51bc809a413252c4cee2a5e85b6a2a47cb7a336c821f53e174f3a80654519",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_002082.pt",
+            "sha256": "4e7c30da2d831633874621d7ef4d7feb6a18b2b5e05cac0e9a32bdf3035f9f80",
+            "size_bytes": 887001
+          },
+          {
+            "relative_path": "checkpoints/step_004164.json",
+            "sha256": "e9ff3c4d72b3b07c5ffd42528f4d622322af148c7f98155f7c94c8248851f89c",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_004164.pt",
+            "sha256": "af1dd541dc0cd73c8f335cb0c3f0a606f09d1aa7e164855fd861e93646e29608",
+            "size_bytes": 913625
+          },
+          {
+            "relative_path": "manifest/execution_permit.json",
+            "sha256": "9d4a52446114e75ae6a3d4f10959cf217739c3e9f569edf2552a48220dc12b22",
+            "size_bytes": 694
+          },
+          {
+            "relative_path": "manifest/result.json",
+            "sha256": "21b4bec1b7c2cbec479f71bfb99d3078985d4b85a3718d3fb8f6b88694b46d7d",
+            "size_bytes": 128137
+          },
+          {
+            "relative_path": "manifest/run_manifest.json",
+            "sha256": "a13d5373a709b088a5aa9fa28c9410437dc1c9ce62fee668cca35041caf41724",
+            "size_bytes": 7535
+          },
+          {
+            "relative_path": "metrics/step_004164.json",
+            "sha256": "fa2dfbdb0b6fb03716129d433f65b53ae77d4f32b245199e799b150789948396",
+            "size_bytes": 21696
+          },
+          {
+            "relative_path": "predictions/step_004164_common_native.csv",
+            "sha256": "d781141da3646dab1626aee9a69cfc104a546a028e663c8bd719b07384748c94",
+            "size_bytes": 9047831
+          },
+          {
+            "relative_path": "predictions/step_004164_common_windows.csv",
+            "sha256": "217851dba63ffbf4291dbf56070a5f39abd9d8e5dc79c13c991c18941ce9e074",
+            "size_bytes": 5732265
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_native.csv",
+            "sha256": "1bdb0350b8127bcf492faa794185aec6c0cda54a880158fe6d92de49392d0010",
+            "size_bytes": 1222098
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_windows.csv",
+            "sha256": "564dacd394b556378e33cc132c0735db8aaed587ae7657c5f621eacdd0b9d287",
+            "size_bytes": 874260
+          },
+          {
+            "relative_path": "runtime/runtime.json",
+            "sha256": "7b5a83fbedf8177547bc207f6efa230e81c3247de6be2a25390cfc5b18741221",
+            "size_bytes": 3026
+          }
+        ]
+      }
+    },
+    "T16_seed20260806": {
+      "trial_id": "s1_stage1_t16_seed20260806_steps4164",
+      "view": "T16",
+      "seed": 20260806,
+      "valid": true,
+      "completed_steps": 4164,
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "execution_permit": {
+        "permit_id": "b52f8047775740bdb84d6418aac143ef",
+        "permit_sha256": "d8cd30f953b59e04da1ada2f55a9b25e85ffe234fc2d74313e5a68198d54cebb",
+        "status": "CONSUMED",
+        "code_sha": "c6be291c9b4b76ea02360f92926656d11bd2fe4e",
+        "rgb_binding_bundle_sha256": "2045da0e533b905b5a65eb05e4aecf97ae51bad4bc94392fab9e49d610154768",
+        "confirmation_authority_sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+      },
+      "fixed_controls": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.003,
+        "weight_decay": 0.0,
+        "batch_size": 16,
+        "precision": "FP32",
+        "scheduler": "none",
+        "early_stopping": "DISABLED"
+      },
+      "primary_native_macro_f1": 0.30913882741376986,
+      "common_cohort_native_macro_f1": 0.39750893169122914,
+      "primary_per_class": {
+        "drink": {
+          "precision": 0.046948356807511735,
+          "recall": 0.7692307692307693,
+          "f1": 0.08849557522123894,
+          "support": 13,
+          "predicted": 213,
+          "tp": 10
+        },
+        "eat": {
+          "precision": 0.8591916558018253,
+          "recall": 0.790167865707434,
+          "f1": 0.8232354778263586,
+          "support": 834,
+          "predicted": 767,
+          "tp": 659
+        },
+        "explore": {
+          "precision": 0.5124223602484472,
+          "recall": 0.673469387755102,
+          "f1": 0.5820105820105821,
+          "support": 490,
+          "predicted": 644,
+          "tp": 330
+        },
+        "fight": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 11,
+          "predicted": 71,
+          "tp": 0
+        },
+        "lying": {
+          "precision": 0.5346358792184724,
+          "recall": 0.6404255319148936,
+          "f1": 0.5827686350435625,
+          "support": 470,
+          "predicted": 563,
+          "tp": 301
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 64,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 43,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.754257907542579,
+          "recall": 0.5772811918063314,
+          "f1": 0.6540084388185654,
+          "support": 1074,
+          "predicted": 822,
+          "tp": 620
+        },
+        "social-nose": {
+          "precision": 0.3688888888888889,
+          "recall": 0.35319148936170214,
+          "f1": 0.3608695652173913,
+          "support": 235,
+          "predicted": 225,
+          "tp": 83
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 71,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "common_cohort_per_class": {
+        "drink": {
+          "precision": 0.22833843017329256,
+          "recall": 0.8220183486238533,
+          "f1": 0.357399282010371,
+          "support": 545,
+          "predicted": 1962,
+          "tp": 448
+        },
+        "eat": {
+          "precision": 0.7091247672253259,
+          "recall": 0.681704260651629,
+          "f1": 0.6951442132165023,
+          "support": 2793,
+          "predicted": 2685,
+          "tp": 1904
+        },
+        "explore": {
+          "precision": 0.47544968400583376,
+          "recall": 0.5820562416307097,
+          "f1": 0.5233794902669076,
+          "support": 6721,
+          "predicted": 8228,
+          "tp": 3912
+        },
+        "fight": {
+          "precision": 0.34630053394355453,
+          "recall": 0.36910569105691055,
+          "f1": 0.3573396300669028,
+          "support": 2460,
+          "predicted": 2622,
+          "tp": 908
+        },
+        "lying": {
+          "precision": 0.7303485987696514,
+          "recall": 0.7970906378217083,
+          "f1": 0.7622614588906724,
+          "support": 2681,
+          "predicted": 2926,
+          "tp": 2137
+        },
+        "move": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 521,
+          "predicted": 0,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 86,
+          "predicted": 0,
+          "tp": 0
+        },
+        "sitting": {
+          "precision": 0.8631256384065373,
+          "recall": 0.7107559667753128,
+          "f1": 0.7795652424609353,
+          "support": 9511,
+          "predicted": 7832,
+          "tp": 6760
+        },
+        "social-nose": {
+          "precision": 0.4951024042742654,
+          "recall": 0.5049954586739328,
+          "f1": 0.5,
+          "support": 1101,
+          "predicted": 1123,
+          "tp": 556
+        },
+        "stand": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 959,
+          "predicted": 0,
+          "tp": 0
+        }
+      },
+      "primary_coverage": {
+        "valid": true,
+        "expected": 3305,
+        "predicted": 3305,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 3305,
+        "window_prediction_rows": 3199,
+        "window_predictions_joined": 3199,
+        "exploded_temporal_votes": 7715,
+        "errors": [],
+        "warnings": []
+      },
+      "common_cohort_coverage": {
+        "valid": true,
+        "expected": 27378,
+        "predicted": 27378,
+        "missing": 0,
+        "duplicate": 0,
+        "out_of_population": 0,
+        "native_unit_rows": 27378,
+        "window_prediction_rows": 25892,
+        "window_predictions_joined": 25892,
+        "exploded_temporal_votes": 69879,
+        "errors": [],
+        "warnings": []
+      },
+      "inner_role_evidence": {
+        "roles": [
+          "train",
+          "validation"
+        ],
+        "outer_access_allowed": false
+      },
+      "rare_class_guardrails": {
+        "decision": "OBSERVATION_ONLY_REGISTERED_STAGE1_GUARDRAILS",
+        "fight": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 71,
+          "recall": 0.0,
+          "support": 11,
+          "tp": 0
+        },
+        "social_nose": {
+          "f1": 0.3608695652173913,
+          "precision": 0.3688888888888889,
+          "predicted": 225,
+          "recall": 0.35319148936170214,
+          "support": 235,
+          "tp": 83
+        },
+        "weak_rare_support": {
+          "drink": 13,
+          "eat": 834,
+          "explore": 490,
+          "fight": 11,
+          "lying": 470,
+          "move": 64,
+          "playwithtoy": 43,
+          "sitting": 1074,
+          "social-nose": 235,
+          "stand": 71
+        }
+      },
+      "fight_primary_native": {
+        "gt": 11,
+        "predicted": 71,
+        "tp": 0,
+        "fp": 71,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "explore": 6,
+          "sitting": 2,
+          "drink": 1,
+          "lying": 1,
+          "social-nose": 1
+        }
+      },
+      "runtime": {
+        "start_timestamp": "2026-08-10T16:29:01.927850+00:00",
+        "end_timestamp": "2026-08-10T16:32:38.770258+00:00",
+        "wall_clock_seconds": 216.8423515479999,
+        "training_seconds": 216.8423515479999,
+        "seconds_per_step": 0.05207549268683955,
+        "completed_steps": 4164,
+        "gpu_name": "NVIDIA L4",
+        "gpu_count": 1,
+        "peak_vram_mb": 127.3759765625,
+        "pytorch_version": "2.12.1+cu130",
+        "cuda_version": "13.0",
+        "configuration_hash": "007f61bf9039942c0bd4f19d6fb8f258658532f91c3c0a82479869f863d17fc4",
+        "consumed_gpu_hours": 0.06023398654111108
+      },
+      "artifact_audit": {
+        "manifest_sha256": "410cc469312effd5f6499d2116b532b2ae1f2761e3c8ff62b8e7008c9f6fff10",
+        "declared_artifacts": 13,
+        "verified_artifacts": 13,
+        "status": "PASS",
+        "artifacts": [
+          {
+            "relative_path": "checkpoints/step_002082.json",
+            "sha256": "73c85899193229941ac871d3bf8a3c98adf68d87a9294ce6048f70eeb746f9ef",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_002082.pt",
+            "sha256": "fb3bf0ecda90181cd3af62f0585470ab3f6209d8604cefea6c0c5a7472124cc3",
+            "size_bytes": 887001
+          },
+          {
+            "relative_path": "checkpoints/step_004164.json",
+            "sha256": "db37dfcbb6383ecd5eecf06c8f7e9b161bbc89b1b5ce0303b42baaec86a1b209",
+            "size_bytes": 98
+          },
+          {
+            "relative_path": "checkpoints/step_004164.pt",
+            "sha256": "41ed87a46991abdbe5ffc7daad092a3b84dadd46b8f61dd9da3e4db761cc819a",
+            "size_bytes": 913625
+          },
+          {
+            "relative_path": "manifest/execution_permit.json",
+            "sha256": "90ce1d095afa37ce334be74a5265616172a818171bd0e1b1152fe268da8f5577",
+            "size_bytes": 696
+          },
+          {
+            "relative_path": "manifest/result.json",
+            "sha256": "0a8efd31a3e8f74d2bda245eb9149b70d466f977b4fdca9976d243a23fd27e16",
+            "size_bytes": 128078
+          },
+          {
+            "relative_path": "manifest/run_manifest.json",
+            "sha256": "e52b5aedeefcf36dc6b44c1729c0cdbf641c9b198b759220d397f38e74002438",
+            "size_bytes": 7545
+          },
+          {
+            "relative_path": "metrics/step_004164.json",
+            "sha256": "51f20bed82cf8b6549eebf2fe24adba93df57a5b5125ba9acd81fc8d5a4c81dc",
+            "size_bytes": 21581
+          },
+          {
+            "relative_path": "predictions/step_004164_common_native.csv",
+            "sha256": "298c62af21918242048653d126b22c1fdc07fea48109a8e89d94880c357f7a03",
+            "size_bytes": 13079183
+          },
+          {
+            "relative_path": "predictions/step_004164_common_windows.csv",
+            "sha256": "eea4b3f68251935758da902b0274e70831bc07ddd4f196bccb88a1649382d5df",
+            "size_bytes": 3885957
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_native.csv",
+            "sha256": "c078e288382d816ea5b506e083b73f9f995f03dfde5e7a6d79fb9aa129ef7e1c",
+            "size_bytes": 1402071
+          },
+          {
+            "relative_path": "predictions/step_004164_validation_windows.csv",
+            "sha256": "d6396178082ae8124b3be19ed5d314f9a892f45f3b4497f1a3c9132d8149f50d",
+            "size_bytes": 455853
+          },
+          {
+            "relative_path": "runtime/runtime.json",
+            "sha256": "3fb2b828668632058afe08e073dc2398a4c4ccfa841c085acaee464689e0a3dc",
+            "size_bytes": 3028
+          }
+        ]
+      }
+    }
+  },
+  "three_seed_summary": {
+    "seed_order": [
+      20260804,
+      20260805,
+      20260806
+    ],
+    "dispersion_contract": {
+      "status": "DESCRIPTIVE_ONLY",
+      "definition": "Project seed-summary semantics: count, mean, min, max, population_stdev, sample_stdev, and range; no significance test."
+    },
+    "T6": {
+      "primary_values": [
+        0.3629868671396542,
+        0.049026708918062475,
+        0.3346715056647214
+      ],
+      "primary_summary": {
+        "count": 3,
+        "mean": 0.2488950272408127,
+        "min": 0.049026708918062475,
+        "max": 0.3629868671396542,
+        "population_stdev": 0.14180020786476816,
+        "sample_stdev": 0.17366907734463607,
+        "range": 0.31396015822159173
+      },
+      "common_values": [
+        0.41740032693684137,
+        0.051565507332809235,
+        0.4139645985246183
+      ],
+      "common_summary": {
+        "count": 3,
+        "mean": 0.29431014426475627,
+        "min": 0.051565507332809235,
+        "max": 0.41740032693684137,
+        "population_stdev": 0.17165210966146566,
+        "sample_stdev": 0.21023004097142667,
+        "range": 0.36583481960403214
+      }
+    },
+    "T16": {
+      "primary_values": [
+        0.37506282672818947,
+        0.3142242582965234,
+        0.30913882741376986
+      ],
+      "primary_summary": {
+        "count": 3,
+        "mean": 0.33280863747949424,
+        "min": 0.30913882741376986,
+        "max": 0.37506282672818947,
+        "population_stdev": 0.029950267484773592,
+        "sample_stdev": 0.03668143649878273,
+        "range": 0.06592399931441961
+      },
+      "common_values": [
+        0.4379647006947359,
+        0.3594294962515425,
+        0.39750893169122914
+      ],
+      "common_summary": {
+        "count": 3,
+        "mean": 0.3983010428791692,
+        "min": 0.3594294962515425,
+        "max": 0.4379647006947359,
+        "population_stdev": 0.03206675499988621,
+        "sample_stdev": 0.03927359372828123,
+        "range": 0.0785352044431934
+      }
+    }
+  },
+  "paired_deltas": {
+    "seed20260804": {
+      "primary": 0.01207595958853527,
+      "common": 0.02056437375789455
+    },
+    "seed20260805": {
+      "primary": 0.2651975493784609,
+      "common": 0.3078639889187333
+    },
+    "seed20260806": {
+      "primary": -0.025532678250951568,
+      "common": -0.01645566683338917
+    }
+  },
+  "paired_delta_summary": {
+    "primary": {
+      "count": 3,
+      "mean": 0.08391361023868153,
+      "min": -0.025532678250951568,
+      "max": 0.2651975493784609,
+      "population_stdev": 0.12910332387293996,
+      "sample_stdev": 0.15811863379299052,
+      "range": 0.2907302276294125
+    },
+    "common": {
+      "count": 3,
+      "mean": 0.1039908986144129,
+      "min": -0.01645566683338917,
+      "max": 0.3078639889187333,
+      "population_stdev": 0.14495010305623623,
+      "sample_stdev": 0.17752689532580762,
+      "range": 0.32431965575212246
+    },
+    "all_three_primary_directionally_positive": false,
+    "all_three_common_directionally_positive": false
+  },
+  "fight_confirmation": {
+    "seed20260804": {
+      "T6": {
+        "gt": 15,
+        "predicted": 84,
+        "tp": 0,
+        "fp": 84,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "social-nose": 4,
+          "move": 0,
+          "explore": 1,
+          "stand": 0,
+          "all_other_classes": 10
+        }
+      },
+      "T16": {
+        "gt": 11,
+        "predicted": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "social-nose": 0,
+          "move": 0,
+          "explore": 6,
+          "stand": 0,
+          "all_other_classes": 5
+        }
+      }
+    },
+    "seed20260805": {
+      "T6": {
+        "gt": 15,
+        "predicted": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "sitting": 15
+        }
+      },
+      "T16": {
+        "gt": 11,
+        "predicted": 156,
+        "tp": 0,
+        "fp": 156,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "eat": 4,
+          "social-nose": 3,
+          "explore": 2,
+          "sitting": 2
+        }
+      }
+    },
+    "seed20260806": {
+      "T6": {
+        "gt": 15,
+        "predicted": 285,
+        "tp": 1,
+        "fp": 284,
+        "fn": 14,
+        "precision": 0.0035087719298245615,
+        "recall": 0.06666666666666667,
+        "f1": 0.006666666666666667,
+        "gt_fight_confusions": {
+          "eat": 5,
+          "explore": 3,
+          "lying": 3,
+          "sitting": 3
+        }
+      },
+      "T16": {
+        "gt": 11,
+        "predicted": 71,
+        "tp": 0,
+        "fp": 71,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {
+          "explore": 6,
+          "sitting": 2,
+          "drink": 1,
+          "lying": 1,
+          "social-nose": 1
+        }
+      }
+    }
+  },
+  "fight_temporal_confirmation": "NOT_RECOVERED",
+  "fight_interpretation": "Longer target-support alone did not recover fight under the current actor-local 64x64 B1 representation.",
+  "temporal_final_selection": "PENDING_USER_REVIEW",
+  "temporal_selection_reason": "T16 has positive aggregate primary and common means, but the registered seed20260806 paired comparison favors T6 on both metrics; the seed evidence is not directionally stable and no deterministic final-selection threshold is registered.",
+  "gpu_accounting": {
+    "scientific_training_gpu_hours": 0.21438822040027766,
+    "gpu_model": "NVIDIA L4",
+    "gpu_count": 1
+  },
+  "final_boundaries": {
+    "outer_examples_accessed": false,
+    "stage2_started": false,
+    "resolution_experiment_started": false,
+    "h5_active": false,
+    "posture_active": false,
+    "reviewed_labels_modified": false,
+    "source_data_modified": false,
+    "splits_modified": false,
+    "r4_moved": false,
+    "ready_for_post_stage1_model_development": false
+  }
+}

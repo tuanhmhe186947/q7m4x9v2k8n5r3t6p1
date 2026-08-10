@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import statistics
 from pathlib import Path
 
 AUTHORITY = Path(
@@ -21,6 +23,9 @@ CONFIRMATION_LAUNCH_PACKET = AUTHORITY.with_name(
 )
 RESOLUTION_DIRECTION = AUTHORITY.with_name(
     "s1_post_stage1_resolution_direction_20260810.json"
+)
+CONFIRMATION_EVIDENCE = AUTHORITY.with_name(
+    "s1_stage1_temporal_confirmation_evidence_20260810.json"
 )
 
 
@@ -285,3 +290,154 @@ def test_post_stage1_resolution_direction_stays_planning_only() -> None:
     }
     assert direction["current_boundary"]["resolution_ablation_executed"] is False
     assert direction["current_boundary"]["outer_access_allowed"] is False
+
+
+def test_confirmation_evidence_is_hash_bound_complete_and_pending_review() -> None:
+    evidence = json.loads(CONFIRMATION_EVIDENCE.read_text(encoding="utf-8"))
+
+    assert evidence["schema_version"] == (
+        "classification_v2.s1_stage1_temporal_confirmation_evidence.v1"
+    )
+    assert evidence["status"] == (
+        "ARTIFACT_VERIFIED_INNER_DEVELOPMENT_CONFIRMATION_EVIDENCE"
+    )
+    scope = evidence["scope"]
+    assert scope["execution_phase"] == "STAGE1_CONFIRMATION"
+    assert scope["candidates"] == ["T6", "T16"]
+    assert scope["confirmation_seeds"] == [20260805, 20260806]
+    assert scope["fixed_optimizer_steps"] == 4164
+    assert scope["confirmation_resolution"] == 64
+    assert scope["model_realization"] == "B1_STAGE1_UNCHANGED"
+    assert scope["outer_examples_accessed"] is False
+    assert scope["claim_grade_result"] is False
+    assert scope["scientific_promotion_allowed"] is False
+
+    bound = evidence["bound_authorities"]
+    for name, record in bound.items():
+        path = AUTHORITY.with_name(name)
+        assert record == {
+            "relative_path": name,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+
+    trials = evidence["trials"]
+    assert set(trials) == {
+        "T6_seed20260805",
+        "T16_seed20260805",
+        "T6_seed20260806",
+        "T16_seed20260806",
+    }
+    for key, trial in trials.items():
+        assert trial["trial_id"] == (
+            f"s1_stage1_{trial['view'].lower()}_seed{trial['seed']}_steps4164"
+        )
+        assert key == f"{trial['view']}_seed{trial['seed']}"
+        assert trial["valid"] is True
+        assert trial["completed_steps"] == 4164
+        assert trial["resolution"] == 64
+        assert trial["model_realization"] == "B1_STAGE1_UNCHANGED"
+        assert trial["execution_permit"]["status"] == "CONSUMED"
+        assert trial["fixed_controls"] == {
+            "optimizer": "AdamW",
+            "learning_rate": 0.003,
+            "weight_decay": 0.0,
+            "batch_size": 16,
+            "precision": "FP32",
+            "scheduler": "none",
+            "early_stopping": "DISABLED",
+        }
+        assert trial["inner_role_evidence"] == {
+            "roles": ["train", "validation"],
+            "outer_access_allowed": False,
+        }
+        for coverage_name in ("primary_coverage", "common_cohort_coverage"):
+            coverage = trial[coverage_name]
+            assert coverage["valid"] is True
+            assert coverage["expected"] == coverage["predicted"]
+            assert coverage["missing"] == 0
+            assert coverage["duplicate"] == 0
+            assert coverage["out_of_population"] == 0
+            assert coverage["errors"] == []
+
+        for metrics_name, macro_name in (
+            ("primary_per_class", "primary_native_macro_f1"),
+            ("common_cohort_per_class", "common_cohort_native_macro_f1"),
+        ):
+            per_class = trial[metrics_name]
+            assert len(per_class) == 10
+            assert math.isclose(
+                statistics.fmean(row["f1"] for row in per_class.values()),
+                trial[macro_name],
+                abs_tol=1e-12,
+            )
+            coverage_key = (
+                "primary_coverage"
+                if metrics_name == "primary_per_class"
+                else "common_cohort_coverage"
+            )
+            class_coverage = trial[coverage_key]
+            assert sum(row["support"] for row in per_class.values()) == class_coverage[
+                "expected"
+            ]
+            assert sum(row["predicted"] for row in per_class.values()) == class_coverage[
+                "predicted"
+            ]
+
+        fight = trial["fight_primary_native"]
+        assert fight["fp"] == fight["predicted"] - fight["tp"]
+        assert fight["fn"] == fight["gt"] - fight["tp"]
+        assert sum(fight["gt_fight_confusions"].values()) == fight["fn"]
+        audit = trial["artifact_audit"]
+        assert audit["status"] == "PASS"
+        assert audit["declared_artifacts"] == 13
+        assert audit["verified_artifacts"] == 13
+        assert len(audit["artifacts"]) == 13
+        assert len(audit["manifest_sha256"]) == 64
+        assert trial["runtime"]["gpu_name"] == "NVIDIA L4"
+        assert trial["runtime"]["gpu_count"] == 1
+
+    summary = evidence["three_seed_summary"]
+    assert summary["seed_order"] == [20260804, 20260805, 20260806]
+    for view in ("T6", "T16"):
+        for values_name, summary_name in (
+            ("primary_values", "primary_summary"),
+            ("common_values", "common_summary"),
+        ):
+            values = summary[view][values_name]
+            observed = summary[view][summary_name]
+            assert observed["count"] == 3
+            assert math.isclose(observed["mean"], statistics.fmean(values), abs_tol=1e-15)
+            assert math.isclose(
+                observed["population_stdev"], statistics.pstdev(values), abs_tol=1e-15
+            )
+            assert math.isclose(
+                observed["sample_stdev"], statistics.stdev(values), abs_tol=1e-15
+            )
+            assert observed["range"] == observed["max"] - observed["min"]
+
+    paired = evidence["paired_deltas"]
+    assert paired["seed20260804"] == {
+        "primary": 0.01207595958853527,
+        "common": 0.02056437375789455,
+    }
+    assert paired["seed20260805"]["primary"] > 0
+    assert paired["seed20260805"]["common"] > 0
+    assert paired["seed20260806"]["primary"] < 0
+    assert paired["seed20260806"]["common"] < 0
+    paired_summary = evidence["paired_delta_summary"]
+    for metric in ("primary", "common"):
+        values = [row[metric] for row in paired.values()]
+        observed = paired_summary[metric]
+        assert math.isclose(observed["mean"], statistics.fmean(values), abs_tol=1e-15)
+        assert math.isclose(
+            observed["population_stdev"], statistics.pstdev(values), abs_tol=1e-15
+        )
+        assert math.isclose(
+            observed["sample_stdev"], statistics.stdev(values), abs_tol=1e-15
+        )
+    assert paired_summary["all_three_primary_directionally_positive"] is False
+    assert paired_summary["all_three_common_directionally_positive"] is False
+    assert evidence["fight_temporal_confirmation"] == "NOT_RECOVERED"
+    assert evidence["temporal_final_selection"] == "PENDING_USER_REVIEW"
+    assert evidence["execution_identity"]["studio_final_status"] == "Stopped"
+    assert all(value is False for value in evidence["final_boundaries"].values())
