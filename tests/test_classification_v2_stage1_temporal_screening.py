@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from hashlib import sha256
 from pathlib import Path
 
 import pandas as pd
@@ -157,6 +158,28 @@ def test_cpu_engineering_smoke_writes_primary_and_common_cohort_artifacts(
     assert report["telemetry"]["gpu_count"] == 0
     assert (tmp_path / "stage1_smoke" / "checkpoints" / "step_000002.pt").is_file()
     assert (tmp_path / "stage1_smoke" / "predictions" / "step_000002_common_native.csv").is_file()
+
+
+def test_stage1_artifact_manifest_hashes_final_artifacts(tmp_path: Path) -> None:
+    report = stage1.run_stage1_temporal_screening(
+        _plan(tmp_path, "stage1_artifact_manifest"),
+        _population(),
+    )
+    output_dir = tmp_path / "stage1_artifact_manifest"
+    manifest_path = output_dir / "manifest" / "artifact_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert report["artifact_manifest"]["sha256"] == sha256(
+        manifest_path.read_bytes()
+    ).hexdigest()
+    assert any(
+        entry["relative_path"] == "manifest/result.json"
+        for entry in manifest["artifacts"]
+    )
+    for entry in manifest["artifacts"]:
+        artifact = output_dir / entry["relative_path"]
+        assert artifact.is_file()
+        assert sha256(artifact.read_bytes()).hexdigest() == entry["sha256"]
 
 
 def test_engineering_resume_is_deterministic_and_refuses_changed_fingerprint(

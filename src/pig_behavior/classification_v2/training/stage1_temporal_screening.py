@@ -891,8 +891,8 @@ def run_stage1_temporal_screening(
         _write_json_atomic(plan.output_dir / "runtime" / "runtime.json", telemetry)
         _write_json_atomic(plan.output_dir / "manifest" / "result.json", report)
         artifact_manifest = _write_artifact_manifest(plan.output_dir)
+        # Keep result.json immutable once its hash enters artifact_manifest.
         report["artifact_manifest"] = artifact_manifest
-        _write_json_atomic(plan.output_dir / "manifest" / "result.json", report)
         return report
     except Exception as exc:
         _write_json_atomic(
