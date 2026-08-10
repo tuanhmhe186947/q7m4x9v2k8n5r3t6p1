@@ -1,0 +1,30 @@
+{
+  "schema_version": "classification_v2.lightning_resource_naming_contract.v1",
+  "contract_version": "20260810-v2",
+  "status": "ACTIVE",
+  "scope": "future_lightning_scientific_execution_only",
+  "expected_resource": {
+    "teamspace": "pig-project",
+    "studio": "pig-gpu-l4",
+    "ssh_alias": "lightning-pig-gcp",
+    "gpu_count": 1,
+    "gpu_model": "NVIDIA L4"
+  },
+  "deprecated_resource_names": {
+    "studio": {
+      "pig_project": "DEPRECATED_DO_NOT_USE_FOR_ACTIVE_EXECUTION"
+    }
+  },
+  "rules": {
+    "teamspace_and_studio_must_not_be_inferred_from_each_other": true,
+    "resource_type_must_be_explicit": true,
+    "exact_match_only": true,
+    "deprecated_active_studio_names": [
+      "pig_project"
+    ]
+  },
+  "historical_record_handling": {
+    "historical_artifacts_may_retain_original_resource_names": true,
+    "historical_artifacts_are_not_active_execution_identity": true
+  }
+}

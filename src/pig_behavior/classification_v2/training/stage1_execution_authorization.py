@@ -221,7 +221,11 @@ def create_stage1_execution_permits(
     selected_views = _issuance_views(views, seed_authorization)
     bundle_path = Path(binding_bundle_path).resolve()
     bundle = _read_json(bundle_path)
-    _validate_binding_bundle(bundle, authority_sha256)
+    _validate_binding_bundle(
+        bundle,
+        authority_sha256,
+        expected_views=seed_authorization.confirmation_candidates or VIEWS,
+    )
     code_sha = _git_sha(root)
     created_at = datetime.now(UTC)
     expires_at = created_at + timedelta(hours=ttl_hours)
@@ -291,7 +295,11 @@ def rotate_stage1_execution_permits(
     )
     bundle_path = Path(binding_bundle_path).resolve()
     bundle = _read_json(bundle_path)
-    _validate_binding_bundle(bundle, authority_sha256)
+    _validate_binding_bundle(
+        bundle,
+        authority_sha256,
+        expected_views=seed_authorization.confirmation_candidates or VIEWS,
+    )
     binding_bundle_sha256 = _sha256_file(bundle_path)
     code_sha = _git_sha(root)
     created_at = datetime.now(UTC)
@@ -472,7 +480,11 @@ def validate_stage1_execution_permit(
     if _sha256_file(bundle_path) != str(payload.get("rgb_binding_bundle_sha256", "")):
         raise Stage1ExecutionAuthorizationError("Stage-1 RGB binding bundle hash changed")
     bundle = _read_json(bundle_path)
-    _validate_binding_bundle(bundle, authority_sha256)
+    _validate_binding_bundle(
+        bundle,
+        authority_sha256,
+        expected_views=seed_authorization.confirmation_candidates or VIEWS,
+    )
     bundle_view = bundle["views"].get(view)
     if not isinstance(bundle_view, Mapping):
         raise Stage1ExecutionAuthorizationError("Stage-1 binding bundle view is invalid")
@@ -881,14 +893,19 @@ def _validate_initial_screen_evidence(evidence: Mapping[str, Any]) -> None:
         )
 
 
-def _validate_binding_bundle(bundle: Mapping[str, Any], authority_sha256: str) -> None:
+def _validate_binding_bundle(
+    bundle: Mapping[str, Any],
+    authority_sha256: str,
+    *,
+    expected_views: Sequence[str],
+) -> None:
     if bundle.get("schema_version") != BINDING_BUNDLE_SCHEMA:
         raise Stage1ExecutionAuthorizationError("unsupported Stage-1 binding bundle")
     authority = bundle.get("authority")
     if not isinstance(authority, Mapping) or authority.get("sha256") != authority_sha256:
         raise Stage1ExecutionAuthorizationError("binding bundle authority mismatch")
     views = bundle.get("views")
-    if not isinstance(views, Mapping) or set(views) != set(VIEWS):
+    if not isinstance(views, Mapping) or set(views) != set(expected_views):
         raise Stage1ExecutionAuthorizationError("binding bundle view set drifted")
 
 

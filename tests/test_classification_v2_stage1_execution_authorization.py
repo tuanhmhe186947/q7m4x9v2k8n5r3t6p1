@@ -34,7 +34,12 @@ def _authority() -> tuple[dict[str, object], str]:
     ).hexdigest()
 
 
-def _binding_bundle(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+def _binding_bundle(
+    tmp_path: Path,
+    *,
+    views: tuple[str, ...] = authorization.VIEWS,
+    filename: str = "stage1_temporal_rgb_bindings.json",
+) -> tuple[Path, dict[str, str]]:
     authority, authority_sha256 = _authority()
     scientific = {
         view: sha256(f"scientific-{view}".encode()).hexdigest()
@@ -52,10 +57,10 @@ def _binding_bundle(tmp_path: Path) -> tuple[Path, dict[str, str]]:
                     ]["sha256"],
                 },
             }
-            for view in authorization.VIEWS
+            for view in views
         },
     }
-    path = tmp_path / "stage1_temporal_rgb_bindings.json"
+    path = tmp_path / filename
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path, scientific
 
@@ -146,7 +151,12 @@ def test_confirmation_permits_require_retention_and_bind_only_t6_t16(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    outputs, bundle, _initial, scientific = _permits(tmp_path, monkeypatch)
+    outputs, _bundle, _initial, _scientific = _permits(tmp_path, monkeypatch)
+    bundle, scientific = _binding_bundle(
+        tmp_path,
+        views=("T6", "T16"),
+        filename="confirmation_bindings.json",
+    )
 
     with pytest.raises(
         authorization.Stage1ExecutionAuthorizationError,
@@ -203,7 +213,10 @@ def test_confirmation_rejects_unretained_views_before_permit_creation(
     monkeypatch: pytest.MonkeyPatch,
     view: str,
 ) -> None:
-    bundle, _scientific = _binding_bundle(tmp_path)
+    bundle, _scientific = _binding_bundle(
+        tmp_path,
+        views=("T6", "T16"),
+    )
     outputs = tmp_path / "outputs"
     outputs.mkdir()
     monkeypatch.setattr(authorization, "_git_status", lambda _root: "")
@@ -223,11 +236,37 @@ def test_confirmation_rejects_unretained_views_before_permit_creation(
         )
 
 
-def test_confirmation_rejects_unregistered_seed_and_base_hash_drift(
+def test_confirmation_rejects_an_initial_screen_bundle_before_permit_creation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bundle, _scientific = _binding_bundle(tmp_path)
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    monkeypatch.setattr(authorization, "_git_status", lambda _root: "")
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="binding bundle view set drifted",
+    ):
+        authorization.create_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+        )
+
+
+def test_confirmation_rejects_unregistered_seed_and_base_hash_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bundle, _scientific = _binding_bundle(
+        tmp_path,
+        views=("T6", "T16"),
+    )
     outputs = tmp_path / "outputs"
     outputs.mkdir()
     monkeypatch.setattr(authorization, "_git_status", lambda _root: "")

@@ -250,6 +250,72 @@ def test_stage1_binding_audit_rejects_outer_wrong_length_and_cross_video(
     )["coverage"]["cross_video_violations"] == 1
 
 
+def test_confirmation_provenance_is_distinct_but_rgb64_bytes_are_identical(
+    tmp_path: Path,
+) -> None:
+    source, parity = _source_fixture(tmp_path)
+    roles = _roles("T6")
+    source_integrity = pre_s1_rgb_binding.build_rgb_source_integrity_evidence(
+        rgb_source_root=source,
+        output_path=tmp_path / "source_integrity.json",
+        input_parity_evidence=parity,
+    )
+    common_args = {
+        "rgb_source_root": source,
+        "requested_roles": roles,
+        "authority_sha256": "a" * 64,
+        "view": "T6",
+        "sequence_length": 6,
+        "expected_train_windows": 1,
+        "expected_validation_windows": 1,
+        "input_parity_evidence": parity,
+        "source_integrity_evidence": json.loads(
+            Path(str(source_integrity["path"])).read_text(encoding="utf-8")
+        ),
+    }
+    initial = binding.materialize_stage1_rgb_binding(
+        output_dir=tmp_path / "initial",
+        provenance_hashes=_provenance(),
+        **common_args,
+    )
+    confirmation_provenance = {
+        **_provenance(),
+        "confirmation_authority": "e" * 64,
+    }
+    confirmation = binding.materialize_stage1_rgb_binding(
+        output_dir=tmp_path / "confirmation",
+        provenance_hashes=confirmation_provenance,
+        **common_args,
+    )
+    initial_root = Path(str(initial["scientific_binding_path"])).parent
+    confirmation_root = Path(str(confirmation["scientific_binding_path"])).parent
+    for name in (
+        "stage1_window_context.csv",
+        "stage1_frame_context.csv",
+        "stage1_packed_image_cache_index.csv",
+    ):
+        assert (initial_root / name).read_bytes() == (confirmation_root / name).read_bytes()
+
+    with pytest.raises(binding.Stage1RgbBindingError, match="provenance hash drifted"):
+        binding.resolve_stage1_execution_rgb_binding(
+            data_bindings_path=Path(str(initial["data_bindings_path"])),
+            requested_roles=roles,
+            authority_sha256="a" * 64,
+            provenance_hashes=confirmation_provenance,
+            view="T6",
+            sequence_length=6,
+        )
+    resolved = binding.resolve_stage1_execution_rgb_binding(
+        data_bindings_path=Path(str(confirmation["data_bindings_path"])),
+        requested_roles=roles,
+        authority_sha256="a" * 64,
+        provenance_hashes=confirmation_provenance,
+        view="T6",
+        sequence_length=6,
+    )
+    assert resolved.audit["valid"] is True
+
+
 def test_stage1_binding_rejects_wrong_identity_and_cache_byte_change(tmp_path: Path) -> None:
     report, roles = _materialize(tmp_path, "T12")
     with pytest.raises(binding.Stage1RgbBindingError, match="identity drifted"):

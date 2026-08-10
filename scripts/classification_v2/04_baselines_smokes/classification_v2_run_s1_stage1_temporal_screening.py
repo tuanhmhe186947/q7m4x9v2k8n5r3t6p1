@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 
 from pig_behavior.classification_v2.training import stage1_temporal_screening as stage1
+from pig_behavior.classification_v2.training.lightning_resource_identity import (
+    LightningResourceIdentityError,
+    validate_passing_lightning_resource_preflight,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -24,6 +28,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trial-id", required=True)
     parser.add_argument("--seed", type=int, default=stage1.SEED)
     parser.add_argument("--confirmation-authority", type=Path)
+    parser.add_argument("--lightning-resource-contract", type=Path, required=True)
+    parser.add_argument("--lightning-resource-preflight", type=Path, required=True)
     parser.add_argument("--repository-root", type=Path, default=Path.cwd())
     parser.add_argument("--resume-checkpoint", type=Path)
     return parser.parse_args()
@@ -33,6 +39,13 @@ def main() -> None:
     """Reject unapproved hardware/authority before opening any RGB payload."""
 
     args = parse_args()
+    try:
+        validate_passing_lightning_resource_preflight(
+            contract_path=args.lightning_resource_contract,
+            preflight_path=args.lightning_resource_preflight,
+        )
+    except LightningResourceIdentityError as error:
+        raise SystemExit(f"Lightning resource preflight failed: {error}") from error
     plan = stage1.create_stage1_plan(
         args.authority,
         view=args.view,

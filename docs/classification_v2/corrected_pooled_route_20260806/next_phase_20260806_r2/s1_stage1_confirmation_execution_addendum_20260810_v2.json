@@ -1,0 +1,62 @@
+{
+  "schema_version": "classification_v2.s1_stage1_confirmation_execution_addendum.v1",
+  "status": "ACTIVE_REPAIRED_EXECUTION_AUTHORITY",
+  "scope": "behavior_only_S1_inner_development_confirmation_only",
+  "base_launch_packet": {
+    "relative_path": "s1_stage1_confirmation_l4_launch_packet_20260810.json",
+    "sha256": "00156594c1e4bec397be427f983eb412f320233ee6415a77d8370915f6fcbc31"
+  },
+  "supersession_reason": "confirmation provenance and exact resource identity precede permits",
+  "resource_naming_contract": {
+    "relative_path": "s1_stage1_lightning_resource_naming_contract_20260810_v2.json",
+    "sha256": "96a2f40600524c66d3b2abe06c4b80880f58330adbbda78ceea08a7d0ca441bf"
+  },
+  "resource_preflight": {
+    "required_before_permit_issuance": true,
+    "required_before_runner_entry": true,
+    "command_argv": [
+      "uv",
+      "run",
+      "--frozen",
+      "--extra",
+      "pt",
+      "python",
+      "${S1_STAGE1_RESOURCE_PREFLIGHT_SCRIPT}",
+      "--resource-contract",
+      "${S1_STAGE1_LIGHTNING_RESOURCE_CONTRACT}",
+      "--observed-resource",
+      "${S1_STAGE1_LIGHTNING_CONTROL_PLANE_OBSERVATION}",
+      "--output",
+      "${S1_STAGE1_LIGHTNING_RESOURCE_PREFLIGHT}"
+    ],
+    "permit_and_runner_argument_suffix": [
+      "--lightning-resource-contract",
+      "${S1_STAGE1_LIGHTNING_RESOURCE_CONTRACT}",
+      "--lightning-resource-preflight",
+      "${S1_STAGE1_LIGHTNING_RESOURCE_PREFLIGHT}"
+    ]
+  },
+  "confirmation_binding_materialization": {
+    "required_execution_phase": "STAGE1_CONFIRMATION",
+    "required_seed_argument": true,
+    "required_confirmation_authority_path": "s1_stage1_temporal_retention_authority_20260810.json",
+    "required_provenance_key": "confirmation_authority",
+    "scientific_rgb_identity_must_not_change": true,
+    "materializer_argument_suffix": [
+      "--execution-phase",
+      "STAGE1_CONFIRMATION",
+      "--seed",
+      "${S1_STAGE1_CONFIRMATION_SEED}",
+      "--confirmation-authority",
+      "${S1_STAGE1_CONFIRMATION_AUTHORITY}"
+    ]
+  },
+  "registered_confirmation_arms": [
+    "T6_seed20260805",
+    "T16_seed20260805",
+    "T6_seed20260806",
+    "T16_seed20260806"
+  ],
+  "outer_access_allowed": false,
+  "additional_scientific_trials_authorized": false
+}

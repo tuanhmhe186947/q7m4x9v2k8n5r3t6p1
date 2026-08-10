@@ -6,6 +6,10 @@ import argparse
 import json
 from pathlib import Path
 
+from pig_behavior.classification_v2.training.lightning_resource_identity import (
+    LightningResourceIdentityError,
+    validate_passing_lightning_resource_preflight,
+)
 from pig_behavior.classification_v2.training.stage1_execution_authorization import (
     Stage1ExecutionAuthorizationError,
     create_stage1_execution_permits,
@@ -26,6 +30,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ttl-hours", type=int, default=24)
     parser.add_argument("--seed", type=int, default=20260804)
     parser.add_argument("--confirmation-authority", type=Path)
+    parser.add_argument("--lightning-resource-contract", type=Path, required=True)
+    parser.add_argument("--lightning-resource-preflight", type=Path, required=True)
     parser.add_argument(
         "--view",
         action="append",
@@ -50,6 +56,10 @@ def main() -> int:
 
     args = parse_args()
     try:
+        validate_passing_lightning_resource_preflight(
+            contract_path=args.lightning_resource_contract,
+            preflight_path=args.lightning_resource_preflight,
+        )
         if args.rotate_view:
             if args.view:
                 raise Stage1ExecutionAuthorizationError(
@@ -104,7 +114,7 @@ def main() -> int:
             views=args.view,
             ttl_hours=args.ttl_hours,
         )
-    except Stage1ExecutionAuthorizationError as error:
+    except (LightningResourceIdentityError, Stage1ExecutionAuthorizationError) as error:
         print(json.dumps({"status": "BLOCKED", "reason": str(error)}, indent=2))
         return 2
     print(
