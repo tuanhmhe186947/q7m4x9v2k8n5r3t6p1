@@ -1,0 +1,166 @@
+{
+  "schema_version": "classification_v2.s1_stage1_confirmation_future_l4_launch_packet.v1",
+  "status": "FUTURE_CONFIRMATION_COMMANDS_ONLY",
+  "authority_boundary": {
+    "stage1_gpu_execution_authorized": false,
+    "not_a_launch_authorization": true,
+    "required_future_execution_authorization": "EXTERNAL_SINGLE_USE_PER_ARM_PERMIT",
+    "required_hardware": {
+      "gpu_count": 1,
+      "gpu_name": "NVIDIA L4"
+    },
+    "confirmation_started": false,
+    "outer_access_allowed": false
+  },
+  "bound_authorities": {
+    "s1_authority": {
+      "relative_path": "s1_control_and_pre_s1_calibration_authority.json",
+      "sha256": "9daf6a3bda89678c2b3ddd6ba9a0132fa1be16b583bfafb1cc76eb610ff8b1e4"
+    },
+    "retention_authority": {
+      "relative_path": "s1_stage1_temporal_retention_authority_20260810.json",
+      "sha256": "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+    },
+    "initial_screen_evidence": {
+      "relative_path": "s1_stage1_initial_temporal_screen_evidence_20260810.json",
+      "sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1"
+    }
+  },
+  "runtime_path_materialization": {
+    "required_before_execution": true,
+    "environment_assignments": [
+      "S1_STAGE1_RGB_BINDING_BUNDLE",
+      "S1_STAGE1_T6_DATA_BINDINGS",
+      "S1_STAGE1_T16_DATA_BINDINGS"
+    ],
+    "scientific_binding_identity_must_not_change": true
+  },
+  "permit_issuance": {
+    "command_argv_prefix": [
+      "uv",
+      "run",
+      "--frozen",
+      "--extra",
+      "pt",
+      "python",
+      "scripts/classification_v2/04_baselines_smokes/classification_v2_authorize_s1_stage1_execution.py",
+      "--authority",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
+      "--binding-bundle",
+      "${S1_STAGE1_RGB_BINDING_BUNDLE}",
+      "--outputs-root",
+      "outputs",
+      "--repository-root",
+      ".",
+      "--confirmation-authority",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_stage1_temporal_retention_authority_20260810.json"
+    ],
+    "seed_suffixes": {
+      "20260805": ["--seed", "20260805", "--view", "T6", "--view", "T16"],
+      "20260806": ["--seed", "20260806", "--view", "T6", "--view", "T16"]
+    }
+  },
+  "runner": {
+    "command_argv_prefix": [
+      "uv",
+      "run",
+      "--frozen",
+      "--extra",
+      "pt",
+      "python",
+      "scripts/classification_v2/04_baselines_smokes/classification_v2_run_s1_stage1_temporal_screening.py",
+      "--authority",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
+      "--binding-bundle",
+      "${S1_STAGE1_RGB_BINDING_BUNDLE}",
+      "--outputs-root",
+      "outputs",
+      "--repository-root",
+      ".",
+      "--confirmation-authority",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_stage1_temporal_retention_authority_20260810.json"
+    ],
+    "arms": {
+      "T6_seed20260805": {
+        "view": "T6",
+        "seed": 20260805,
+        "trial_id": "s1_stage1_t6_seed20260805_steps4164",
+        "command_argv_suffix": [
+          "--view",
+          "T6",
+          "--execution-permit",
+          "${S1_STAGE1_T6_SEED20260805_EXECUTION_PERMIT}",
+          "--data-bindings",
+          "${S1_STAGE1_T6_DATA_BINDINGS}",
+          "--trial-id",
+          "s1_stage1_t6_seed20260805_steps4164",
+          "--seed",
+          "20260805"
+        ]
+      },
+      "T16_seed20260805": {
+        "view": "T16",
+        "seed": 20260805,
+        "trial_id": "s1_stage1_t16_seed20260805_steps4164",
+        "command_argv_suffix": [
+          "--view",
+          "T16",
+          "--execution-permit",
+          "${S1_STAGE1_T16_SEED20260805_EXECUTION_PERMIT}",
+          "--data-bindings",
+          "${S1_STAGE1_T16_DATA_BINDINGS}",
+          "--trial-id",
+          "s1_stage1_t16_seed20260805_steps4164",
+          "--seed",
+          "20260805"
+        ]
+      },
+      "T6_seed20260806": {
+        "view": "T6",
+        "seed": 20260806,
+        "trial_id": "s1_stage1_t6_seed20260806_steps4164",
+        "command_argv_suffix": [
+          "--view",
+          "T6",
+          "--execution-permit",
+          "${S1_STAGE1_T6_SEED20260806_EXECUTION_PERMIT}",
+          "--data-bindings",
+          "${S1_STAGE1_T6_DATA_BINDINGS}",
+          "--trial-id",
+          "s1_stage1_t6_seed20260806_steps4164",
+          "--seed",
+          "20260806"
+        ]
+      },
+      "T16_seed20260806": {
+        "view": "T16",
+        "seed": 20260806,
+        "trial_id": "s1_stage1_t16_seed20260806_steps4164",
+        "command_argv_suffix": [
+          "--view",
+          "T16",
+          "--execution-permit",
+          "${S1_STAGE1_T16_SEED20260806_EXECUTION_PERMIT}",
+          "--data-bindings",
+          "${S1_STAGE1_T16_DATA_BINDINGS}",
+          "--trial-id",
+          "s1_stage1_t16_seed20260806_steps4164",
+          "--seed",
+          "20260806"
+        ]
+      }
+    }
+  },
+  "fixed_controls": {
+    "max_steps": 4164,
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0,
+    "batch_size": 16,
+    "precision": "FP32",
+    "scheduler": "none",
+    "early_stopping": "DISABLED",
+    "scientific_ranking_checkpoint": "FIXED_STEP_ENDPOINT"
+  }
+}

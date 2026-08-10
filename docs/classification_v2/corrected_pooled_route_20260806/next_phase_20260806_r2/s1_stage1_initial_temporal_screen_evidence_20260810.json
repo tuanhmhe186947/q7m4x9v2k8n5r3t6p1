@@ -1,0 +1,182 @@
+{
+  "schema_version": "classification_v2.s1_stage1_initial_temporal_screen_evidence.v1",
+  "status": "ARTIFACT_VERIFIED_INNER_DEVELOPMENT_EVIDENCE",
+  "scope": {
+    "run_kind": "S1_STAGE1_TEMPORAL_SCREENING",
+    "initial_seed": 20260804,
+    "fixed_optimizer_steps": 4164,
+    "training_budget_unit": "OPTIMIZER_STEPS",
+    "temporal_views": ["T6", "T8", "T12", "T16"],
+    "outer_examples_accessed": false,
+    "claim_grade_result": false,
+    "scientific_promotion_allowed": false
+  },
+  "bound_authorities": {
+    "s1_authority": {
+      "relative_path": "s1_control_and_pre_s1_calibration_authority.json",
+      "sha256": "9daf6a3bda89678c2b3ddd6ba9a0132fa1be16b583bfafb1cc76eb610ff8b1e4"
+    },
+    "calibration_horizon_decision": {
+      "relative_path": "s1_pre_s1_calibration_horizon_decision_20260810.json",
+      "sha256": "8c5e00c6f94b6acf173bb5b0ad25c0f6006d0f4022ac6b764f8140c132620dc9"
+    },
+    "rgb_binding_bundle_sha256": "588ae6adcdd876435bcf592d65efee3b4be5e9be5f48caee1527252553844600",
+    "common_cohort_sha256": "cb66f0b5079c1727d9726c499cb52d2fb428b0d9db2ff60b4be83600606f38a8"
+  },
+  "artifact_source": {
+    "storage_namespace": "lit://ironheart211224/pig-project/studios/pig-project/pig_e0_r3/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials",
+    "verification": "28 selected endpoint JSON/CSV artifacts were downloaded from persistent storage and matched their remote artifact manifests.",
+    "window_prediction_ground_truth_available": false,
+    "window_level_fight_diagnostic": "UNAVAILABLE_WITHOUT_GROUND_TRUTH",
+    "logits_used": false
+  },
+  "views": {
+    "T6": {
+      "trial_id": "s1_stage1_t6_seed20260804_steps4164",
+      "git_sha": "71ad8e4b0827414edfa54152251a23f107fea26a",
+      "train_windows": 33300,
+      "validation_windows": 6154,
+      "validation_native_units": 3335,
+      "event_weight_sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72",
+      "scientific_rgb_binding_sha256": "593344a3b915e899bd6404b590c7e0b5ef46c20428df20bbaa88be65d05a8d64",
+      "primary_native_macro_f1": 0.3629868671396542,
+      "common_cohort_native_macro_f1": 0.41740032693684137,
+      "primary_coverage": {"expected": 3335, "predicted": 3335, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "common_cohort_coverage": {"expected": 27378, "predicted": 27378, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "artifact_hashes": {
+        "run_manifest": "804b911f2f503aa9eba310d8fdb29fd360fdea0b65b0295d701b55843caaefce",
+        "result": "fc0a0bae42cb969dc56f10f8be01c7395c92ee6bd97a6a3723775d30662daf1c",
+        "artifact_manifest": "b4b488f2dbca54564e905ed9c823e96c4b3d34ec9a36d6bbd0efb43765de8496",
+        "endpoint_metrics": "d76ee40891a4418abfc985de3f35ce14d25a9a0432ca9e4d959c07f5827ba842",
+        "endpoint_checkpoint": "5f685a0504434e2c162c3999c7a4cb2d7856143ebf2116237dca79a3539b98a0",
+        "primary_native_predictions": "eb4cf734e15e3bc374698317c9f38ed74a2d8044fb59e02738b508af8b10686a",
+        "common_native_predictions": "f800e9964bc23000e78d5f5e02d35c0663cdd899477567dd3709602720035088"
+      },
+      "fight_primary_native": {
+        "gt": 15,
+        "predicted": 84,
+        "tp": 0,
+        "fp": 84,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {"social-nose": 4, "move": 0, "explore": 1, "stand": 0, "all_other_classes": 10}
+      }
+    },
+    "T8": {
+      "trial_id": "s1_stage1_t8_seed20260804_steps4164",
+      "git_sha": "50f076f3202e27d38472f90dc4272028297a496f",
+      "train_windows": 29383,
+      "validation_windows": 5142,
+      "validation_native_units": 3331,
+      "event_weight_sha256": "2e6e54bc298232b4026e16d400712d89748db7933c0f0cf2a1c271412fb9c7d9",
+      "scientific_rgb_binding_sha256": "8f9cf5580a0e63f17c29aa6e1bf6d2f8ff272c5bbcab77e141ecaaccf9e2e375",
+      "primary_native_macro_f1": 0.3535898993539361,
+      "common_cohort_native_macro_f1": 0.40172060126453585,
+      "primary_coverage": {"expected": 3331, "predicted": 3331, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "common_cohort_coverage": {"expected": 27378, "predicted": 27378, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "artifact_hashes": {
+        "run_manifest": "93a6cab9376742985aba8cf3d67fd1ac65b3a77b34ecacc1c025b731b1f0a079",
+        "result": "e4cd1ca9337e4cce4e5c72f8238700dd13125dcb860a9358aea521a621b043d6",
+        "artifact_manifest": "bba68b90977c45969f0fd36f8e4f48e99f2edd749fc678773f99a86941bc11a9",
+        "endpoint_metrics": "8faa44a65d55e275e4a2fe575a26e9c22973bc0b6e25f857d2ba0a71ed734836",
+        "endpoint_checkpoint": "4735d173e985b0a4c75d36a183d9f91b16690387b9d962e729b78db1debd1084",
+        "primary_native_predictions": "3ced9bf4d2e9bae30843aacebc73123c6f454a59c63f346b775f35d84b7e5e67",
+        "common_native_predictions": "761f331bb89c5a0e3e1f0e372a30d128b526a7d6c3c0ca077ecec7e96f1ddbce"
+      },
+      "fight_primary_native": {
+        "gt": 15,
+        "predicted": 3,
+        "tp": 0,
+        "fp": 3,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {"social-nose": 4, "move": 0, "explore": 1, "stand": 0, "all_other_classes": 10}
+      }
+    },
+    "T12": {
+      "trial_id": "s1_stage1_t12_seed20260804_steps4164",
+      "git_sha": "50f076f3202e27d38472f90dc4272028297a496f",
+      "train_windows": 26442,
+      "validation_windows": 4206,
+      "validation_native_units": 3332,
+      "event_weight_sha256": "b44b448629513255d65c82299cfde1930cf5d4011b066f4d8d90b30cbdc2d6a4",
+      "scientific_rgb_binding_sha256": "0ebedcdcf5873c0e25f7995135e574ed3107e073d3022a7ff1e0de29e7d199e9",
+      "primary_native_macro_f1": 0.35494596752046725,
+      "common_cohort_native_macro_f1": 0.4064633738690556,
+      "primary_coverage": {"expected": 3332, "predicted": 3332, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "common_cohort_coverage": {"expected": 27378, "predicted": 27378, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "artifact_hashes": {
+        "run_manifest": "2ce564456365c9265d26f6703ddadef0249f2fb20d75308e2dc70c13b44eaaca",
+        "result": "4d4ba4de0359837862e68dc5e86b57b33761bf9ce0527e17396aaac6b8ac1dec",
+        "artifact_manifest": "3bb337d994cc6c7274231174de32da23a60ede63d398f3d3808cf6a00f4483a1",
+        "endpoint_metrics": "058b6fae10e9b5e78c7d8922576368e1b7773e1a2dcc601133438b2b244cd2d1",
+        "endpoint_checkpoint": "5f3390a15442a8192c9e923abc86ec6dade756b1978271df1fba2f45cb1d434d",
+        "primary_native_predictions": "bb5d9190cede09204deecba430d526bbd37232c4fb5a44f2dd6eca447438b2b9",
+        "common_native_predictions": "ac17bb74e73da4f24aba8a646513850fa7b52f625981103b4d3423543ac9a30d"
+      },
+      "fight_primary_native": {
+        "gt": 15,
+        "predicted": 5,
+        "tp": 0,
+        "fp": 5,
+        "fn": 15,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {"social-nose": 3, "move": 0, "explore": 1, "stand": 0, "all_other_classes": 11}
+      }
+    },
+    "T16": {
+      "trial_id": "s1_stage1_t16_seed20260804_steps4164",
+      "git_sha": "50f076f3202e27d38472f90dc4272028297a496f",
+      "train_windows": 22693,
+      "validation_windows": 3199,
+      "validation_native_units": 3305,
+      "event_weight_sha256": "de3764236b49bde95f8eb1cce1508e1677a8ec7e85c6cf29a91dc6010056b7ac",
+      "scientific_rgb_binding_sha256": "540376ab0b8253fbd72b1d5965b35c22474d388e6b8e993abf66edb39a08e659",
+      "primary_native_macro_f1": 0.37506282672818947,
+      "common_cohort_native_macro_f1": 0.4379647006947359,
+      "primary_coverage": {"expected": 3305, "predicted": 3305, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "common_cohort_coverage": {"expected": 27378, "predicted": 27378, "missing": 0, "duplicate": 0, "out_of_population": 0},
+      "artifact_hashes": {
+        "run_manifest": "348e931896475c1c8155ebd0b5bd7abac112257a1e458f3fbd86e10c70c68667",
+        "result": "1470d0689c3d1401f8f90fbdd474652998249bb4b7278b59aaadcd692a35eacf",
+        "artifact_manifest": "119dd956fd4e35eec4f69e089a8ec4c381962232ce84deef7cd898c25c4201fd",
+        "endpoint_metrics": "28063c49870c9cf2a6b7e94a32a2b3e185b14aa6d6ad33f8b7b6f3738f2838e2",
+        "endpoint_checkpoint": "aae97fadbab70a0df86a9f3e7962d19e46415345031ad9514169438d6ff4fb48",
+        "primary_native_predictions": "62098f500dc86409e6327ebced226fd2bf588ae0c7e5c844ead67f3ad999e5bd",
+        "common_native_predictions": "87713c5d109941f77132fea1acb39a2a9cee27f3215db5c9c5c8a8fe69c5e168"
+      },
+      "fight_primary_native": {
+        "gt": 11,
+        "predicted": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 11,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "gt_fight_confusions": {"social-nose": 0, "move": 0, "explore": 6, "stand": 0, "all_other_classes": 5}
+      }
+    }
+  },
+  "rare_class_guardrails": {
+    "registered_state": "OBSERVATION_ONLY_REGISTERED_STAGE1_GUARDRAILS",
+    "numerical_disqualification_threshold_authority": "MISSING",
+    "t16_explicit_disqualification": false,
+    "fight_recovered_by_longer_target_support": "NO"
+  },
+  "comparison_notes": {
+    "fixed_update_comparison": true,
+    "matched_epoch_comparison": false,
+    "t16_train_window_retention_relative_to_t6": 0.6814714714714715,
+    "t8_and_t12_underperform_t6_on_primary_and_common": true,
+    "t16_exceeds_t6_on_primary_and_common": true,
+    "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
+    "common_cohort_metric_role": "DIAGNOSTIC_ONLY"
+  }
+}

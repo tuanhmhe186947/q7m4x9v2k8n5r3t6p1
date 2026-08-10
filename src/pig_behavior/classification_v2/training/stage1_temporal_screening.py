@@ -48,8 +48,10 @@ from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.stage1_execution_authorization import (
     Stage1ExecutionAuthorizationError,
     Stage1ExecutionPermit,
+    Stage1SeedAuthorization,
     consume_stage1_execution_permit,
     validate_stage1_execution_permit,
+    validate_stage1_seed_authorization,
 )
 from pig_behavior.classification_v2.training.stage1_rgb_binding import (
     DATA_BINDINGS_SCHEMA,
@@ -117,6 +119,8 @@ class Stage1Plan:
     authority_sha256: str
     authority: Mapping[str, Any]
     view: str
+    seed: int
+    seed_authorization: Stage1SeedAuthorization
     output_dir: Path
     trial_id: str
     engineering_smoke: bool
@@ -168,6 +172,7 @@ def create_stage1_plan(
     authority_path: Path,
     *,
     view: str,
+    seed: int = SEED,
     repository_root: Path | None = None,
     outputs_root: Path | None = None,
     output_dir: Path | None = None,
@@ -176,6 +181,7 @@ def create_stage1_plan(
     data_bindings_path: Path | None = None,
     execution_permit_path: Path | None = None,
     binding_bundle_path: Path | None = None,
+    confirmation_authority_path: Path | None = None,
     allow_consumed_execution_permit: bool = False,
     engineering_smoke: bool = False,
     frozen_overrides: Mapping[str, object] | None = None,
@@ -197,6 +203,17 @@ def create_stage1_plan(
     authority = _read_json(authority_path)
     authority_hash = _sha256_file(authority_path)
     _validate_authority(authority)
+    try:
+        seed_authorization = validate_stage1_seed_authorization(
+            authority_path=authority_path,
+            authority=authority,
+            authority_sha256=authority_hash,
+            seed=seed,
+            view=view,
+            confirmation_authority_path=confirmation_authority_path,
+        )
+    except Stage1ExecutionAuthorizationError as error:
+        raise Stage1TemporalScreeningError(str(error)) from error
     route = _resolve_root(
         root,
         authority["path_roots"]["S1_ROUTE"],
@@ -206,7 +223,11 @@ def create_stage1_plan(
         route / authority["calibration_decision_authority"]["relative_path"],
         authority["calibration_decision_authority"],
     )
-    chosen_trial_id = trial_id or _new_trial_id(view, engineering_smoke)
+    chosen_trial_id = trial_id or _new_trial_id(
+        view,
+        engineering_smoke,
+        seed=seed_authorization.seed,
+    )
     _validate_trial_id(chosen_trial_id)
     default_parent = (
         resolved_outputs_root
@@ -246,6 +267,10 @@ def create_stage1_plan(
                 trial_id=chosen_trial_id,
                 data_bindings_path=data_bindings_path,
                 binding_bundle_path=binding_bundle_path,
+                seed=seed_authorization.seed,
+                confirmation_authority_path=(
+                    seed_authorization.confirmation_authority_path
+                ),
                 allow_consumed=allow_consumed_execution_permit,
             )
         except Stage1ExecutionAuthorizationError as error:
@@ -257,6 +282,8 @@ def create_stage1_plan(
         authority_sha256=authority_hash,
         authority=authority,
         view=view,
+        seed=seed_authorization.seed,
+        seed_authorization=seed_authorization,
         output_dir=target,
         trial_id=chosen_trial_id,
         engineering_smoke=engineering_smoke,
@@ -273,6 +300,26 @@ def preflight_stage1(plan: Stage1Plan) -> dict[str, str]:
     if plan.authority_sha256 != _sha256_file(plan.authority_path):
         raise Stage1TemporalScreeningError("authority bytes changed after plan resolution")
     authority = plan.authority
+    try:
+        current_seed_authorization = validate_stage1_seed_authorization(
+            authority_path=plan.authority_path,
+            authority=authority,
+            authority_sha256=plan.authority_sha256,
+            seed=plan.seed,
+            view=plan.view,
+            confirmation_authority_path=(
+                plan.seed_authorization.confirmation_authority_path
+            ),
+        )
+    except Stage1ExecutionAuthorizationError as error:
+        raise Stage1TemporalScreeningError(str(error)) from error
+    if (
+        current_seed_authorization.manifest_record()
+        != plan.seed_authorization.manifest_record()
+    ):
+        raise Stage1TemporalScreeningError(
+            "seed authorization changed after plan resolution"
+        )
     roots = authority["path_roots"]
     derived = _resolve_root(
         plan.repository_root,
@@ -374,6 +421,10 @@ def preflight_stage1(plan: Stage1Plan) -> dict[str, str]:
             "B1 model registry authority",
         ),
     }
+    if plan.seed_authorization.confirmation_authority_sha256 is not None:
+        hashes["confirmation_authority"] = (
+            plan.seed_authorization.confirmation_authority_sha256
+        )
     _assert_b1_contract(plan.view)
     return hashes
 
@@ -731,13 +782,18 @@ def run_real_data_cpu_engineering_smoke(
         raise Stage1TemporalScreeningError("real-data CPU smoke requires a non-smoke CPU plan")
     if steps not in {1, 2}:
         raise Stage1TemporalScreeningError("real-data CPU smoke is bounded to one or two steps")
-    _set_seed(SEED)
+    _set_seed(plan.seed)
     device = torch.device("cpu")
     model = _build_b1_model(plan.view).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.0)
     losses: list[float] = []
     for step in range(1, steps + 1):
-        rows = _rows_for_step(population.train, step=step, batch_size=BATCH_SIZE, seed=SEED)
+        rows = _rows_for_step(
+            population.train,
+            step=step,
+            batch_size=BATCH_SIZE,
+            seed=plan.seed,
+        )
         batch = population.load_batch(rows, device)
         optimizer.zero_grad(set_to_none=True)
         logits = model(batch)["logits"]
@@ -800,7 +856,7 @@ def run_stage1_temporal_screening(
     device = torch.device(plan.device_name)
     if plan.device_name == "cuda":
         torch.cuda.reset_peak_memory_stats(0)
-    _set_seed(SEED)
+    _set_seed(plan.seed)
     started = time.perf_counter()
     started_at = _utc_now()
     model = _build_b1_model(plan.view).to(device)
@@ -827,7 +883,12 @@ def run_stage1_temporal_screening(
     snapshots: list[dict[str, Any]] = list(state.get("snapshots", []))
     try:
         for step in range(completed + 1, plan.max_steps + 1):
-            rows = _rows_for_step(population.train, step=step, batch_size=BATCH_SIZE, seed=SEED)
+            rows = _rows_for_step(
+                population.train,
+                step=step,
+                batch_size=BATCH_SIZE,
+                seed=plan.seed,
+            )
             batch = population.load_batch(rows, device)
             optimizer.zero_grad(set_to_none=True)
             logits = model(batch)["logits"]
@@ -1108,7 +1169,8 @@ def _manifest(plan: Stage1Plan, population: Stage1Population) -> dict[str, Any]:
         "temporal_view": plan.view,
         "fold": FOLD,
         "roles": ["train", "validation"],
-        "seed": SEED,
+        "seed": plan.seed,
+        "seed_authorization": plan.seed_authorization.manifest_record(),
         "optimizer": "AdamW",
         "learning_rate": 0.003,
         "weight_decay": 0.0,
@@ -1133,7 +1195,8 @@ def _fingerprint(plan: Stage1Plan, population: Stage1Population) -> dict[str, ob
         "run_kind": RUN_KIND,
         "authority_sha256": plan.authority_sha256,
         "model_config_sha256": _json_sha256(_model_config_payload(plan.view)),
-        "seed": SEED,
+        "seed": plan.seed,
+        "seed_authorization": plan.seed_authorization.manifest_record(),
         "temporal_view": plan.view,
         "inner_roles": ["train", "validation"],
         "data_hashes": dict(sorted(population.data_hashes.items())),
@@ -1167,6 +1230,11 @@ def _execution_permit_manifest(plan: Stage1Plan) -> dict[str, object] | None:
         "code_sha": str(payload["code_sha"]),
         "view": str(payload["view"]),
         "trial_id": str(payload["trial_id"]),
+        "seed": int(payload["seed"]),
+        "authorization_source": str(payload["authorization_source"]),
+        "confirmation_authority_sha256": payload.get(
+            "confirmation_authority_sha256"
+        ),
         "rgb_binding_bundle_sha256": str(payload["rgb_binding_bundle_sha256"]),
         "scientific_rgb_binding_sha256": str(
             payload["scientific_rgb_binding_sha256"]
@@ -1204,6 +1272,8 @@ def _runtime_telemetry(
         "trial_id": plan.trial_id,
         "run_kind": RUN_KIND,
         "view": plan.view,
+        "seed": plan.seed,
+        "seed_authorization": plan.seed_authorization.manifest_record(),
         "start_timestamp": started_at,
         "end_timestamp": _utc_now(),
         "wall_clock_seconds": elapsed,
@@ -1385,6 +1455,7 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
         stage1.get("run_kind") != RUN_KIND
         or stage1.get("temporal_views") != list(VIEW_SPECS)
         or stage1.get("initial_seed") != SEED
+        or tuple(stage1.get("confirmation_seeds", ())) != (20260805, 20260806)
         or stage1.get("max_steps") != MAX_STEPS
         or tuple(stage1.get("evaluation_steps", ())) != EVAL_STEPS
         or stage1.get("training_budget_unit") != "OPTIMIZER_STEPS"
@@ -1559,10 +1630,10 @@ def _restore_rng_state(state: Mapping[str, object]) -> None:
     torch.set_rng_state(state["torch"])
 
 
-def _new_trial_id(view: str, engineering_smoke: bool) -> str:
+def _new_trial_id(view: str, engineering_smoke: bool, *, seed: int) -> str:
     prefix = "s1_stage1_engineering" if engineering_smoke else "s1_stage1"
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"{prefix}_{view.lower()}_seed{SEED}_{timestamp}_{uuid.uuid4().hex[:8]}"
+    return f"{prefix}_{view.lower()}_seed{seed}_{timestamp}_{uuid.uuid4().hex[:8]}"
 
 
 def _utc_now() -> str:

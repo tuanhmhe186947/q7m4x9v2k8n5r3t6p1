@@ -1,4 +1,4 @@
-"""Issue four single-use permits for the authorized Stage-1 initial screen."""
+"""Issue only registered Stage-1 single-use permits after authority checks."""
 
 from __future__ import annotations
 
@@ -24,6 +24,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--outputs-root", type=Path, required=True)
     parser.add_argument("--repository-root", type=Path, default=Path.cwd())
     parser.add_argument("--ttl-hours", type=int, default=24)
+    parser.add_argument("--seed", type=int, default=20260804)
+    parser.add_argument("--confirmation-authority", type=Path)
+    parser.add_argument(
+        "--view",
+        action="append",
+        choices=("T6", "T8", "T12", "T16"),
+        help="Required only to spell the exact retained confirmation subset.",
+    )
     parser.add_argument(
         "--rotate-view",
         action="append",
@@ -43,6 +51,10 @@ def main() -> int:
     args = parse_args()
     try:
         if args.rotate_view:
+            if args.view:
+                raise Stage1ExecutionAuthorizationError(
+                    "--view cannot be combined with --rotate-view"
+                )
             if args.supersession_reason is None:
                 raise Stage1ExecutionAuthorizationError(
                     "--supersession-reason is required with --rotate-view"
@@ -54,6 +66,8 @@ def main() -> int:
                 binding_bundle_path=args.binding_bundle,
                 views=args.rotate_view,
                 reason=args.supersession_reason,
+                seed=args.seed,
+                confirmation_authority_path=args.confirmation_authority,
                 ttl_hours=args.ttl_hours,
             )
             print(
@@ -85,6 +99,9 @@ def main() -> int:
             outputs_root=args.outputs_root,
             authority_path=args.authority,
             binding_bundle_path=args.binding_bundle,
+            seed=args.seed,
+            confirmation_authority_path=args.confirmation_authority,
+            views=args.view,
             ttl_hours=args.ttl_hours,
         )
     except Stage1ExecutionAuthorizationError as error:

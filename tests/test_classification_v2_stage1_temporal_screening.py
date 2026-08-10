@@ -23,6 +23,9 @@ AUTHORITY = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json"
 )
+RETENTION_AUTHORITY = AUTHORITY.with_name(
+    "s1_stage1_temporal_retention_authority_20260810.json"
+)
 
 
 def _rows(role: str, count: int, *, prefix: str) -> pd.DataFrame:
@@ -138,6 +141,62 @@ def test_stage1_b1_contract_admits_exact_registered_target_lengths(view: str) ->
     model = stage1._build_b1_model(view)
     assert model.config.batch_contract.target_length == stage1.VIEW_SPECS[view]["length"]
     assert stage1._b1_effective_inputs(view)[0] == f"actor_rgb_{view}"
+
+
+def test_confirmation_seed_is_hash_bound_before_dataset_payload_access(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    with pytest.raises(
+        stage1.Stage1TemporalScreeningError,
+        match="requires a retention authority",
+    ):
+        stage1.create_stage1_plan(
+            AUTHORITY,
+            view="T6",
+            seed=20260805,
+            repository_root=ROOT,
+            outputs_root=outputs,
+            output_dir=tmp_path / "missing-retention",
+            trial_id="s1_stage1_t6_seed20260805_steps4164",
+            device_name="cpu",
+            engineering_smoke=True,
+        )
+
+    plan = stage1.create_stage1_plan(
+        AUTHORITY,
+        view="T6",
+        seed=20260805,
+        repository_root=ROOT,
+        outputs_root=outputs,
+        output_dir=tmp_path / "retained-t6",
+        trial_id="s1_stage1_t6_seed20260805_steps4164",
+        device_name="cpu",
+        engineering_smoke=True,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+    )
+    assert plan.seed == 20260805
+    assert plan.seed_authorization.confirmation_authority_sha256 == sha256(
+        RETENTION_AUTHORITY.read_bytes()
+    ).hexdigest()
+
+    with pytest.raises(
+        stage1.Stage1TemporalScreeningError,
+        match="confirmation view is not retained",
+    ):
+        stage1.create_stage1_plan(
+            AUTHORITY,
+            view="T8",
+            seed=20260805,
+            repository_root=ROOT,
+            outputs_root=outputs,
+            output_dir=tmp_path / "rejected-t8",
+            trial_id="s1_stage1_t8_seed20260805_steps4164",
+            device_name="cpu",
+            engineering_smoke=True,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+        )
 
 
 @pytest.mark.parametrize("view", ["T6", "T8", "T12", "T16"])

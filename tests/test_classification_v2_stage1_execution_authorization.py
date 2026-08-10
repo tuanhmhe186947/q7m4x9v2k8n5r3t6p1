@@ -23,6 +23,9 @@ AUTHORITY = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json"
 )
+RETENTION_AUTHORITY = AUTHORITY.with_name(
+    "s1_stage1_temporal_retention_authority_20260810.json"
+)
 
 
 def _authority() -> tuple[dict[str, object], str]:
@@ -132,6 +135,132 @@ def test_creator_issues_four_exact_per_arm_permits(
         assert permit.payload["hardware"] == {"gpu_count": 1, "gpu_name": "NVIDIA L4"}
         assert permit.payload["max_steps"] == 4164
         assert permit.payload["outer_access_allowed"] is False
+        assert permit.payload["seed"] == authorization.SEED
+        assert permit.payload["authorization_source"] == (
+            authorization.INITIAL_AUTHORIZATION_SOURCE
+        )
+        assert permit.payload["confirmation_authority_sha256"] is None
+
+
+def test_confirmation_permits_require_retention_and_bind_only_t6_t16(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, _initial, scientific = _permits(tmp_path, monkeypatch)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="requires a retention authority",
+    ):
+        authorization.create_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            seed=20260805,
+        )
+
+    permits = authorization.create_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=bundle,
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+    )
+    assert set(permits) == {"T6", "T16"}
+    for view, permit in permits.items():
+        assert permit.payload["seed"] == 20260805
+        assert permit.payload["view"] == view
+        assert permit.payload["trial_id"] == authorization.canonical_trial_id(
+            view,
+            seed=20260805,
+        )
+        assert permit.payload["confirmation_authority_sha256"] == sha256(
+            RETENTION_AUTHORITY.read_bytes()
+        ).hexdigest()
+
+    verified = authorization.validate_stage1_execution_permit(
+        permit_path=permits["T6"].path,
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        authority=_authority()[0],
+        authority_sha256=_authority()[1],
+        view="T6",
+        trial_id=authorization.canonical_trial_id("T6", seed=20260805),
+        data_bindings_path=_data_bindings(tmp_path, scientific["T6"]),
+        binding_bundle_path=bundle,
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+    )
+    assert verified.payload["seed"] == 20260805
+
+
+@pytest.mark.parametrize("view", ["T8", "T12"])
+def test_confirmation_rejects_unretained_views_before_permit_creation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    view: str,
+) -> None:
+    bundle, _scientific = _binding_bundle(tmp_path)
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    monkeypatch.setattr(authorization, "_git_status", lambda _root: "")
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="exactly the retained views",
+    ):
+        authorization.create_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            views=(view,),
+        )
+
+
+def test_confirmation_rejects_unregistered_seed_and_base_hash_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bundle, _scientific = _binding_bundle(tmp_path)
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    monkeypatch.setattr(authorization, "_git_status", lambda _root: "")
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="unregistered Stage-1 seed",
+    ):
+        authorization.create_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            seed=20260807,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+        )
+
+    altered = json.loads(RETENTION_AUTHORITY.read_text(encoding="utf-8"))
+    altered["base_s1_authority"]["sha256"] = "0" * 64
+    altered_path = tmp_path / "retention_authority.json"
+    altered_path.write_text(json.dumps(altered), encoding="utf-8")
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="base authority hash mismatch",
+    ):
+        authorization.create_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            seed=20260805,
+            confirmation_authority_path=altered_path,
+        )
 
 
 def test_code_stale_permit_rotation_preserves_bytes_and_selects_one_view(

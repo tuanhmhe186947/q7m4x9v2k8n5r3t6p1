@@ -1,0 +1,38 @@
+{
+  "schema_version": "classification_v2.s1_post_stage1_resolution_direction.v1",
+  "status": "REGISTERED_FUTURE_PLANNING_ONLY",
+  "scope": "behavior_only_post_stage1_pure_spatial_fidelity_direction",
+  "resolution_pipeline": {
+    "source_commit": "7a56faac5ef29dc87cac60352096b86befbd8ce1",
+    "canonical_integration_commit": "05378996f5401ac8e26695e24dc36abe53fa2c94",
+    "high_res_source_does_not_depend_on_64_cache": true,
+    "old64_new64_parity": "BITWISE_IDENTICAL",
+    "supported_runtime_resolutions_at_recording": [64, 160, 224]
+  },
+  "post_stage1_direction": {
+    "control": 64,
+    "pure_resolution_candidates": [64, 128, 160],
+    "224_status": "SUPPORTED_NOT_PRIMARY_BY_DEFAULT",
+    "128_status": "PLANNING_CANDIDATE_REQUIRES_RUNTIME_READINESS_VALIDATION",
+    "one_changed_family": "input_spatial_resolution_only",
+    "do_not_combine_with_temporal_confirmation": true
+  },
+  "native_resolution_audit": {
+    "all_min_dimension_fraction": {
+      "at_least_64": 0.99924,
+      "at_least_128": 0.69033,
+      "at_least_160": 0.40467,
+      "at_least_224": 0.10042
+    },
+    "fight_min_dimension_fraction": {
+      "at_least_160": 0.30046,
+      "at_least_224": 0.05028
+    }
+  },
+  "current_boundary": {
+    "stage1_control_realization_remains_64": true,
+    "resolution_ablation_executed": false,
+    "outer_access_allowed": false,
+    "backbone_or_pretraining_change_allowed": false
+  }
+}

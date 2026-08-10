@@ -22,6 +22,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--view", choices=tuple(stage1.VIEW_SPECS), required=True)
     parser.add_argument("--data-bindings", type=Path, required=True)
     parser.add_argument("--trial-id", required=True)
+    parser.add_argument("--seed", type=int, default=stage1.SEED)
+    parser.add_argument("--confirmation-authority", type=Path)
     parser.add_argument("--repository-root", type=Path, default=Path.cwd())
     parser.add_argument("--resume-checkpoint", type=Path)
     return parser.parse_args()
@@ -34,6 +36,7 @@ def main() -> None:
     plan = stage1.create_stage1_plan(
         args.authority,
         view=args.view,
+        seed=args.seed,
         repository_root=args.repository_root,
         outputs_root=args.outputs_root,
         trial_id=args.trial_id,
@@ -41,6 +44,7 @@ def main() -> None:
         data_bindings_path=args.data_bindings,
         execution_permit_path=args.execution_permit,
         binding_bundle_path=args.binding_bundle,
+        confirmation_authority_path=args.confirmation_authority,
         allow_consumed_execution_permit=args.resume_checkpoint is not None,
         engineering_smoke=False,
         allow_existing_output=args.resume_checkpoint is not None,
