@@ -7,7 +7,7 @@
   "task_sha256": "ef1c2075e5e47818c0eaaabef9ef27602cf188460281753e6a6db1e414994329",
   "judge_sha256": "c8e5b914a8885d17a322d58e64608c170417314c685bc7d750eb799e304047b6",
   "runner_sha256": "b8ca02a25bad68d1d3ef787ac9d1f6d497d11de2bf9f5c2eeb956ae83c5b0525",
-  "validator_sha256": "c80d7071c5232c45821d3f11ccff28ddc48512ed049ff081f8bbf301b573f7bc",
+  "validator_sha256": "fcaddb11ae8d34f89c4e2c1c6114bbf2726f8947a958a4e78aeec54889ded48b",
   "tracked_git_identity": {
     "schema_version": "pig.git-tracked-identity-set.v1",
     "git_reference": "HEAD",
@@ -17,7 +17,7 @@
       ".agents/evals/agent_governance/run_regression.py":
         "b114f8613be64cad27faf06ba3e2a31b2b006c40",
       ".agents/skills/project-state-steward/scripts/validate_governance_contracts.py":
-        "9d534314b88b7cc49f3d2caa0b47d06e7b83e125"
+        "d9ee3d646f85618a5bf8b7888a27621496428632"
     }
   },
   "minimum_runs": 3,
