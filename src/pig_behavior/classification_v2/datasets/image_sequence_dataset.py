@@ -8,6 +8,7 @@ for loading and audit, not as model features.
 from __future__ import annotations
 
 import hashlib
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +40,8 @@ class ImageSequenceDatasetConfig:
         "outputs/classification_v2/train_ready_windows/"
         "image_window_context_manifest.csv"
     )
+    frame_context_dataframe: pd.DataFrame | None = None
+    window_context_dataframe: pd.DataFrame | None = None
     image_cache_manifest_csv: Path | None = None
     packed_image_cache_npy: Path | None = None
     packed_image_cache_index_csv: Path | None = None
@@ -48,6 +51,7 @@ class ImageSequenceDatasetConfig:
     require_cached_images: bool = False
     image_cache_size: int = 8192
     video_capture_cache_size: int = 8
+    media_root: Path | None = None
 
 
 class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
@@ -61,8 +65,14 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if config.video_capture_cache_size <= 0:
             raise ValueError("video_capture_cache_size must be positive")
         self.config = config
-        self.frames = pd.read_csv(config.frame_context_csv, low_memory=False)
-        self.windows = pd.read_csv(config.window_context_csv, low_memory=False)
+        self.frames = _load_manifest_dataframe(
+            config.frame_context_dataframe,
+            config.frame_context_csv,
+        )
+        self.windows = _load_manifest_dataframe(
+            config.window_context_dataframe,
+            config.window_context_csv,
+        )
         self._validate_manifests()
         self.cache_by_context_id = self._load_cache_manifest(config.image_cache_manifest_csv)
         self._packed_tensor, self.packed_row_by_context_id = self._load_packed_cache(
@@ -98,6 +108,11 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.packed_image_cache_hits = 0
         self.disk_image_cache_misses = 0
         self.source_image_loads = 0
+        self.packed_read_seconds = 0.0
+        self.disk_cache_read_seconds = 0.0
+        self.legacy_jpeg_decode_resize_seconds = 0.0
+        self.video_decode_seconds = 0.0
+        self.video_crop_resize_seconds = 0.0
 
     def __len__(self) -> int:
         return int(len(self.windows))
@@ -195,13 +210,24 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if source_type == "legacy_recovered":
             if str(frame.get("image_context_source", "")) == "legacy_video_bbox":
                 return self._load_video_bbox_crop(frame)
-            return _load_legacy_crop(
-                Path(str(frame["resolved_media_path"])),
+            started = time.perf_counter()
+            image = _load_legacy_crop(
+                self._resolve_media_path(frame),
                 self.config.image_size,
             )
+            self.legacy_jpeg_decode_resize_seconds += time.perf_counter() - started
+            return image
         if source_type == "cvat_tracking_xml":
             return self._load_video_bbox_crop(frame)
         return None
+
+    def _resolve_media_path(self, frame: dict[str, Any]) -> Path:
+        """Resolve a relative audited media path against an explicit root only."""
+
+        path = Path(str(frame["resolved_media_path"]))
+        if path.is_absolute() or self.config.media_root is None:
+            return path
+        return Path(self.config.media_root) / path
 
     def _load_context_image(self, context_id: str, frame: dict[str, Any]) -> np.ndarray | None:
         """Load one crop with a bounded LRU cache keyed by audited context ID."""
@@ -244,6 +270,19 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             "packed_image_cache_hits": int(self.packed_image_cache_hits),
             "disk_image_cache_misses": int(self.disk_image_cache_misses),
             "source_image_loads": int(self.source_image_loads),
+            "video_decode_count": int(self.video_decode_count),
+            "video_seek_count": int(self.video_seek_count),
+            "video_frame_reuse_count": int(self.video_frame_reuse_count),
+            "timings_seconds": {
+                "packed_read": round(self.packed_read_seconds, 9),
+                "disk_cache_read": round(self.disk_cache_read_seconds, 9),
+                "legacy_jpeg_decode_resize": round(
+                    self.legacy_jpeg_decode_resize_seconds,
+                    9,
+                ),
+                "video_decode": round(self.video_decode_seconds, 9),
+                "video_crop_resize": round(self.video_crop_resize_seconds, 9),
+            },
             "video_capture_audit": self.video_capture_audit(),
         }
 
@@ -344,14 +383,18 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
 
         packed_row = self.packed_row_by_context_id.get(context_id)
         if packed_row is not None and self._packed_tensor is not None:
+            started = time.perf_counter()
             cached = np.asarray(self._packed_tensor[packed_row])
+            self.packed_read_seconds += time.perf_counter() - started
             self.packed_image_cache_hits += 1
             return _to_chw_float(cached)
         cache_path = self.cache_by_context_id.get(context_id)
         if cache_path is None or not cache_path.exists():
             return None
         try:
+            started = time.perf_counter()
             cached = np.load(cache_path)
+            self.disk_cache_read_seconds += time.perf_counter() - started
         except Exception:
             return None
         if cached.dtype == np.uint8 and cached.ndim == 3 and cached.shape[-1] == 3:
@@ -379,7 +422,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
 
         if cv2 is None:
             return None
-        video_path = str(frame.get("resolved_media_path", ""))
+        video_path = str(self._resolve_media_path(frame))
         if not video_path:
             return None
         capture = self._get_video_capture(video_path)
@@ -395,10 +438,12 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             image_bgr = decoded[1]
             self.video_frame_reuse_count += 1
         else:
+            started = time.perf_counter()
             if self._capture_next_frame.get(video_path) != target_frame:
                 capture.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
                 self.video_seek_count += 1
             ok, image_bgr = capture.read()
+            self.video_decode_seconds += time.perf_counter() - started
             if not ok or image_bgr is None:
                 return None
             self._capture_next_frame[video_path] = target_frame + 1
@@ -412,11 +457,13 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         y2i = max(0, min(height, int(y2)))
         if x2i <= x1i or y2i <= y1i:
             return None
+        started = time.perf_counter()
         crop_bgr = image_bgr[y1i:y2i, x1i:x2i]
         if crop_bgr.size == 0:
             return None
         crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
         crop_rgb = letterbox_rgb_uint8(crop_rgb, self.config.image_size)
+        self.video_crop_resize_seconds += time.perf_counter() - started
         return _to_chw_float(crop_rgb)
 
     def _get_video_capture(self, video_path: str) -> Any | None:
@@ -443,6 +490,17 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             len(self._capture_cache),
         )
         return capture
+
+
+def _load_manifest_dataframe(
+    dataframe: pd.DataFrame | None,
+    csv_path: Path,
+) -> pd.DataFrame:
+    """Copy an explicitly selected manifest or load the configured CSV."""
+
+    if dataframe is not None:
+        return dataframe.copy(deep=True)
+    return pd.read_csv(csv_path, low_memory=False)
 
 
 def image_sequence_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
