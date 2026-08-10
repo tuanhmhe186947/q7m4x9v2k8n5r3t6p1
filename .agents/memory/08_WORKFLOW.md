@@ -1,5 +1,27 @@
 # Workflow
 
+## 2026-08-10 Lightning active-resource preflight
+
+All future Lightning scientific execution must validate exact resource types
+and identities before GPU launch:
+
+```text
+LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2
+TEAMSPACE_NAME=pig-project
+STUDIO_NAME=pig-gpu-l4
+SSH_ALIAS=lightning-pig-gcp
+OLD_STUDIO_NAME=pig_project
+OLD_STUDIO_NAME_STATUS=DEPRECATED_DO_NOT_USE_FOR_ACTIVE_EXECUTION
+TEAMSPACE_AND_STUDIO_MUST_NOT_BE_INFERRED_FROM_EACH_OTHER=YES
+RESOURCE_TYPE_MUST_BE_EXPLICIT=YES
+```
+
+The preflight requires `teamspace == pig-project`, `studio == pig-gpu-l4`,
+`ssh_alias == lightning-pig-gcp`, one GPU, and `NVIDIA L4`. It fails closed
+for `studio == pig-project`, `studio == pig_project`, or
+`teamspace == pig-gpu-l4` in a new active execution. Historical artifacts are
+not rewritten; their old names remain historical evidence only.
+
 ## 2026-07-31 project autoresearch loop
 
 1. Read scope authority, method state, halt conditions, and selected skills.

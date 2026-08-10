@@ -20,6 +20,9 @@ from uuid import uuid4
 
 PERMIT_SCHEMA = "classification_v2.s1_stage1_execution_permit.v1"
 RETENTION_AUTHORITY_SCHEMA = "classification_v2.s1_stage1_temporal_retention_authority.v1"
+REGISTERED_CONFIRMATION_AUTHORITY_SHA256 = (
+    "1bfeb7d5aa29b20a35be03549906a4d3c8859de33df9bcf09536631634468ca5"
+)
 SUPERSESSION_SCHEMA = "classification_v2.s1_stage1_execution_permit_supersession.v1"
 BINDING_BUNDLE_SCHEMA = "classification_v2.s1_stage1_rgb_binding_bundle.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.s1_stage1_temporal_data_bindings.v1"
@@ -41,6 +44,24 @@ DEFAULT_TTL_HOURS = 24
 INITIAL_AUTHORIZATION_SOURCE = "USER_STAGE1_INITIAL_TEMPORAL_SCREEN_20260810"
 CONFIRMATION_AUTHORIZATION_SOURCE = (
     "USER_APPROVED_STAGE1_TEMPORAL_RETENTION_CONFIRMATION_20260810"
+)
+ROTATION_MODE_CODE_ONLY = "CODE_ONLY"
+ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR = (
+    "CONFIRMATION_PROVENANCE_REPAIR_20260810"
+)
+ROTATION_MODES = (
+    ROTATION_MODE_CODE_ONLY,
+    ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR,
+)
+_REPAIR_REBIND_FIELDS = frozenset(
+    {
+        "code_sha",
+        "rgb_binding_bundle_sha256",
+        "scientific_rgb_binding_sha256",
+    }
+)
+_REPLACEMENT_TRANSACTION_FIELDS = frozenset(
+    {"created_at_utc", "expires_at_utc", "permit_id"}
 )
 
 
@@ -266,9 +287,11 @@ def rotate_stage1_execution_permits(
     reason: str,
     seed: int = SEED,
     confirmation_authority_path: Path | None = None,
+    rotation_mode: str = ROTATION_MODE_CODE_ONLY,
+    predecessor_binding_bundle_path: Path | None = None,
     ttl_hours: int = DEFAULT_TTL_HOURS,
 ) -> dict[str, Stage1ExecutionPermitRotation]:
-    """Replace selected unconsumed permits after a code-only repair.
+    """Replace selected unconsumed permits under one explicit rotation mode.
 
     Normal issuance intentionally creates all four permits together.  Rotation
     is the only path that can issue a selected subset, and it preserves each
@@ -277,6 +300,7 @@ def rotate_stage1_execution_permits(
 
     if ttl_hours <= 0 or ttl_hours > DEFAULT_TTL_HOURS:
         raise Stage1ExecutionAuthorizationError("permit TTL must be in 1..24 hours")
+    mode = _validate_rotation_mode(rotation_mode)
     selected_views = _canonical_rotation_views(views)
     supersession_reason = _validate_supersession_reason(reason)
     root = Path(repository_root).resolve()
@@ -301,6 +325,34 @@ def rotate_stage1_execution_permits(
         expected_views=seed_authorization.confirmation_candidates or VIEWS,
     )
     binding_bundle_sha256 = _sha256_file(bundle_path)
+    predecessor_bundle: Mapping[str, Any] | None = None
+    predecessor_bundle_sha256 = binding_bundle_sha256
+    if mode == ROTATION_MODE_CODE_ONLY:
+        if predecessor_binding_bundle_path is not None:
+            raise Stage1ExecutionAuthorizationError(
+                "CODE_ONLY rotation does not accept a predecessor binding bundle"
+            )
+    else:
+        _validate_confirmation_repair_scope(
+            seed_authorization=seed_authorization,
+            bundle=bundle,
+        )
+        if predecessor_binding_bundle_path is None:
+            raise Stage1ExecutionAuthorizationError(
+                "confirmation provenance repair requires the predecessor binding bundle"
+            )
+        predecessor_bundle_path = Path(predecessor_binding_bundle_path).resolve()
+        predecessor_bundle = _read_json(predecessor_bundle_path)
+        _validate_binding_bundle(
+            predecessor_bundle,
+            authority_sha256,
+            expected_views=seed_authorization.confirmation_candidates,
+        )
+        predecessor_bundle_sha256 = _sha256_file(predecessor_bundle_path)
+        if predecessor_bundle_sha256 == binding_bundle_sha256:
+            raise Stage1ExecutionAuthorizationError(
+                "confirmation provenance repair requires a changed binding bundle"
+            )
     code_sha = _git_sha(root)
     created_at = datetime.now(UTC)
     expires_at = created_at + timedelta(hours=ttl_hours)
@@ -337,6 +389,14 @@ def rotate_stage1_execution_permits(
             raise Stage1ExecutionAuthorizationError(
                 "Stage-1 binding bundle view is invalid"
             )
+        predecessor_bundle_view = bundle_view
+        if predecessor_bundle is not None:
+            candidate = predecessor_bundle["views"].get(view)
+            if not isinstance(candidate, Mapping):
+                raise Stage1ExecutionAuthorizationError(
+                    "Stage-1 predecessor binding bundle view is invalid"
+                )
+            predecessor_bundle_view = candidate
         replacement_payload = _permit_payload(
             authority=authority,
             authority_sha256=authority_sha256,
@@ -358,16 +418,23 @@ def rotate_stage1_execution_permits(
             trial_id=trial_id,
             seed_authorization=seed_authorization,
             scientific_rgb_binding_sha256=str(
-                bundle_view["scientific_binding_sha256"]
+                predecessor_bundle_view["scientific_binding_sha256"]
             ),
         )
         _validate_rotation_predecessor(
             previous_payload,
             expected=expected,
-            binding_bundle_sha256=binding_bundle_sha256,
+            binding_bundle_sha256=predecessor_bundle_sha256,
             current_code_sha=code_sha,
             expected_field_names=frozenset(replacement_payload),
         )
+        if mode == ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR:
+            _validate_confirmation_repair_transition(
+                previous=previous_payload,
+                replacement=replacement_payload,
+                predecessor_bundle_view=predecessor_bundle_view,
+                replacement_bundle_view=bundle_view,
+            )
         superseded_path = directory / f"superseded-{previous.permit_id}.json"
         record_path = directory / f"supersession-{previous.permit_id}.json"
         if superseded_path.exists() or record_path.exists():
@@ -413,6 +480,7 @@ def rotate_stage1_execution_permits(
             replacement=replacement,
             reason=supersession_reason,
             expected=expected,
+            rotation_mode=mode,
         )
         _write_new_json(record_path, record)
         rotations[view] = Stage1ExecutionPermitRotation(
@@ -521,11 +589,13 @@ def consume_stage1_execution_permit(
     """Atomically consume a fresh permit, or admit it only for exact resume."""
 
     if permit.status == "CONSUMED":
+        _validate_consumed_permit_path(permit)
         if allow_consumed_resume:
             return permit
         raise Stage1ExecutionAuthorizationError("consumed Stage-1 permit cannot start new work")
     if permit.status != "AUTHORIZED":
         raise Stage1ExecutionAuthorizationError("Stage-1 permit status is invalid")
+    _validate_active_permit_path(permit)
     current = _read_json(permit.path)
     if current != dict(permit.payload):
         raise Stage1ExecutionAuthorizationError("Stage-1 permit changed before consumption")
@@ -544,6 +614,27 @@ def consume_stage1_execution_permit(
         payload=current,
         sha256=_sha256_file(consumed),
     )
+
+
+def _validate_active_permit_path(permit: Stage1ExecutionPermit) -> None:
+    """Reject archived or otherwise non-canonical paths before consumption."""
+
+    trial_id = str(permit.payload.get("trial_id", ""))
+    expected_name = f"{trial_id}.authorization.json"
+    if permit.path.name != expected_name:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 permit is not at its active authorization path"
+        )
+
+
+def _validate_consumed_permit_path(permit: Stage1ExecutionPermit) -> None:
+    """Allow resume only from the canonical used-permit filename."""
+
+    expected_name = f"used-{permit.permit_id[:12]}.json"
+    if permit.path.name != expected_name:
+        raise Stage1ExecutionAuthorizationError(
+            "consumed Stage-1 permit is not at its canonical used path"
+        )
 
 
 def _permit_payload(
@@ -946,6 +1037,94 @@ def _canonical_rotation_views(views: Sequence[str]) -> tuple[str, ...]:
     return tuple(view for view in VIEWS if view in selected)
 
 
+def _validate_rotation_mode(mode: str) -> str:
+    """Require one exact, registered rotation mode without normalization."""
+
+    if mode not in ROTATION_MODES:
+        raise Stage1ExecutionAuthorizationError(
+            f"unsupported Stage-1 rotation mode={mode}"
+        )
+    return mode
+
+
+def _validate_confirmation_repair_scope(
+    *,
+    seed_authorization: Stage1SeedAuthorization,
+    bundle: Mapping[str, Any],
+) -> None:
+    """Bind provenance repair to the registered confirmation authority."""
+
+    if (
+        seed_authorization.seed not in (20260805, 20260806)
+        or seed_authorization.confirmation_candidates != ("T6", "T16")
+        or seed_authorization.confirmation_authority_sha256
+        != REGISTERED_CONFIRMATION_AUTHORITY_SHA256
+    ):
+        raise Stage1ExecutionAuthorizationError(
+            "confirmation provenance repair requires the registered confirmation scope"
+        )
+    expected_materialization = {
+        "execution_phase": "STAGE1_CONFIRMATION",
+        "seed": seed_authorization.seed,
+        "confirmation_authority_sha256": (
+            seed_authorization.confirmation_authority_sha256
+        ),
+    }
+    if bundle.get("materialization") != expected_materialization:
+        raise Stage1ExecutionAuthorizationError(
+            "confirmation provenance repair binding materialization is incompatible"
+        )
+
+
+def _validate_confirmation_repair_transition(
+    *,
+    previous: Mapping[str, Any],
+    replacement: Mapping[str, Any],
+    predecessor_bundle_view: Mapping[str, Any],
+    replacement_bundle_view: Mapping[str, Any],
+) -> None:
+    """Allow only transaction metadata and three registered rebind fields."""
+
+    previous_scientific = predecessor_bundle_view.get(
+        "scientific_binding_sha256"
+    )
+    replacement_scientific = replacement_bundle_view.get(
+        "scientific_binding_sha256"
+    )
+    if previous.get("scientific_rgb_binding_sha256") != previous_scientific:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 predecessor permit mismatches its registered binding bundle"
+        )
+    if replacement.get("scientific_rgb_binding_sha256") != replacement_scientific:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 replacement permit mismatches its confirmation binding bundle"
+        )
+    previous_hashes = predecessor_bundle_view.get("provenance_hashes")
+    replacement_hashes = replacement_bundle_view.get("provenance_hashes")
+    if not isinstance(previous_hashes, Mapping) or not isinstance(
+        replacement_hashes, Mapping
+    ):
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 confirmation repair provenance hashes are malformed"
+        )
+    previous_weight = previous_hashes.get("event_weight")
+    replacement_weight = replacement_hashes.get("event_weight")
+    if (
+        previous_weight != previous.get("event_weight_sha256")
+        or replacement_weight != replacement.get("event_weight_sha256")
+    ):
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 confirmation repair event-weight binding drifted"
+        )
+    for key, previous_value in previous.items():
+        if key in _REPLACEMENT_TRANSACTION_FIELDS or key in _REPAIR_REBIND_FIELDS:
+            continue
+        if replacement.get(key) != previous_value:
+            raise Stage1ExecutionAuthorizationError(
+                f"Stage-1 confirmation repair frozen field mismatch={key}"
+            )
+
+
 def _validate_supersession_reason(reason: str) -> str:
     """Reject empty or unbounded free-text lineage reasons."""
 
@@ -1025,6 +1204,7 @@ def _supersession_record(
     replacement: Stage1ExecutionPermit,
     reason: str,
     expected: Mapping[str, object],
+    rotation_mode: str,
 ) -> dict[str, object]:
     """Record immutable predecessor/replacement lineage outside permit bytes."""
 
@@ -1034,9 +1214,20 @@ def _supersession_record(
         raise Stage1ExecutionAuthorizationError(
             "Stage-1 supersession requires a changed code SHA"
         )
+    permitted_rebinding_fields = (
+        _REPAIR_REBIND_FIELDS
+        if rotation_mode == ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+        else frozenset({"code_sha"})
+    )
+    changed_rebinding_fields = sorted(
+        key
+        for key in permitted_rebinding_fields
+        if previous.payload.get(key) != replacement.payload.get(key)
+    )
     return {
         "schema_version": SUPERSESSION_SCHEMA,
         "status": "SUPERSEDED",
+        "rotation_mode": rotation_mode,
         "reason": reason,
         "superseded_at_utc": replacement.payload["created_at_utc"],
         "view": replacement.payload["view"],
@@ -1050,10 +1241,28 @@ def _supersession_record(
         "replacement_code_sha": replacement_code_sha,
         "replacement_permit_filename": replacement.path.name,
         "code_sha_changed": True,
+        "previous_scientific_rgb_binding_sha256": previous.payload[
+            "scientific_rgb_binding_sha256"
+        ],
+        "replacement_scientific_rgb_binding_sha256": replacement.payload[
+            "scientific_rgb_binding_sha256"
+        ],
+        "previous_rgb_binding_bundle_sha256": previous.payload[
+            "rgb_binding_bundle_sha256"
+        ],
+        "replacement_rgb_binding_bundle_sha256": replacement.payload[
+            "rgb_binding_bundle_sha256"
+        ],
+        "permitted_rebinding_fields": sorted(permitted_rebinding_fields),
+        "changed_rebinding_fields": changed_rebinding_fields,
         "frozen_fields_verified": sorted(
             [
-                *[key for key in expected if key != "code_sha"],
-                "rgb_binding_bundle_sha256",
+                *[key for key in expected if key not in permitted_rebinding_fields],
+                *(
+                    []
+                    if "rgb_binding_bundle_sha256" in permitted_rebinding_fields
+                    else ["rgb_binding_bundle_sha256"]
+                ),
             ]
         ),
     }
@@ -1124,7 +1333,11 @@ __all__ = [
     "DEFAULT_TTL_HOURS",
     "INITIAL_AUTHORIZATION_SOURCE",
     "PERMIT_SCHEMA",
+    "REGISTERED_CONFIRMATION_AUTHORITY_SHA256",
     "RETENTION_AUTHORITY_SCHEMA",
+    "ROTATION_MODE_CODE_ONLY",
+    "ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR",
+    "ROTATION_MODES",
     "SUPERSESSION_SCHEMA",
     "Stage1ExecutionAuthorizationError",
     "Stage1ExecutionPermit",

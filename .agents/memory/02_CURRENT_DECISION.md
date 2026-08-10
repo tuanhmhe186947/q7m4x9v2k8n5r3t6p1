@@ -1,5 +1,18 @@
 # Current Decision
 
+## 2026-08-10 Lightning resource naming contract
+
+- `LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2`.
+- `TEAMSPACE_NAME=pig-project`.
+- `STUDIO_NAME=pig-gpu-l4`.
+- `SSH_ALIAS=lightning-pig-gcp`.
+- `OLD_STUDIO_NAME=pig_project` and
+  `OLD_STUDIO_NAME_STATUS=DEPRECATED_DO_NOT_USE_FOR_ACTIVE_EXECUTION`.
+- `TEAMSPACE_AND_STUDIO_MUST_NOT_BE_INFERRED_FROM_EACH_OTHER=YES`.
+- `RESOURCE_TYPE_MUST_BE_EXPLICIT=YES`.
+- Historical records may retain `pig_project`; active execution must reject
+  that name and must not treat teamspace and studio names as interchangeable.
+
 ## Classification V2 pre-GPU E0 authority and next permitted action (2026-08-08)
 
 - Status: `PRE_GPU_MAIN_AUTHORITY_READY`; resolve the immutable release with

@@ -11,6 +11,8 @@ from pig_behavior.classification_v2.training.lightning_resource_identity import 
     validate_passing_lightning_resource_preflight,
 )
 from pig_behavior.classification_v2.training.stage1_execution_authorization import (
+    ROTATION_MODE_CODE_ONLY,
+    ROTATION_MODES,
     Stage1ExecutionAuthorizationError,
     create_stage1_execution_permits,
     rotate_stage1_execution_permits,
@@ -48,6 +50,20 @@ def parse_args() -> argparse.Namespace:
         "--supersession-reason",
         help="Required with --rotate-view; recorded in immutable permit lineage.",
     )
+    parser.add_argument(
+        "--rotation-mode",
+        choices=ROTATION_MODES,
+        default=ROTATION_MODE_CODE_ONLY,
+        help="Exact fail-closed permit rotation mode; default remains CODE_ONLY.",
+    )
+    parser.add_argument(
+        "--predecessor-binding-bundle",
+        type=Path,
+        help=(
+            "Required only for CONFIRMATION_PROVENANCE_REPAIR_20260810; "
+            "must hash-match the active predecessor permit."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -78,6 +94,10 @@ def main() -> int:
                 reason=args.supersession_reason,
                 seed=args.seed,
                 confirmation_authority_path=args.confirmation_authority,
+                rotation_mode=args.rotation_mode,
+                predecessor_binding_bundle_path=(
+                    args.predecessor_binding_bundle
+                ),
                 ttl_hours=args.ttl_hours,
             )
             print(
@@ -85,6 +105,7 @@ def main() -> int:
                     {
                         "status": "ROTATED",
                         "single_use": True,
+                        "rotation_mode": args.rotation_mode,
                         "rotations": {
                             view: {
                                 "path": str(rotation.replacement.path),
@@ -103,6 +124,14 @@ def main() -> int:
         if args.supersession_reason is not None:
             raise Stage1ExecutionAuthorizationError(
                 "--supersession-reason requires --rotate-view"
+            )
+        if args.rotation_mode != ROTATION_MODE_CODE_ONLY:
+            raise Stage1ExecutionAuthorizationError(
+                "--rotation-mode requires --rotate-view"
+            )
+        if args.predecessor_binding_bundle is not None:
+            raise Stage1ExecutionAuthorizationError(
+                "--predecessor-binding-bundle requires --rotate-view"
             )
         permits = create_stage1_execution_permits(
             repository_root=args.repository_root,

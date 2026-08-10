@@ -39,10 +39,12 @@ def _binding_bundle(
     *,
     views: tuple[str, ...] = authorization.VIEWS,
     filename: str = "stage1_temporal_rgb_bindings.json",
+    scientific_prefix: str = "scientific",
+    materialization: dict[str, object] | None = None,
 ) -> tuple[Path, dict[str, str]]:
     authority, authority_sha256 = _authority()
     scientific = {
-        view: sha256(f"scientific-{view}".encode()).hexdigest()
+        view: sha256(f"{scientific_prefix}-{view}".encode()).hexdigest()
         for view in authorization.VIEWS
     }
     payload = {
@@ -60,6 +62,8 @@ def _binding_bundle(
             for view in views
         },
     }
+    if materialization is not None:
+        payload["materialization"] = materialization
     path = tmp_path / filename
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path, scientific
@@ -99,6 +103,55 @@ def _permits(
         binding_bundle_path=bundle,
     )
     return outputs, bundle, permits, scientific
+
+
+def _confirmation_permits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[
+    Path,
+    Path,
+    dict[str, authorization.Stage1ExecutionPermit],
+    dict[str, str],
+]:
+    predecessor_bundle, scientific = _binding_bundle(
+        tmp_path,
+        views=("T6", "T16"),
+        filename="predecessor_confirmation_bindings.json",
+        materialization={
+            "execution_phase": "INITIAL_STAGE1_SCREEN",
+            "seed": 20260805,
+            "confirmation_authority_sha256": None,
+        },
+    )
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    monkeypatch.setattr(authorization, "_git_status", lambda _root: "")
+    permits = authorization.create_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=predecessor_bundle,
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+    )
+    return outputs, predecessor_bundle, permits, scientific
+
+
+def _repaired_confirmation_bundle(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+    return _binding_bundle(
+        tmp_path,
+        views=("T6", "T16"),
+        filename="repaired_confirmation_bindings.json",
+        scientific_prefix="confirmation-provenance-repaired",
+        materialization={
+            "execution_phase": "STAGE1_CONFIRMATION",
+            "seed": 20260805,
+            "confirmation_authority_sha256": (
+                authorization.REGISTERED_CONFIRMATION_AUTHORITY_SHA256
+            ),
+        },
+    )
 
 
 def _validate_t6(
@@ -365,6 +418,331 @@ def test_code_stale_permit_rotation_preserves_bytes_and_selects_one_view(
             trial_id=authorization.canonical_trial_id("T8"),
             data_bindings_path=data_bindings,
             binding_bundle_path=bundle,
+        )
+
+
+def test_code_stale_multi_view_rotation_preserves_unselected_permit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, permits, _scientific = _permits(tmp_path, monkeypatch)
+    previous_bytes = {
+        view: permits[view].path.read_bytes() for view in ("T8", "T12", "T16")
+    }
+    t6_bytes = permits["T6"].path.read_bytes()
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    rotations = authorization.rotate_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=bundle,
+        views=("T8", "T12", "T16"),
+        reason="code-only executor repair",
+    )
+
+    assert set(rotations) == {"T8", "T12", "T16"}
+    assert permits["T6"].path.is_file()
+    assert permits["T6"].path.read_bytes() == t6_bytes
+    for view, rotation in rotations.items():
+        assert rotation.superseded_path.read_bytes() == previous_bytes[view]
+        assert rotation.replacement.path.name.endswith(".authorization.json")
+
+
+def test_confirmation_provenance_repair_supersedes_exact_predecessor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, predecessor_bundle, permits, _old_scientific = (
+        _confirmation_permits(tmp_path, monkeypatch)
+    )
+    repaired_bundle, repaired_scientific = _repaired_confirmation_bundle(tmp_path)
+    previous = permits["T6"]
+    previous_bytes = previous.path.read_bytes()
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    rotations = authorization.rotate_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=repaired_bundle,
+        views=("T6",),
+        reason="repair registered confirmation provenance binding",
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+        rotation_mode=(
+            authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+        ),
+        predecessor_binding_bundle_path=predecessor_bundle,
+    )
+
+    rotation = rotations["T6"]
+    assert rotation.superseded_path.read_bytes() == previous_bytes
+    replacement = rotation.replacement
+    assert replacement.payload["code_sha"] == "b" * 40
+    assert replacement.payload["scientific_rgb_binding_sha256"] == (
+        repaired_scientific["T6"]
+    )
+    assert replacement.payload["rgb_binding_bundle_sha256"] == sha256(
+        repaired_bundle.read_bytes()
+    ).hexdigest()
+    transaction_fields = {"created_at_utc", "expires_at_utc", "permit_id"}
+    rebind_fields = {
+        "code_sha",
+        "rgb_binding_bundle_sha256",
+        "scientific_rgb_binding_sha256",
+    }
+    for key, value in previous.payload.items():
+        if key not in transaction_fields | rebind_fields:
+            assert replacement.payload[key] == value
+    record = json.loads(rotation.record_path.read_text(encoding="utf-8"))
+    assert record["rotation_mode"] == (
+        authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+    )
+    assert record["changed_rebinding_fields"] == sorted(rebind_fields)
+    assert record["permitted_rebinding_fields"] == sorted(rebind_fields)
+    assert "max_steps" in record["frozen_fields_verified"]
+    assert "scientific_rgb_binding_sha256" not in record["frozen_fields_verified"]
+
+    verified = authorization.validate_stage1_execution_permit(
+        permit_path=replacement.path,
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        authority=_authority()[0],
+        authority_sha256=_authority()[1],
+        view="T6",
+        trial_id=authorization.canonical_trial_id("T6", seed=20260805),
+        data_bindings_path=_data_bindings(tmp_path, repaired_scientific["T6"]),
+        binding_bundle_path=repaired_bundle,
+        seed=20260805,
+        confirmation_authority_path=RETENTION_AUTHORITY,
+    )
+    assert verified.permit_id == replacement.permit_id
+
+
+def test_superseded_permit_cannot_be_consumed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, permits, _scientific = _permits(tmp_path, monkeypatch)
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+    rotation = authorization.rotate_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=bundle,
+        views=("T8",),
+        reason="code-only executor repair",
+    )["T8"]
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="active authorization path",
+    ):
+        authorization.consume_stage1_execution_permit(
+            rotation.previous,
+            allow_consumed_resume=False,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("status", "CONSUMED", "not an active permit"),
+        ("expires_at_utc", "2000-01-01T00:00:00+00:00", "expired"),
+        ("seed", 20260806, "frozen field mismatch=seed"),
+        ("view", "T16", "frozen field mismatch=view"),
+        ("trial_id", "wrong-trial", "frozen field mismatch=trial_id"),
+        ("max_steps", 1, "frozen field mismatch=max_steps"),
+        (
+            "hardware",
+            {"gpu_count": 2, "gpu_name": "NVIDIA L4"},
+            "frozen field mismatch=hardware",
+        ),
+        ("event_weight_sha256", "0" * 64, "frozen field mismatch=event_weight"),
+        ("output_relative_path", "wrong", "frozen field mismatch=output"),
+        ("outer_access_allowed", True, "frozen field mismatch=outer"),
+        ("authority_sha256", "0" * 64, "frozen field mismatch=authority"),
+        (
+            "confirmation_authority_sha256",
+            "0" * 64,
+            "frozen field mismatch=confirmation_authority",
+        ),
+    ],
+)
+def test_confirmation_provenance_repair_rejects_predecessor_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+    match: str,
+) -> None:
+    outputs, predecessor_bundle, permits, _scientific = _confirmation_permits(
+        tmp_path,
+        monkeypatch,
+    )
+    repaired_bundle, _repaired = _repaired_confirmation_bundle(tmp_path)
+    payload = json.loads(permits["T6"].path.read_text(encoding="utf-8"))
+    payload[field] = value
+    permits["T6"].path.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(authorization.Stage1ExecutionAuthorizationError, match=match):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="repair registered confirmation provenance binding",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+            predecessor_binding_bundle_path=predecessor_bundle,
+        )
+
+
+def test_confirmation_provenance_repair_is_explicit_and_bundle_bound(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, predecessor_bundle, _permits_by_view, _scientific = (
+        _confirmation_permits(tmp_path, monkeypatch)
+    )
+    repaired_bundle, _repaired = _repaired_confirmation_bundle(tmp_path)
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="binding bundle hash changed",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="implicit repair is prohibited",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+        )
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="requires the predecessor binding bundle",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="missing predecessor proof",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+        )
+
+    predecessor_payload = json.loads(
+        predecessor_bundle.read_text(encoding="utf-8")
+    )
+    predecessor_payload["unregistered_change"] = True
+    predecessor_bundle.write_text(
+        json.dumps(predecessor_payload),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="binding bundle hash changed",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="tampered predecessor bundle",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+            predecessor_binding_bundle_path=predecessor_bundle,
+        )
+
+
+def test_confirmation_provenance_repair_rejects_incompatible_materialization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, predecessor_bundle, _permits_by_view, _scientific = (
+        _confirmation_permits(tmp_path, monkeypatch)
+    )
+    repaired_bundle, _repaired = _repaired_confirmation_bundle(tmp_path)
+    payload = json.loads(repaired_bundle.read_text(encoding="utf-8"))
+    payload["materialization"]["execution_phase"] = "INITIAL_STAGE1_SCREEN"
+    repaired_bundle.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="materialization is incompatible",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="incompatible materialization",
+            seed=20260805,
+            confirmation_authority_path=RETENTION_AUTHORITY,
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+            predecessor_binding_bundle_path=predecessor_bundle,
+        )
+
+
+def test_confirmation_provenance_repair_rejects_initial_seed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, predecessor_bundle, _permits_by_view, _scientific = _permits(
+        tmp_path,
+        monkeypatch,
+    )
+    repaired_bundle, _repaired = _binding_bundle(
+        tmp_path,
+        filename="initial_seed_repair_bundle.json",
+        scientific_prefix="repaired",
+        materialization={
+            "execution_phase": "STAGE1_CONFIRMATION",
+            "seed": authorization.SEED,
+            "confirmation_authority_sha256": None,
+        },
+    )
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="requires the registered confirmation scope",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=repaired_bundle,
+            views=("T6",),
+            reason="initial seed is not confirmation repair",
+            rotation_mode=(
+                authorization.ROTATION_MODE_CONFIRMATION_PROVENANCE_REPAIR
+            ),
+            predecessor_binding_bundle_path=predecessor_bundle,
         )
 
 
