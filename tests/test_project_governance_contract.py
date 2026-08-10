@@ -590,7 +590,8 @@ def test_short_daily_budget_excludes_bounded_managed_capsules(
     current = _write_empty_managed_short(tmp_path)
     manager = _load_module("managed_budget_fixture", TASK_MANAGER)
     ledger = manager.ShortMemoryLedger(tmp_path)
-    for index in range(1, 11):
+    validator = _load_module("managed_budget_validator", GOVERNANCE_VALIDATOR)
+    for index in range(1, 81):
         ledger.create(
             task_id=f"LOAD-20260803-{index:02d}",
             title=f"concurrent task {index}",
@@ -610,12 +611,45 @@ def test_short_daily_budget_excludes_bounded_managed_capsules(
             worktree=tmp_path,
             now=current,
         )
+        checklist = validator._markdown_section(
+            ledger._read(),
+            "Active Task Checklist",
+        )
+        assert checklist is not None
+        if len(checklist.splitlines()) > 1200:
+            break
+    else:
+        raise AssertionError("fixture did not exceed the aggregate checklist budget")
 
-    validator = _load_module("managed_budget_validator", GOVERNANCE_VALIDATOR)
     errors = validator._check_short_checklist(tmp_path)
 
+    assert len(checklist.splitlines()) > 1200
+    assert all(
+        len(span["block"].splitlines()) <= 120
+        for span in manager.task_spans(ledger._read())
+    )
     assert "short_exceeds_250_line_budget" not in errors
+    assert "short_checklist_exceeds_1200_line_budget" not in errors
     assert errors == []
+
+
+def test_short_checklist_aggregate_budget_retains_unmanaged_surface(
+    tmp_path: Path,
+) -> None:
+    _write_empty_managed_short(tmp_path)
+    path = tmp_path / ".agents" / "memory" / "01_PROJECT_MEMORY_SHORT.md"
+    filler = "\n".join(f"- Unmanaged daily note: {index}." for index in range(1201))
+    text = path.read_text(encoding="utf-8")
+    path.write_text(
+        text.replace("- None.\n", f"- None.\n{filler}\n", 1),
+        encoding="utf-8",
+    )
+
+    validator = _load_module("unmanaged_budget_validator", GOVERNANCE_VALIDATOR)
+
+    assert "short_checklist_exceeds_1200_line_budget" in validator._check_short_checklist(
+        tmp_path
+    )
 
 
 def test_method_transition_cannot_skip_gate() -> None:

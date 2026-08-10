@@ -351,7 +351,15 @@ def _check_short_checklist(root: Path) -> list[str]:
     daily_surface = text.replace(checklist, "", 1)
     if len(daily_surface.splitlines()) > 250:
         errors.append("short_exceeds_250_line_budget")
-    if len(checklist.splitlines()) > 1200:
+    managed_spans = [
+        span
+        for span in TASK_MANAGER.task_spans(text)
+        if f"- Concurrency: `{TASK_MANAGER.CONCURRENCY_SCHEMA}`." in span["block"]
+    ]
+    unmanaged_checklist = checklist
+    for span in managed_spans:
+        unmanaged_checklist = unmanaged_checklist.replace(span["block"], "", 1)
+    if len(unmanaged_checklist.splitlines()) > 1200:
         errors.append("short_checklist_exceeds_1200_line_budget")
 
     legacy_match = re.search(
@@ -371,9 +379,7 @@ def _check_short_checklist(root: Path) -> list[str]:
             errors.append("short_legacy_task_allowlist_invalid")
 
     task_matches = list(TASK_HEADING_RE.finditer(checklist))
-    managed_task_blocks = {
-        span["task_id"]: span["block"] for span in TASK_MANAGER.task_spans(text)
-    }
+    managed_task_blocks = {span["task_id"]: span["block"] for span in managed_spans}
     if not task_matches and "- None." not in checklist:
         errors.append("short_checklist_missing_task_or_none")
     task_ids: list[str] = []
