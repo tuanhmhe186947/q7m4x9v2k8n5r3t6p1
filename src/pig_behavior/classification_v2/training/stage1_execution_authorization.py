@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -19,6 +19,7 @@ from typing import Any
 from uuid import uuid4
 
 PERMIT_SCHEMA = "classification_v2.s1_stage1_execution_permit.v1"
+SUPERSESSION_SCHEMA = "classification_v2.s1_stage1_execution_permit_supersession.v1"
 BINDING_BUNDLE_SCHEMA = "classification_v2.s1_stage1_rgb_binding_bundle.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.s1_stage1_temporal_data_bindings.v1"
 RUN_KIND = "S1_STAGE1_TEMPORAL_SCREENING"
@@ -73,6 +74,16 @@ class Stage1ExecutionPermit:
             ),
             "status": self.status,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class Stage1ExecutionPermitRotation:
+    """Immutable lineage for one code-stale permit replacement."""
+
+    previous: Stage1ExecutionPermit
+    replacement: Stage1ExecutionPermit
+    superseded_path: Path
+    record_path: Path
 
 
 def canonical_trial_id(view: str) -> str:
@@ -136,6 +147,157 @@ def create_stage1_execution_permits(
             sha256=_sha256_file(path),
         )
     return permits
+
+
+def rotate_stage1_execution_permits(
+    *,
+    repository_root: Path,
+    outputs_root: Path,
+    authority_path: Path,
+    binding_bundle_path: Path,
+    views: Sequence[str],
+    reason: str,
+    ttl_hours: int = DEFAULT_TTL_HOURS,
+) -> dict[str, Stage1ExecutionPermitRotation]:
+    """Replace selected unconsumed permits after a code-only repair.
+
+    Normal issuance intentionally creates all four permits together.  Rotation
+    is the only path that can issue a selected subset, and it preserves each
+    stale predecessor byte-for-byte under a superseded lineage filename.
+    """
+
+    if ttl_hours <= 0 or ttl_hours > DEFAULT_TTL_HOURS:
+        raise Stage1ExecutionAuthorizationError("permit TTL must be in 1..24 hours")
+    selected_views = _canonical_rotation_views(views)
+    supersession_reason = _validate_supersession_reason(reason)
+    root = Path(repository_root).resolve()
+    _assert_clean_canonical_repository(root)
+    authority_path = Path(authority_path).resolve()
+    authority = _read_json(authority_path)
+    authority_sha256 = _sha256_file(authority_path)
+    _validate_frozen_authority(authority)
+    bundle_path = Path(binding_bundle_path).resolve()
+    bundle = _read_json(bundle_path)
+    _validate_binding_bundle(bundle, authority_sha256)
+    binding_bundle_sha256 = _sha256_file(bundle_path)
+    code_sha = _git_sha(root)
+    created_at = datetime.now(UTC)
+    expires_at = created_at + timedelta(hours=ttl_hours)
+    directory = permit_directory(outputs_root)
+    if not directory.is_dir():
+        raise Stage1ExecutionAuthorizationError("Stage-1 permit lineage root is missing")
+
+    pending: list[
+        tuple[
+            str,
+            Stage1ExecutionPermit,
+            dict[str, object],
+            Path,
+            Path,
+            dict[str, object],
+        ]
+    ] = []
+    for view in selected_views:
+        trial_id = canonical_trial_id(view)
+        path = directory / f"{trial_id}.authorization.json"
+        if not path.is_file():
+            raise Stage1ExecutionAuthorizationError(
+                f"active Stage-1 permit is missing={path}"
+            )
+        previous_payload = _read_json(path)
+        previous = Stage1ExecutionPermit(
+            path=path,
+            payload=previous_payload,
+            sha256=_sha256_file(path),
+        )
+        bundle_view = bundle["views"].get(view)
+        if not isinstance(bundle_view, Mapping):
+            raise Stage1ExecutionAuthorizationError(
+                "Stage-1 binding bundle view is invalid"
+            )
+        replacement_payload = _permit_payload(
+            authority=authority,
+            authority_sha256=authority_sha256,
+            binding_bundle_sha256=binding_bundle_sha256,
+            bundle_view=bundle_view,
+            code_sha=code_sha,
+            view=view,
+            trial_id=trial_id,
+            created_at=created_at,
+            expires_at=expires_at,
+        )
+        expected = _expected_permit_fields(
+            repository_root=root,
+            outputs_root=Path(outputs_root).resolve(),
+            authority=authority,
+            authority_sha256=authority_sha256,
+            view=view,
+            trial_id=trial_id,
+            scientific_rgb_binding_sha256=str(
+                bundle_view["scientific_binding_sha256"]
+            ),
+        )
+        _validate_rotation_predecessor(
+            previous_payload,
+            expected=expected,
+            binding_bundle_sha256=binding_bundle_sha256,
+            current_code_sha=code_sha,
+            expected_field_names=frozenset(replacement_payload),
+        )
+        superseded_path = directory / f"superseded-{previous.permit_id}.json"
+        record_path = directory / f"supersession-{previous.permit_id}.json"
+        if superseded_path.exists() or record_path.exists():
+            raise Stage1ExecutionAuthorizationError(
+                f"Stage-1 permit supersession lineage already exists={previous.permit_id}"
+            )
+        pending.append(
+            (
+                view,
+                previous,
+                replacement_payload,
+                superseded_path,
+                record_path,
+                expected,
+            )
+        )
+
+    rotations: dict[str, Stage1ExecutionPermitRotation] = {}
+    for view, previous, replacement_payload, superseded_path, record_path, expected in pending:
+        if _sha256_file(previous.path) != previous.sha256:
+            raise Stage1ExecutionAuthorizationError(
+                "Stage-1 permit changed before supersession"
+            )
+        try:
+            previous.path.replace(superseded_path)
+        except FileNotFoundError as error:
+            raise Stage1ExecutionAuthorizationError(
+                "Stage-1 permit disappeared before supersession"
+            ) from error
+        superseded = Stage1ExecutionPermit(
+            path=superseded_path,
+            payload=previous.payload,
+            sha256=_sha256_file(superseded_path),
+        )
+        _write_new_json(previous.path, replacement_payload)
+        replacement = Stage1ExecutionPermit(
+            path=previous.path,
+            payload=replacement_payload,
+            sha256=_sha256_file(previous.path),
+        )
+        record = _supersession_record(
+            previous=superseded,
+            replacement=replacement,
+            reason=supersession_reason,
+            expected=expected,
+        )
+        _write_new_json(record_path, record)
+        rotations[view] = Stage1ExecutionPermitRotation(
+            previous=superseded,
+            replacement=replacement,
+            superseded_path=superseded_path,
+            record_path=record_path,
+        )
+    return rotations
 
 
 def validate_stage1_execution_permit(
@@ -416,6 +578,134 @@ def _assert_not_expired(payload: Mapping[str, Any]) -> None:
         raise Stage1ExecutionAuthorizationError("Stage-1 permit is expired")
 
 
+def _canonical_rotation_views(views: Sequence[str]) -> tuple[str, ...]:
+    """Return a nonempty registered subset in canonical view order."""
+
+    selected = tuple(views)
+    if not selected:
+        raise Stage1ExecutionAuthorizationError("at least one Stage-1 view is required")
+    if any(not isinstance(view, str) for view in selected):
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation views must be strings")
+    if len(set(selected)) != len(selected):
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation views must be unique")
+    for view in selected:
+        _validate_view(view)
+    return tuple(view for view in VIEWS if view in selected)
+
+
+def _validate_supersession_reason(reason: str) -> str:
+    """Reject empty or unbounded free-text lineage reasons."""
+
+    if not isinstance(reason, str):
+        raise Stage1ExecutionAuthorizationError("Stage-1 supersession reason must be text")
+    normalized = reason.strip()
+    if not normalized or len(normalized) > 500:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 supersession reason must contain 1..500 characters"
+        )
+    return normalized
+
+
+def _validate_rotation_predecessor(
+    payload: Mapping[str, Any],
+    *,
+    expected: Mapping[str, object],
+    binding_bundle_sha256: str,
+    current_code_sha: str,
+    expected_field_names: frozenset[str],
+) -> None:
+    """Prove a selected predecessor differs only by its stale code SHA."""
+
+    if set(payload) != expected_field_names:
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation predecessor is malformed")
+    if payload.get("status") != "AUTHORIZED":
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 rotation predecessor is not an active permit"
+        )
+    permit_id = str(payload.get("permit_id", ""))
+    if len(permit_id) != 32 or any(char not in "0123456789abcdef" for char in permit_id):
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation permit ID is malformed")
+    previous_code_sha = str(payload.get("code_sha", ""))
+    if len(previous_code_sha) != 40 or any(
+        char not in "0123456789abcdef" for char in previous_code_sha
+    ):
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation code SHA is malformed")
+    if previous_code_sha == current_code_sha:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 rotation predecessor already binds current code"
+        )
+    created_at = _parse_permit_timestamp(payload, "created_at_utc")
+    expires_at = _parse_permit_timestamp(payload, "expires_at_utc")
+    _assert_not_expired(payload)
+    if expires_at <= created_at:
+        raise Stage1ExecutionAuthorizationError("Stage-1 rotation permit lifetime is invalid")
+    if payload.get("rgb_binding_bundle_sha256") != binding_bundle_sha256:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 rotation binding bundle hash changed"
+        )
+    for key, value in expected.items():
+        if key != "code_sha" and payload.get(key) != value:
+            raise Stage1ExecutionAuthorizationError(
+                f"Stage-1 rotation frozen field mismatch={key}"
+            )
+
+
+def _parse_permit_timestamp(payload: Mapping[str, Any], key: str) -> datetime:
+    """Read one timezone-aware permit timestamp, or fail closed."""
+
+    try:
+        value = datetime.fromisoformat(str(payload[key]))
+    except (KeyError, TypeError, ValueError) as error:
+        raise Stage1ExecutionAuthorizationError(
+            f"Stage-1 rotation timestamp is invalid={key}"
+        ) from error
+    if value.tzinfo is None:
+        raise Stage1ExecutionAuthorizationError(
+            f"Stage-1 rotation timestamp lacks timezone={key}"
+        )
+    return value
+
+
+def _supersession_record(
+    *,
+    previous: Stage1ExecutionPermit,
+    replacement: Stage1ExecutionPermit,
+    reason: str,
+    expected: Mapping[str, object],
+) -> dict[str, object]:
+    """Record immutable predecessor/replacement lineage outside permit bytes."""
+
+    previous_code_sha = str(previous.payload["code_sha"])
+    replacement_code_sha = str(replacement.payload["code_sha"])
+    if previous_code_sha == replacement_code_sha:
+        raise Stage1ExecutionAuthorizationError(
+            "Stage-1 supersession requires a changed code SHA"
+        )
+    return {
+        "schema_version": SUPERSESSION_SCHEMA,
+        "status": "SUPERSEDED",
+        "reason": reason,
+        "superseded_at_utc": replacement.payload["created_at_utc"],
+        "view": replacement.payload["view"],
+        "trial_id": replacement.payload["trial_id"],
+        "previous_permit_id": previous.permit_id,
+        "previous_permit_sha256": previous.sha256,
+        "previous_code_sha": previous_code_sha,
+        "superseded_permit_filename": previous.path.name,
+        "replacement_permit_id": replacement.permit_id,
+        "replacement_permit_sha256": replacement.sha256,
+        "replacement_code_sha": replacement_code_sha,
+        "replacement_permit_filename": replacement.path.name,
+        "code_sha_changed": True,
+        "frozen_fields_verified": sorted(
+            [
+                *[key for key in expected if key != "code_sha"],
+                "rgb_binding_bundle_sha256",
+            ]
+        ),
+    }
+
+
 def _assert_clean_canonical_repository(root: Path) -> None:
     if _git_status(root):
         raise Stage1ExecutionAuthorizationError("permit issuer requires a clean repository")
@@ -479,11 +769,14 @@ def _write_json_atomic(path: Path, payload: Mapping[str, object]) -> None:
 __all__ = [
     "DEFAULT_TTL_HOURS",
     "PERMIT_SCHEMA",
+    "SUPERSESSION_SCHEMA",
     "Stage1ExecutionAuthorizationError",
     "Stage1ExecutionPermit",
+    "Stage1ExecutionPermitRotation",
     "canonical_trial_id",
     "consume_stage1_execution_permit",
     "create_stage1_execution_permits",
     "permit_directory",
+    "rotate_stage1_execution_permits",
     "validate_stage1_execution_permit",
 ]

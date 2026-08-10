@@ -134,6 +134,148 @@ def test_creator_issues_four_exact_per_arm_permits(
         assert permit.payload["outer_access_allowed"] is False
 
 
+def test_code_stale_permit_rotation_preserves_bytes_and_selects_one_view(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, permits, scientific = _permits(tmp_path, monkeypatch)
+    previous = permits["T8"]
+    previous_bytes = previous.path.read_bytes()
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    rotations = authorization.rotate_stage1_execution_permits(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        binding_bundle_path=bundle,
+        views=("T8",),
+        reason="code-only executor repair",
+    )
+
+    assert set(rotations) == {"T8"}
+    rotation = rotations["T8"]
+    assert previous.path.read_bytes() != previous_bytes
+    assert rotation.superseded_path.read_bytes() == previous_bytes
+    assert rotation.previous.sha256 == sha256(previous_bytes).hexdigest()
+    replacement = rotation.replacement
+    assert replacement.path == previous.path
+    assert replacement.payload["code_sha"] == "b" * 40
+    assert replacement.payload["view"] == "T8"
+    assert permits["T6"].path.is_file()
+    assert permits["T12"].path.is_file()
+    assert permits["T16"].path.is_file()
+    record = json.loads(rotation.record_path.read_text(encoding="utf-8"))
+    assert record["previous_permit_sha256"] == rotation.previous.sha256
+    assert record["replacement_permit_sha256"] == replacement.sha256
+    assert record["reason"] == "code-only executor repair"
+    assert record["code_sha_changed"] is True
+    assert "max_steps" in record["frozen_fields_verified"]
+
+    data_bindings = _data_bindings(tmp_path, scientific["T8"])
+    verified = authorization.validate_stage1_execution_permit(
+        permit_path=replacement.path,
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        authority=_authority()[0],
+        authority_sha256=_authority()[1],
+        view="T8",
+        trial_id=authorization.canonical_trial_id("T8"),
+        data_bindings_path=data_bindings,
+        binding_bundle_path=bundle,
+    )
+    assert verified.permit_id == replacement.permit_id
+    with pytest.raises(authorization.Stage1ExecutionAuthorizationError, match="path"):
+        authorization.validate_stage1_execution_permit(
+            permit_path=rotation.superseded_path,
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            authority=_authority()[0],
+            authority_sha256=_authority()[1],
+            view="T8",
+            trial_id=authorization.canonical_trial_id("T8"),
+            data_bindings_path=data_bindings,
+            binding_bundle_path=bundle,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("status", "CONSUMED", "not an active permit"),
+        ("expires_at_utc", "2000-01-01T00:00:00+00:00", "expired"),
+        ("permit_id", "not-a-valid-permit", "permit ID is malformed"),
+    ],
+)
+def test_rotation_rejects_ineligible_predecessors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: str,
+    match: str,
+) -> None:
+    outputs, bundle, permits, _scientific = _permits(tmp_path, monkeypatch)
+    payload = json.loads(permits["T8"].path.read_text(encoding="utf-8"))
+    payload[field] = value
+    permits["T8"].path.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(authorization.Stage1ExecutionAuthorizationError, match=match):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            views=("T8",),
+            reason="code-only executor repair",
+        )
+
+
+def test_rotation_rejects_non_code_frozen_field_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, permits, _scientific = _permits(tmp_path, monkeypatch)
+    payload = json.loads(permits["T8"].path.read_text(encoding="utf-8"))
+    payload["max_steps"] = 1
+    permits["T8"].path.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(authorization, "_git_sha", lambda _root: "b" * 40)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="frozen field mismatch=max_steps",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            views=("T8",),
+            reason="code-only executor repair",
+        )
+
+
+def test_rotation_rejects_a_permit_already_bound_to_current_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    outputs, bundle, _permits_by_view, _scientific = _permits(tmp_path, monkeypatch)
+
+    with pytest.raises(
+        authorization.Stage1ExecutionAuthorizationError,
+        match="already binds current code",
+    ):
+        authorization.rotate_stage1_execution_permits(
+            repository_root=ROOT,
+            outputs_root=outputs,
+            authority_path=AUTHORITY,
+            binding_bundle_path=bundle,
+            views=("T8",),
+            reason="code-only executor repair",
+        )
+
+
 def test_creator_refuses_a_dirty_permit_issuer(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
