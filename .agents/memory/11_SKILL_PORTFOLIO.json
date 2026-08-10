@@ -40,7 +40,7 @@
       "category": "governance",
       "source_root": "project",
       "relative_path": ".agents/skills/project-state-steward/SKILL.md",
-      "version_or_commit": "local-v5",
+      "version_or_commit": "local-v6",
       "file_sha256":
         "771a4aabacd424cb1675f618b53228a514a9a9795ee6a7ba3f51fa55df8c4f69",
       "bundle_paths": [
@@ -53,7 +53,7 @@
         "templates/memory_maturity_candidate.json"
       ],
       "bundle_sha256":
-        "4d262e6405244e6ab1d69892f0a6c8c1a1c45feecc599566d38fa6ea491a0005",
+        "992a5d2d1078cfee77d93372a5d57ae120286858d81b571f1dc75e25fd329806",
       "git_identity": {
         "schema_version": "pig.git-tracked-identity.v1",
         "relative_path": ".agents/skills/project-state-steward/SKILL.md",
@@ -64,17 +64,17 @@
           "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
           "scripts/manage_short_memory.py": "ea2f7cf727fe664eba9c0c8bb04b10c78bb1e823",
-          "scripts/validate_governance_contracts.py": "9d534314b88b7cc49f3d2caa0b47d06e7b83e125",
+          "scripts/validate_governance_contracts.py": "d9ee3d646f85618a5bf8b7888a27621496428632",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
         }
       },
       "tool_api_dependencies": ["filesystem", "git", "python", "pytest"],
       "selected_date": "2026-07-31",
-      "last_reviewed": "2026-08-04",
-      "last_real_use": "2026-08-04",
-      "proof_task": "same-thread crash recovery and audited administrative takeover",
-      "stale_signal": "runtime_identity_CAS_audit_or_takeover_regression",
+      "last_reviewed": "2026-08-10",
+      "last_real_use": "2026-08-10",
+      "proof_task": "managed-capsule aggregate budget regression and governance audit",
+      "stale_signal": "validator_budget_or_identity_regression",
       "next_maintenance_action":
         "forward-test admin takeover only after exact user authorization"
     },
