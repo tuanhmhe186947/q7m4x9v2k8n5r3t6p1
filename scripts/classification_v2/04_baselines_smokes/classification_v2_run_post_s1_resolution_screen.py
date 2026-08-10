@@ -20,7 +20,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run one post-S1 T6 pure-spatial-resolution arm.")
     parser.add_argument("--authority", required=True, type=Path)
     parser.add_argument("--base-stage1-authority", required=True, type=Path)
-    parser.add_argument("--data-bindings", required=True, type=Path)
+    parser.add_argument("--host-binding-path", required=True, type=Path)
+    parser.add_argument("--canonical-code-sha", required=True)
+    parser.add_argument("--rgb-source-root", required=True, type=Path)
     parser.add_argument("--runtime-input-authority", required=True, type=Path)
     parser.add_argument("--runtime-input-binding", required=True, type=Path)
     parser.add_argument("--media-root", required=True, type=Path)
@@ -43,7 +45,9 @@ def main() -> None:
         repository_root=args.repository_root,
         outputs_root=args.outputs_root,
         base_stage1_authority_path=args.base_stage1_authority,
-        data_bindings_path=args.data_bindings,
+        host_binding_path=args.host_binding_path,
+        canonical_code_sha=args.canonical_code_sha,
+        rgb_source_root=args.rgb_source_root,
         runtime_input_authority_path=args.runtime_input_authority,
         runtime_input_binding_path=args.runtime_input_binding,
         media_root=args.media_root,

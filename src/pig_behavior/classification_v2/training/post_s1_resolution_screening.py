@@ -35,13 +35,13 @@ from pig_behavior.classification_v2.models.balanced.contracts import (
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training import stage1_temporal_screening as stage1
+from pig_behavior.classification_v2.training.post_s1_host_binding import (
+    PostS1HostBindingError,
+    ensure_post_s1_t6_host_binding,
+)
 from pig_behavior.classification_v2.training.remote_input_resolution import (
     RemoteInputResolutionError,
     load_remote_input_authority,
-)
-from pig_behavior.classification_v2.training.stage1_rgb_binding import (
-    Stage1RgbBindingError,
-    resolve_stage1_execution_rgb_binding,
 )
 
 AUTHORITY_SCHEMA = "classification_v2.post_s1_resolution_screen.v1"
@@ -67,7 +67,9 @@ class ResolutionPlan:
     authority_sha256: str
     authority: Mapping[str, Any]
     base_stage1_authority_path: Path
-    data_bindings_path: Path
+    host_binding_path: Path
+    canonical_code_sha: str
+    rgb_source_root: Path
     runtime_input_authority_path: Path
     runtime_input_binding: Mapping[str, Any]
     media_root: Path
@@ -94,7 +96,9 @@ def create_resolution_plan(
     repository_root: Path,
     outputs_root: Path,
     base_stage1_authority_path: Path,
-    data_bindings_path: Path,
+    host_binding_path: Path,
+    canonical_code_sha: str,
+    rgb_source_root: Path,
     runtime_input_authority_path: Path,
     runtime_input_binding_path: Path,
     media_root: Path,
@@ -138,7 +142,9 @@ def create_resolution_plan(
         authority_sha256=_sha256_file(authority_path),
         authority=authority,
         base_stage1_authority_path=Path(base_stage1_authority_path).resolve(),
-        data_bindings_path=Path(data_bindings_path).resolve(),
+        host_binding_path=Path(host_binding_path).resolve(),
+        canonical_code_sha=canonical_code_sha,
+        rgb_source_root=Path(rgb_source_root).resolve(),
         runtime_input_authority_path=resolved_input_authority,
         runtime_input_binding=runtime_input_binding,
         media_root=resolved_media_root,
@@ -172,16 +178,21 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
         ignore_index=True,
     )
     try:
-        rgb = resolve_stage1_execution_rgb_binding(
-            data_bindings_path=plan.data_bindings_path,
+        host_binding = ensure_post_s1_t6_host_binding(
+            binding_path=plan.host_binding_path,
+            canonical_code_sha=plan.canonical_code_sha,
+            input_authority=load_remote_input_authority(plan.runtime_input_authority_path),
+            runtime_input_binding=plan.runtime_input_binding,
+            media_root=plan.media_root,
+            rgb_source_root=plan.rgb_source_root,
+            t6_population_authority_sha256=base.authority_sha256,
+            t6_population_provenance_hashes=rows.data_hashes,
             requested_roles=requested_roles,
-            authority_sha256=base.authority_sha256,
-            provenance_hashes=rows.data_hashes,
-            view=TEMPORAL_VIEW,
-            sequence_length=6,
+            input_resolution=plan.input_resolution,
         )
-    except Stage1RgbBindingError as error:
+    except (PostS1HostBindingError, RemoteInputResolutionError) as error:
         raise PostS1ResolutionError(str(error)) from error
+    rgb = host_binding.rgb
     frames = pd.read_csv(rgb.frame_context_path, low_memory=False)
     windows = pd.read_csv(rgb.window_context_path, low_memory=False)
     selected = pd.concat([rows.train, rows.validation], ignore_index=True).copy()
@@ -241,6 +252,7 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
             **rows.data_hashes,
             **rgb.hashes,
             "resolution_authority": plan.authority_sha256,
+            "post_s1_host_binding": host_binding.binding_sha256,
             "rgb_identity": binding.identity_sha256,
             "runtime_realization": binding.runtime_realization(
                 plan.input_resolution
@@ -494,6 +506,10 @@ def _manifest(
         "authority_sha256": plan.authority_sha256,
         "data_hashes": dict(population.data_hashes),
         "runtime_input": dict(plan.runtime_input_binding),
+        "host_binding": {
+            "path": str(plan.host_binding_path),
+            "canonical_code_sha": plan.canonical_code_sha,
+        },
     }
 
 
