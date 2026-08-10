@@ -114,7 +114,7 @@ def _binding(tmp_path: Path):
 def test_runtime_resolution_changes_only_spatial_realization(tmp_path: Path) -> None:
     binding = _binding(tmp_path)
     fingerprints = []
-    for resolution in (64, 160, 224):
+    for resolution in (64, 128, 160, 224):
         dataset = binding.build_dataset(resolution, image_cache_size=0)
         first = dataset[0]
         repeated = dataset[0]
@@ -129,8 +129,8 @@ def test_runtime_resolution_changes_only_spatial_realization(tmp_path: Path) -> 
         assert len(realization["runtime_realization_sha256"]) == 64
         fingerprints.append(realization)
         dataset.close()
-    assert [item["input_resolution"] for item in fingerprints] == [64, 160, 224]
-    assert len({item["runtime_realization_sha256"] for item in fingerprints}) == 3
+    assert [item["input_resolution"] for item in fingerprints] == [64, 128, 160, 224]
+    assert len({item["runtime_realization_sha256"] for item in fingerprints}) == 4
 
 
 def test_binding_rejects_outer_selection_without_opening_media(tmp_path: Path) -> None:

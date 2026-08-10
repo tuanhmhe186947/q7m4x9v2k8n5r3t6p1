@@ -1,0 +1,45 @@
+{
+  "schema_version": "classification_v2.post_s1_resolution_screen.v1",
+  "status": "USER_APPROVED_PRE_GPU_SCREEN",
+  "temporal_reference": "T6",
+  "arms": [64, 128, 160],
+  "fixed_controls": {
+    "model_realization": "B1_STAGE1_UNCHANGED",
+    "seed": 20260804,
+    "optimizer_steps": 4164,
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "batch_size": 16,
+    "precision": "FP32",
+    "scheduler": "none",
+    "temporal_encoder": "causal_tcn",
+    "loss": "event_weighted_cross_entropy"
+  },
+  "bound_stage1_authorities": {
+    "final_selection": {
+      "relative_path": "s1_stage1_final_selection_authority_20260811.json",
+      "sha256": "953958d8aaa518d07d532551ee33b8edb11d52c81bc8421f93d800171f0673c1"
+    },
+    "temporal_confirmation": {
+      "relative_path": "s1_stage1_temporal_confirmation_evidence_20260810.json",
+      "sha256": "8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338"
+    },
+    "resolution_direction": {
+      "relative_path": "s1_post_stage1_resolution_direction_20260810.json",
+      "sha256": "40a728697c8afea158f4f1fe8d2407cfd8140bd810ae60cd920e75112035e963"
+    }
+  },
+  "outer_access_allowed": false,
+  "forbidden_families": [
+    "backbone",
+    "augmentation",
+    "crop_margin",
+    "geometry",
+    "motion",
+    "roi",
+    "social",
+    "h5",
+    "posture"
+  ]
+}

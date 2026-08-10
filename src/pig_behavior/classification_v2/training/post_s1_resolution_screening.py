@@ -1,0 +1,469 @@
+"""Fail-closed T6-only post-S1 pure-resolution executor.
+
+This module deliberately does not alter the frozen 64x64 Stage-1 executor.
+It reuses its hash-bound inner T6 rows and native evaluator while applying the
+already-audited source crop, aspect-preserving letterbox, and normalization at
+one explicitly declared runtime spatial resolution.
+"""
+
+from __future__ import annotations
+
+import json
+import time
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, Subset
+
+from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
+    image_sequence_collate,
+)
+from pig_behavior.classification_v2.datasets.resolution_pipeline import (
+    ResolutionIndependentRGBBinding,
+    build_inner_resolution_binding_from_dataframes,
+    validate_runtime_resolution,
+)
+from pig_behavior.classification_v2.models.balanced.contracts import (
+    ModelBatch,
+    SequenceSegment,
+)
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+from pig_behavior.classification_v2.training import stage1_temporal_screening as stage1
+from pig_behavior.classification_v2.training.stage1_rgb_binding import (
+    Stage1RgbBindingError,
+    resolve_stage1_execution_rgb_binding,
+)
+
+AUTHORITY_SCHEMA = "classification_v2.post_s1_resolution_screen.v1"
+RUN_KIND = "POST_S1_T6_PURE_RESOLUTION_SCREEN"
+TEMPORAL_VIEW = "T6"
+SEED = 20260804
+MAX_STEPS = 4164
+BATCH_SIZE = 16
+RESOLUTION_ARMS = frozenset({64, 128, 160})
+
+
+class PostS1ResolutionError(ValueError):
+    """Raised before an unsafe post-S1 resolution action creates model state."""
+
+
+@dataclass(frozen=True, slots=True)
+class ResolutionPlan:
+    """One immutable post-S1 pure-resolution arm."""
+
+    repository_root: Path
+    outputs_root: Path
+    authority_path: Path
+    authority_sha256: str
+    authority: Mapping[str, Any]
+    base_stage1_authority_path: Path
+    data_bindings_path: Path
+    media_root: Path
+    output_dir: Path
+    trial_id: str
+    input_resolution: int
+    device_name: str
+
+
+@dataclass(slots=True)
+class ResolutionPopulation:
+    """Inner-only B1 data with an on-the-fly resolution realization."""
+
+    rows: stage1.Stage1Rows
+    binding: ResolutionIndependentRGBBinding
+    data_hashes: Mapping[str, str]
+    load_batch: Any
+    close: Any
+
+
+def create_resolution_plan(
+    authority_path: Path,
+    *,
+    repository_root: Path,
+    outputs_root: Path,
+    base_stage1_authority_path: Path,
+    data_bindings_path: Path,
+    media_root: Path,
+    output_dir: Path,
+    trial_id: str,
+    input_resolution: int,
+    device_name: str,
+) -> ResolutionPlan:
+    """Resolve one registered R64/R128/R160 arm before opening RGB media."""
+
+    if device_name not in {"cpu", "cuda"}:
+        raise PostS1ResolutionError(f"unsupported device={device_name}")
+    if input_resolution not in RESOLUTION_ARMS:
+        raise PostS1ResolutionError(f"unregistered resolution={input_resolution}")
+    validate_runtime_resolution(input_resolution)
+    authority_path = Path(authority_path).resolve()
+    authority = _read_json(authority_path)
+    _validate_authority(authority)
+    expected_trial = f"post_s1_t6_r{input_resolution}_seed{SEED}_steps{MAX_STEPS}"
+    if trial_id != expected_trial:
+        raise PostS1ResolutionError(f"trial_id must equal {expected_trial}")
+    resolved_output = Path(output_dir).resolve()
+    if resolved_output.exists():
+        raise PostS1ResolutionError(f"output already exists={resolved_output}")
+    if "outer" in str(resolved_output).lower():
+        raise PostS1ResolutionError("outer token in output path")
+    return ResolutionPlan(
+        repository_root=Path(repository_root).resolve(),
+        outputs_root=Path(outputs_root).resolve(),
+        authority_path=authority_path,
+        authority_sha256=_sha256_file(authority_path),
+        authority=authority,
+        base_stage1_authority_path=Path(base_stage1_authority_path).resolve(),
+        data_bindings_path=Path(data_bindings_path).resolve(),
+        media_root=Path(media_root).resolve(),
+        output_dir=resolved_output,
+        trial_id=trial_id,
+        input_resolution=input_resolution,
+        device_name=device_name,
+    )
+
+
+def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
+    """Bind the frozen T6 inner rows to the high-fidelity source realization."""
+
+    base = stage1.create_stage1_plan(
+        plan.base_stage1_authority_path,
+        view=TEMPORAL_VIEW,
+        seed=SEED,
+        repository_root=plan.repository_root,
+        outputs_root=plan.outputs_root,
+        trial_id="s1_stage1_t6_seed20260804_steps4164",
+        device_name="cpu",
+        allow_existing_output=True,
+    )
+    hashes = stage1.preflight_stage1(base)
+    rows = stage1.load_stage1_inner_rows(base, hashes)
+    requested_roles = pd.concat(
+        [
+            rows.train[["window_id", "primary_s1_role"]],
+            rows.validation[["window_id", "primary_s1_role"]],
+        ],
+        ignore_index=True,
+    )
+    try:
+        rgb = resolve_stage1_execution_rgb_binding(
+            data_bindings_path=plan.data_bindings_path,
+            requested_roles=requested_roles,
+            authority_sha256=base.authority_sha256,
+            provenance_hashes=rows.data_hashes,
+            view=TEMPORAL_VIEW,
+            sequence_length=6,
+        )
+    except Stage1RgbBindingError as error:
+        raise PostS1ResolutionError(str(error)) from error
+    frames = pd.read_csv(rgb.frame_context_path, low_memory=False)
+    windows = pd.read_csv(rgb.window_context_path, low_memory=False)
+    selected = pd.concat([rows.train, rows.validation], ignore_index=True).copy()
+    index_by_window = {
+        str(window_id): index
+        for index, window_id in enumerate(windows["window_id"])
+    }
+    selected["window_row_index"] = selected["window_id"].astype(str).map(index_by_window)
+    if selected["window_row_index"].isna().any():
+        raise PostS1ResolutionError("frozen T6 row is absent from RGB binding")
+    selected["window_row_index"] = selected["window_row_index"].astype(int)
+    selected["window_valid_for_main_train"] = True
+    selected["primary_s1_eligible"] = True
+    binding = build_inner_resolution_binding_from_dataframes(
+        frames=frames,
+        windows=windows,
+        selection=selected,
+        media_root=plan.media_root,
+        expected_window_count=len(selected),
+        expected_observation_count=201792,
+    )
+    dataset = binding.build_dataset(plan.input_resolution, image_cache_size=8192)
+    lookup = {str(window_id): index for index, window_id in enumerate(dataset.windows["window_id"])}
+
+    def load_batch(selected_rows: pd.DataFrame, device: torch.device) -> ModelBatch:
+        subset = Subset(
+            dataset,
+            [lookup[str(value)] for value in selected_rows["window_id"]],
+        )
+        payload = next(
+            iter(
+                DataLoader(
+                    subset,
+                    batch_size=len(selected_rows),
+                    shuffle=False,
+                    collate_fn=image_sequence_collate,
+                )
+            )
+        )
+        errors = [error for group in payload["errors"] for error in group]
+        if errors:
+            raise PostS1ResolutionError(f"source RGB payload failures={errors[:5]}")
+        if payload["window_id"] != selected_rows["window_id"].astype(str).tolist():
+            raise PostS1ResolutionError("source RGB payload order drifted")
+        return _make_batch(
+            payload["image"].to(device),
+            payload["observed_mask"].to(device),
+            selected_rows,
+            device,
+            plan.input_resolution,
+        )
+
+    return ResolutionPopulation(
+        rows=rows,
+        binding=binding,
+        data_hashes={
+            **rows.data_hashes,
+            **rgb.hashes,
+            "resolution_authority": plan.authority_sha256,
+            "rgb_identity": binding.identity_sha256,
+            "runtime_realization": binding.runtime_realization(
+                plan.input_resolution
+            )["runtime_realization_sha256"],
+        },
+        load_batch=load_batch,
+        close=dataset.close,
+    )
+
+
+def run_resolution_arm(
+    plan: ResolutionPlan,
+    population: ResolutionPopulation,
+    *,
+    steps: int = MAX_STEPS,
+) -> dict[str, Any]:
+    """Run one short gate or one exact 4,164-step L4 arm without resuming."""
+
+    if steps <= 0 or steps > MAX_STEPS:
+        raise PostS1ResolutionError("steps must be in 1..4164")
+    if steps == MAX_STEPS:
+        _assert_l4(plan)
+    elif plan.device_name != "cpu":
+        raise PostS1ResolutionError("representative short gate is CPU-only")
+    plan.output_dir.mkdir(parents=True, exist_ok=False)
+    for folder in ("manifest", "checkpoints", "predictions", "metrics", "runtime"):
+        (plan.output_dir / folder).mkdir(exist_ok=False)
+    device = torch.device(plan.device_name)
+    if plan.device_name == "cuda":
+        torch.cuda.reset_peak_memory_stats(0)
+    stage1._set_seed(SEED)
+    model = stage1._build_b1_model(TEMPORAL_VIEW).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.0)
+    losses: list[float] = []
+    started = time.perf_counter()
+    try:
+        for step in range(1, steps + 1):
+            selected = stage1._rows_for_step(
+                population.rows.train,
+                step=step,
+                batch_size=BATCH_SIZE,
+                seed=SEED,
+            )
+            batch = population.load_batch(selected, device)
+            optimizer.zero_grad(set_to_none=True)
+            logits = model(batch)["logits"]
+            weights = torch.tensor(
+                selected["event_sample_weight"].to_numpy(np.float32),
+                device=device,
+            )
+            loss = (
+                nn.functional.cross_entropy(logits, batch.labels, reduction="none")
+                * weights
+            ).sum() / weights.sum()
+            if not bool(torch.isfinite(loss)):
+                raise PostS1ResolutionError("non-finite training loss")
+            loss.backward()
+            optimizer.step()
+            losses.append(float(loss.detach().cpu()))
+        checkpoint = plan.output_dir / "checkpoints" / f"step_{steps:06d}.pt"
+        torch.save(
+            {
+                "trial_id": plan.trial_id,
+                "steps": steps,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+            },
+            checkpoint,
+        )
+        result: dict[str, Any] = {
+            "status": "PASS",
+            "run_kind": RUN_KIND,
+            "trial_id": plan.trial_id,
+            "input_resolution": plan.input_resolution,
+            "completed_steps": steps,
+            "losses": losses,
+            "claim_grade_result": False,
+            "outer_examples_accessed": False,
+        }
+        if steps == MAX_STEPS:
+            stage_population = stage1.Stage1Population(
+                train=population.rows.train,
+                validation=population.rows.validation,
+                expected_native_units=population.rows.expected_native_units,
+                common_cohort_native_units=population.rows.common_cohort_native_units,
+                load_batch=population.load_batch,
+                close=population.close,
+                data_hashes=population.data_hashes,
+            )
+            result["endpoint"] = stage1._evaluate_endpoint(
+                plan,
+                stage_population,
+                model,
+                device,
+                steps,
+                losses,
+            )
+        elapsed = time.perf_counter() - started
+        result["runtime"] = _runtime(plan, population, elapsed, steps)
+        _write_json(
+            plan.output_dir / "manifest" / "run_manifest.json",
+            _manifest(plan, population, steps),
+        )
+        _write_json(plan.output_dir / "manifest" / "result.json", result)
+        _write_json(plan.output_dir / "runtime" / "runtime.json", result["runtime"])
+        result["artifact_manifest"] = stage1._write_artifact_manifest(plan.output_dir)
+        return result
+    finally:
+        population.close()
+
+
+def _make_batch(
+    images: torch.Tensor,
+    observed: torch.Tensor,
+    rows: pd.DataFrame,
+    device: torch.device,
+    resolution: int,
+) -> ModelBatch:
+    if tuple(images.shape[1:]) != (6, 3, resolution, resolution):
+        raise PostS1ResolutionError(f"RGB tensor shape drifted={tuple(images.shape)}")
+    labels = torch.tensor(
+        [VALID_BEHAVIORS.index(str(value)) for value in rows["behavior_window_label"]],
+        dtype=torch.long,
+        device=device,
+    )
+    return ModelBatch(
+        target=SequenceSegment(
+            valid_mask=observed,
+            frame_offsets=torch.arange(-5, 1, device=device).repeat(len(rows), 1),
+            images=images,
+        ),
+        labels=labels,
+        native_unit_id=rows["temporal_unit_keys_json"].astype(str).tolist(),
+        window_id=rows["window_id"].astype(str).tolist(),
+    )
+
+
+def _validate_authority(authority: Mapping[str, Any]) -> None:
+    required = {
+        "schema_version",
+        "status",
+        "temporal_reference",
+        "arms",
+        "fixed_controls",
+        "bound_stage1_authorities",
+        "outer_access_allowed",
+        "forbidden_families",
+    }
+    if set(authority) != required or authority.get("schema_version") != AUTHORITY_SCHEMA:
+        raise PostS1ResolutionError("unsupported post-S1 resolution authority")
+    if (
+        authority.get("status") != "USER_APPROVED_PRE_GPU_SCREEN"
+        or authority.get("temporal_reference") != TEMPORAL_VIEW
+    ):
+        raise PostS1ResolutionError("post-S1 temporal reference drifted")
+    if (
+        authority.get("arms") != [64, 128, 160]
+        or authority.get("outer_access_allowed") is not False
+    ):
+        raise PostS1ResolutionError("post-S1 resolution-arm or outer boundary drifted")
+    if authority.get("forbidden_families") != [
+        "backbone",
+        "augmentation",
+        "crop_margin",
+        "geometry",
+        "motion",
+        "roi",
+        "social",
+        "h5",
+        "posture",
+    ]:
+        raise PostS1ResolutionError("post-S1 forbidden-family boundary drifted")
+
+
+def _assert_l4(plan: ResolutionPlan) -> None:
+    if (
+        plan.device_name != "cuda"
+        or not torch.cuda.is_available()
+        or torch.cuda.device_count() != 1
+    ):
+        raise PostS1ResolutionError("full resolution arm requires exactly one CUDA device")
+    if torch.cuda.get_device_name(0) != "NVIDIA L4":
+        raise PostS1ResolutionError("full resolution arm requires NVIDIA L4")
+
+
+def _manifest(
+    plan: ResolutionPlan,
+    population: ResolutionPopulation,
+    steps: int,
+) -> dict[str, Any]:
+    return {
+        "trial_id": plan.trial_id,
+        "run_kind": RUN_KIND,
+        "temporal_view": TEMPORAL_VIEW,
+        "input_resolution": plan.input_resolution,
+        "seed": SEED,
+        "max_steps": steps,
+        "optimizer": "AdamW",
+        "learning_rate": 0.003,
+        "weight_decay": 0.0,
+        "batch_size": BATCH_SIZE,
+        "precision": "FP32",
+        "scheduler": "none",
+        "outer_examples_accessed": False,
+        "authority_sha256": plan.authority_sha256,
+        "data_hashes": dict(population.data_hashes),
+    }
+
+
+def _runtime(
+    plan: ResolutionPlan,
+    population: ResolutionPopulation,
+    elapsed: float,
+    steps: int,
+) -> dict[str, Any]:
+    cuda = torch.cuda if torch.cuda.is_available() else None
+    return {
+        "trial_id": plan.trial_id,
+        "run_kind": RUN_KIND,
+        "input_resolution": plan.input_resolution,
+        "wall_clock_seconds": elapsed,
+        "training_seconds": elapsed,
+        "completed_steps": steps,
+        "seconds_per_step": elapsed / steps,
+        "gpu_name": cuda.get_device_name(0) if cuda else None,
+        "gpu_count": cuda.device_count() if cuda else 0,
+        "peak_vram_allocated_mb": (
+            float(cuda.max_memory_allocated(0)) / (1024 * 1024) if cuda else 0.0
+        ),
+        "data_hashes": dict(population.data_hashes),
+    }
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    with Path(path).open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _sha256_file(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()

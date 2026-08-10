@@ -28,7 +28,7 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     ImageSequenceDatasetConfig,
 )
 
-SUPPORTED_RUNTIME_INPUT_RESOLUTIONS = (64, 160, 224)
+SUPPORTED_RUNTIME_INPUT_RESOLUTIONS = (64, 128, 160, 224)
 RUNTIME_RGB_TRANSFORM_VERSION = "actor_crop_letterbox_pil_bilinear_v1"
 INNER_ROLES = frozenset({"train", "validation"})
 

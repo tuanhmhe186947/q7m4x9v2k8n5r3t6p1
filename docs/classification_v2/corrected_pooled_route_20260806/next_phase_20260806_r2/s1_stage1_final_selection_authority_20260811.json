@@ -1,0 +1,52 @@
+{
+  "schema_version": "classification_v2.s1_stage1_final_selection.v1",
+  "status": "FROZEN_USER_APPROVED_STAGE1_FINAL_SELECTION",
+  "scope": "behavior_only_S1_inner_development_temporal_selection",
+  "source_evidence": {
+    "initial_screen": {
+      "relative_path": "s1_stage1_initial_temporal_screen_evidence_20260810.json",
+      "sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1"
+    },
+    "three_seed_confirmation": {
+      "relative_path": "s1_stage1_temporal_confirmation_evidence_20260810.json",
+      "sha256": "8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338"
+    }
+  },
+  "stage1_record": {
+    "model_realization": "B1_STAGE1_UNCHANGED",
+    "resolution": 64,
+    "fixed_optimizer_steps": 4164,
+    "outer_examples_accessed": false,
+    "all_initial_and_confirmation_trials_valid": true
+  },
+  "user_reviewed_decision": {
+    "scientific_winner": "NOT_ESTABLISHED",
+    "downstream_reference": "T6",
+    "t16_status": "SECONDARY_TEMPORAL_ROBUSTNESS_CANDIDATE",
+    "stage1_temporal_result": "NO_ROBUST_T16_SUPERIORITY"
+  },
+  "evidence_interpretation": {
+    "t16_minus_t6_primary_deltas": {
+      "20260804": 0.01207595958853527,
+      "20260805": 0.2651975493784609,
+      "20260806": -0.025532678250951568
+    },
+    "reason": [
+      "The apparent three-seed T16 mean advantage is strongly influenced by the valid catastrophic T6 seed20260805 outcome.",
+      "The two non-catastrophic paired primary comparisons are approximately neutral in aggregate.",
+      "T16 did not recover fight and preserves less target support than T6.",
+      "T6 is the simplest reference while the visual representation changes."
+    ]
+  },
+  "non_inferences": [
+    "This authority does not assert that T6 is scientifically superior to T16.",
+    "This authority does not invalidate, delete, or remove T16 evidence.",
+    "This authority does not invalidate seed20260805 or exclude it from three-seed statistics."
+  ],
+  "post_selection_boundary": {
+    "stage1_64_is_frozen_historical_control": true,
+    "next_changed_family": "INPUT_SPATIAL_RESOLUTION",
+    "backbone_change_allowed_in_resolution_screen": false,
+    "outer_access_allowed": false
+  }
+}

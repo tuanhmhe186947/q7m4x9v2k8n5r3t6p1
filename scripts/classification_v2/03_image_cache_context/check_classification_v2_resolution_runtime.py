@@ -53,7 +53,7 @@ except Exception:  # pragma: no cover
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Bounded inner-only CPU validation for source-backed 64/160/224 RGB."
+            "Bounded inner-only CPU validation for source-backed 64/128/160/224 RGB."
         )
     )
     parser.add_argument("--frame-context-csv", required=True, type=Path)
@@ -252,7 +252,7 @@ def _run_runtime_correctness(binding, indices_by_source: dict[str, list[int]]) -
     selected = _deterministic_correctness_indices(binding, indices_by_source)
     checks: dict[str, Any] = {}
     reference: dict[int, dict[str, Any]] = {}
-    for resolution in (64, 160, 224):
+    for resolution in (64, 128, 160, 224):
         dataset = binding.build_dataset(resolution, image_cache_size=0)
         try:
             rows = []
@@ -663,7 +663,7 @@ def _run_model_smoke(binding, indices_by_source: dict[str, list[int]]) -> dict[s
     frame_encoder_shapes: dict[str, list[int]] = {}
     sequence_encoder_shapes: dict[str, list[int]] = {}
     full_model_shapes: dict[str, list[int]] = {}
-    for resolution in (64, 160, 224):
+    for resolution in (64, 128, 160, 224):
         dataset = binding.build_dataset(resolution, image_cache_size=0)
         try:
             item = dataset[index]

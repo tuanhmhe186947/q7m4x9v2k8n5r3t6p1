@@ -1,0 +1,57 @@
+"""Run one authority-bound post-S1 T6 pure-resolution arm."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from pig_behavior.classification_v2.training.post_s1_resolution_screening import (
+    MAX_STEPS,
+    create_resolution_plan,
+    load_resolution_population,
+    run_resolution_arm,
+)
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse one registered R64, R128, or R160 arm without overrides."""
+
+    parser = argparse.ArgumentParser(description="Run one post-S1 T6 pure-spatial-resolution arm.")
+    parser.add_argument("--authority", required=True, type=Path)
+    parser.add_argument("--base-stage1-authority", required=True, type=Path)
+    parser.add_argument("--data-bindings", required=True, type=Path)
+    parser.add_argument("--media-root", required=True, type=Path)
+    parser.add_argument("--repository-root", required=True, type=Path)
+    parser.add_argument("--outputs-root", required=True, type=Path)
+    parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--trial-id", required=True)
+    parser.add_argument("--input-resolution", required=True, type=int)
+    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
+    parser.add_argument("--steps", type=int, default=MAX_STEPS)
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Fail before media access when an arm or endpoint diverges from authority."""
+
+    args = parse_args()
+    plan = create_resolution_plan(
+        args.authority,
+        repository_root=args.repository_root,
+        outputs_root=args.outputs_root,
+        base_stage1_authority_path=args.base_stage1_authority,
+        data_bindings_path=args.data_bindings,
+        media_root=args.media_root,
+        output_dir=args.output_dir,
+        trial_id=args.trial_id,
+        input_resolution=args.input_resolution,
+        device_name=args.device,
+    )
+    population = load_resolution_population(plan)
+    result = run_resolution_arm(plan, population, steps=args.steps)
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

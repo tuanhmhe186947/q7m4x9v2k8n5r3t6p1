@@ -1,0 +1,66 @@
+{
+  "schema_version": "classification_v2.s1_t6_seed_forensic.v1",
+  "status": "EXISTING_ARTIFACTS_ONLY",
+  "scope": "inner_development_T6_seed20260805_diagnostic_only",
+  "source_evidence": {
+    "initial_screen": {
+      "relative_path": "s1_stage1_initial_temporal_screen_evidence_20260810.json",
+      "sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1"
+    },
+    "confirmation": {
+      "relative_path": "s1_stage1_temporal_confirmation_evidence_20260810.json",
+      "sha256": "8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338"
+    }
+  },
+  "trial_validity": {
+    "classification": "VALID_BUT_CATASTROPHIC_OPTIMIZATION_OUTCOME",
+    "completed_optimizer_steps": 4164,
+    "primary_coverage": "3335_of_3335_no_missing_or_duplicates",
+    "common_cohort_coverage": "27378_of_27378_no_missing_or_duplicates",
+    "artifact_audit": "13_of_13_PASS",
+    "outer_examples_accessed": false
+  },
+  "observed_comparison": {
+    "t6_primary_native_macro_f1": {
+      "20260804": 0.3629868671396542,
+      "20260805": 0.049026708918062475,
+      "20260806": 0.3346715056647214
+    },
+    "seed20260805_primary_prediction_distribution": {
+      "sitting": 3335,
+      "all_other_classes": 0
+    },
+    "seed20260805_common_prediction_distribution": {
+      "sitting": 27378,
+      "all_other_classes": 0
+    },
+    "seed20260806_primary_sitting_predictions": 965,
+    "seed20260804_primary_fight_predictions": 84,
+    "seed20260806_primary_fight_predictions": 285
+  },
+  "forensic_classification": "MODEL_PREDICTION_COLLAPSE_SUPPORTED",
+  "supported_mechanism": "The saved endpoint summaries show a one-class sitting prediction collapse at seed20260805 despite complete predictions, valid coverage, a consumed permit, and verified endpoint artifacts.",
+  "not_established": [
+    "The saved authority does not distinguish the root optimization mechanism that produced the endpoint collapse.",
+    "Per-step loss curves, raw optimizer state, and seed-specific sampling-order replay are not embedded in the retained local authority.",
+    "The diagnosis does not invalidate the run or alter the reported three-seed statistics."
+  ],
+  "controlled_fields_verified": {
+    "model_realization": "B1_STAGE1_UNCHANGED",
+    "resolution": 64,
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "batch_size": 16,
+    "precision": "FP32",
+    "scheduler": "none",
+    "early_stopping": "DISABLED",
+    "rgb_binding_seed20260805_sha256": "9da593c96a5aacfccfebf4d377b812a65b511ac3965495213e982faac694741b"
+  },
+  "non_actions": {
+    "retraining": false,
+    "outer_access": false,
+    "historical_evidence_rewrite": false,
+    "run_invalidation": false
+  }
+}
