@@ -45,6 +45,12 @@ from pig_behavior.classification_v2.models.balanced.contracts import (
 )
 from pig_behavior.classification_v2.models.balanced.registry import build_model
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+from pig_behavior.classification_v2.training.stage1_execution_authorization import (
+    Stage1ExecutionAuthorizationError,
+    Stage1ExecutionPermit,
+    consume_stage1_execution_permit,
+    validate_stage1_execution_permit,
+)
 from pig_behavior.classification_v2.training.stage1_rgb_binding import (
     DATA_BINDINGS_SCHEMA,
     Stage1RgbBindingError,
@@ -116,6 +122,8 @@ class Stage1Plan:
     engineering_smoke: bool
     device_name: str
     data_bindings_path: Path | None
+    execution_permit: Stage1ExecutionPermit | None
+    allow_consumed_execution_permit: bool
 
     @property
     def sequence_length(self) -> int:
@@ -166,6 +174,9 @@ def create_stage1_plan(
     trial_id: str | None = None,
     device_name: str = "cpu",
     data_bindings_path: Path | None = None,
+    execution_permit_path: Path | None = None,
+    binding_bundle_path: Path | None = None,
+    allow_consumed_execution_permit: bool = False,
     engineering_smoke: bool = False,
     frozen_overrides: Mapping[str, object] | None = None,
     allow_existing_output: bool = False,
@@ -195,13 +206,6 @@ def create_stage1_plan(
         route / authority["calibration_decision_authority"]["relative_path"],
         authority["calibration_decision_authority"],
     )
-    stage1 = authority["stage_1_temporal_screening"]
-    if not engineering_smoke and device_name == "cuda" and not bool(
-        stage1["gpu_execution_authorized"]
-    ):
-        raise Stage1TemporalScreeningError(
-            "Stage-1 GPU execution is not authorized by the current authority"
-        )
     chosen_trial_id = trial_id or _new_trial_id(view, engineering_smoke)
     _validate_trial_id(chosen_trial_id)
     default_parent = (
@@ -220,6 +224,32 @@ def create_stage1_plan(
         raise Stage1TemporalScreeningError(
             f"immutable Stage-1 output already exists={target}"
         )
+    execution_permit: Stage1ExecutionPermit | None = None
+    if not engineering_smoke and device_name == "cuda":
+        if (
+            execution_permit_path is None
+            or data_bindings_path is None
+            or binding_bundle_path is None
+        ):
+            raise Stage1TemporalScreeningError(
+                "real Stage-1 CUDA execution requires a bound execution permit"
+            )
+        try:
+            execution_permit = validate_stage1_execution_permit(
+                permit_path=execution_permit_path,
+                repository_root=root,
+                outputs_root=resolved_outputs_root,
+                authority_path=authority_path,
+                authority=authority,
+                authority_sha256=authority_hash,
+                view=view,
+                trial_id=chosen_trial_id,
+                data_bindings_path=data_bindings_path,
+                binding_bundle_path=binding_bundle_path,
+                allow_consumed=allow_consumed_execution_permit,
+            )
+        except Stage1ExecutionAuthorizationError as error:
+            raise Stage1TemporalScreeningError(str(error)) from error
     return Stage1Plan(
         repository_root=root,
         outputs_root=resolved_outputs_root,
@@ -232,6 +262,8 @@ def create_stage1_plan(
         engineering_smoke=engineering_smoke,
         device_name=device_name,
         data_bindings_path=data_bindings_path.resolve() if data_bindings_path else None,
+        execution_permit=execution_permit,
+        allow_consumed_execution_permit=allow_consumed_execution_permit,
     )
 
 
@@ -749,6 +781,22 @@ def run_stage1_temporal_screening(
         not plan.engineering_smoke or stop_after_steps < 1 or stop_after_steps >= plan.max_steps
     ):
         raise Stage1TemporalScreeningError("only engineering smoke may stop before its endpoint")
+    consumed_execution_permit: Stage1ExecutionPermit | None = None
+    consumed_resume = (
+        not plan.engineering_smoke
+        and plan.execution_permit is not None
+        and plan.execution_permit.status == "CONSUMED"
+    )
+    if not plan.engineering_smoke and not consumed_resume:
+        if plan.execution_permit is None:
+            raise Stage1TemporalScreeningError("real Stage-1 execution lacks a permit")
+        try:
+            consumed_execution_permit = consume_stage1_execution_permit(
+                plan.execution_permit,
+                allow_consumed_resume=resume_checkpoint is not None,
+            )
+        except Stage1ExecutionAuthorizationError as error:
+            raise Stage1TemporalScreeningError(str(error)) from error
     device = torch.device(plan.device_name)
     if plan.device_name == "cuda":
         torch.cuda.reset_peak_memory_stats(0)
@@ -760,6 +808,19 @@ def run_stage1_temporal_screening(
     state = _initial_state(plan, population)
     if resume_checkpoint is not None:
         state = _load_checkpoint(resume_checkpoint, plan, model, optimizer, population)
+    if consumed_resume:
+        try:
+            consumed_execution_permit = consume_stage1_execution_permit(
+                plan.execution_permit,
+                allow_consumed_resume=True,
+            )
+        except Stage1ExecutionAuthorizationError as error:
+            raise Stage1TemporalScreeningError(str(error)) from error
+    if consumed_execution_permit is not None:
+        _write_json_atomic(
+            plan.output_dir / "manifest" / "execution_permit.json",
+            consumed_execution_permit.manifest_record(),
+        )
     _write_json_atomic(plan.output_dir / "manifest" / "run_manifest.json", state["manifest"])
     losses: list[float] = list(state.get("losses", []))
     completed = int(state["completed_steps"])
@@ -817,6 +878,11 @@ def run_stage1_temporal_screening(
             "engineering_smoke": plan.engineering_smoke,
             "claim_grade_result": False,
             "scientific_trial": not plan.engineering_smoke,
+            "execution_permit": (
+                consumed_execution_permit.manifest_record()
+                if consumed_execution_permit is not None
+                else None
+            ),
             "completed_steps": plan.max_steps,
             "losses": losses,
             "snapshots": snapshots,
@@ -1055,6 +1121,7 @@ def _manifest(plan: Stage1Plan, population: Stage1Population) -> dict[str, Any]:
         "primary_metric": "NATIVE_UNIT_10_CLASS_MACRO_F1",
         "common_cohort_native_units": len(population.common_cohort_native_units),
         "git_sha": _git_sha(),
+        "execution_permit": _execution_permit_manifest(plan),
         "data_hashes": dict(population.data_hashes),
         "b1_effective_inputs": _b1_effective_inputs(plan.view),
     }
@@ -1084,6 +1151,26 @@ def _fingerprint(plan: Stage1Plan, population: Stage1Population) -> dict[str, ob
             "family": "CPU_SMOKE" if plan.engineering_smoke else "NVIDIA_L4",
             "count": 1,
         },
+        "execution_permit": _execution_permit_manifest(plan),
+    }
+
+
+def _execution_permit_manifest(plan: Stage1Plan) -> dict[str, object] | None:
+    """Bind real-run recovery to one permit without status or path drift."""
+
+    if plan.execution_permit is None:
+        return None
+    payload = plan.execution_permit.payload
+    return {
+        "permit_id": plan.execution_permit.permit_id,
+        "authority_sha256": str(payload["authority_sha256"]),
+        "code_sha": str(payload["code_sha"]),
+        "view": str(payload["view"]),
+        "trial_id": str(payload["trial_id"]),
+        "rgb_binding_bundle_sha256": str(payload["rgb_binding_bundle_sha256"]),
+        "scientific_rgb_binding_sha256": str(
+            payload["scientific_rgb_binding_sha256"]
+        ),
     }
 
 
@@ -1250,8 +1337,13 @@ def _assert_execution_hardware(plan: Stage1Plan) -> None:
         return
     if plan.device_name != "cuda":
         raise Stage1TemporalScreeningError("real Stage-1 execution requires CUDA")
-    if not bool(plan.authority["stage_1_temporal_screening"]["gpu_execution_authorized"]):
-        raise Stage1TemporalScreeningError("Stage-1 GPU execution remains unauthorized")
+    if plan.execution_permit is None:
+        raise Stage1TemporalScreeningError("real Stage-1 execution requires a permit")
+    if (
+        plan.execution_permit.status == "CONSUMED"
+        and not plan.allow_consumed_execution_permit
+    ):
+        raise Stage1TemporalScreeningError("consumed Stage-1 permit requires exact resume")
     if not torch.cuda.is_available():
         raise Stage1TemporalScreeningError("authorized Stage-1 CUDA route is unavailable")
     if torch.cuda.device_count() != 1:

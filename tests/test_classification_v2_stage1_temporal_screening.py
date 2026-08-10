@@ -247,14 +247,18 @@ def test_stage1_authority_drift_and_frozen_override_fail_before_data_access(
         )
 
 
-def test_real_cuda_execution_remains_refused_before_data_access(tmp_path: Path) -> None:
-    with pytest.raises(stage1.Stage1TemporalScreeningError, match="not authorized"):
+def test_real_cuda_execution_requires_bound_permit_before_data_access(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(
+        stage1.Stage1TemporalScreeningError,
+        match="bound execution permit",
+    ):
         stage1.create_stage1_plan(
             AUTHORITY,
             view="T6",
             repository_root=ROOT,
             outputs_root=tmp_path,
-            output_dir=tmp_path / "s1_stage1_t6_seed20260804",
             trial_id="s1_stage1_t6_seed20260804",
             device_name="cuda",
             engineering_smoke=False,

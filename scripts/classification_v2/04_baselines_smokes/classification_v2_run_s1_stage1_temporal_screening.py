@@ -8,8 +8,6 @@ from pathlib import Path
 
 from pig_behavior.classification_v2.training import stage1_temporal_screening as stage1
 
-GPU_EXECUTION_AUTHORIZATION = "S1_STAGE1_GPU_EXECUTION_AUTHORIZED"
-
 
 def parse_args() -> argparse.Namespace:
     """Parse a single immutable Stage-1 arm without scientific overrides."""
@@ -17,8 +15,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run one authority-bound Stage-1 temporal-screening arm."
     )
-    parser.add_argument("--execution-authorization", required=True)
+    parser.add_argument("--execution-permit", type=Path, required=True)
     parser.add_argument("--authority", type=Path, required=True)
+    parser.add_argument("--binding-bundle", type=Path, required=True)
     parser.add_argument("--outputs-root", type=Path, required=True)
     parser.add_argument("--view", choices=tuple(stage1.VIEW_SPECS), required=True)
     parser.add_argument("--data-bindings", type=Path, required=True)
@@ -32,8 +31,6 @@ def main() -> None:
     """Reject unapproved hardware/authority before opening any RGB payload."""
 
     args = parse_args()
-    if args.execution_authorization != GPU_EXECUTION_AUTHORIZATION:
-        raise ValueError("Stage-1 GPU execution authorization token mismatch")
     plan = stage1.create_stage1_plan(
         args.authority,
         view=args.view,
@@ -42,6 +39,9 @@ def main() -> None:
         trial_id=args.trial_id,
         device_name="cuda",
         data_bindings_path=args.data_bindings,
+        execution_permit_path=args.execution_permit,
+        binding_bundle_path=args.binding_bundle,
+        allow_consumed_execution_permit=args.resume_checkpoint is not None,
         engineering_smoke=False,
         allow_existing_output=args.resume_checkpoint is not None,
     )
