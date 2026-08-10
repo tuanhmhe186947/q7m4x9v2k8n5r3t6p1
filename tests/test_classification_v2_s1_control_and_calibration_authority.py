@@ -149,11 +149,21 @@ def test_future_l4_launch_packet_is_exact_but_not_an_execution_authorization() -
     assert boundary["stage1_gpu_execution_authorized"] is False
     assert boundary["not_a_launch_authorization"] is True
     assert boundary["required_future_execution_authorization"] == (
-        "S1_STAGE1_GPU_EXECUTION_AUTHORIZED"
+        "EXTERNAL_SINGLE_USE_PER_ARM_PERMIT"
     )
     assert boundary["required_hardware"] == {
         "gpu_count": 1,
         "gpu_name": "NVIDIA L4",
+    }
+    assert packet["execution_permit_contract"] == {
+        "issuer": (
+            "scripts/classification_v2/04_baselines_smokes/"
+            "classification_v2_authorize_s1_stage1_execution.py"
+        ),
+        "schema_version": "classification_v2.s1_stage1_execution_permit.v1",
+        "per_arm": True,
+        "single_use": True,
+        "authority_gpu_flag_must_remain_false": True,
     }
     assert packet["bound_authorities"]["s1_authority_sha256"] == hashlib.sha256(
         AUTHORITY.read_bytes()
@@ -162,14 +172,24 @@ def test_future_l4_launch_packet_is_exact_but_not_an_execution_authorization() -
     prefix = packet["invocation"]["command_argv_prefix"]
     assert prefix[:6] == ["uv", "run", "--frozen", "--extra", "pt", "python"]
     assert "--max-steps" not in prefix
-    assert "--execution-authorization" in prefix
+    assert "--execution-authorization" not in prefix
+    assert prefix[prefix.index("--binding-bundle") + 1] == (
+        "${S1_STAGE1_RGB_BINDING_BUNDLE}"
+    )
     assert set(packet["arms"]) == {"T6", "T8", "T12", "T16"}
     for view, arm in packet["arms"].items():
         suffix = arm["command_argv_suffix"]
         assert suffix[:2] == ["--view", view]
+        assert arm["execution_permit_environment_variable"] == (
+            f"S1_STAGE1_{view}_EXECUTION_PERMIT"
+        )
         assert suffix[2:4] == [
+            "--execution-permit",
+            f"${{S1_STAGE1_{view}_EXECUTION_PERMIT}}",
+        ]
+        assert suffix[4:6] == [
             "--data-bindings",
             f"${{S1_STAGE1_{view}_DATA_BINDINGS}}",
         ]
-        assert suffix[4:] == ["--trial-id", arm["trial_id"]]
+        assert suffix[6:] == ["--trial-id", arm["trial_id"]]
         assert arm["trial_id"].endswith("steps4164")

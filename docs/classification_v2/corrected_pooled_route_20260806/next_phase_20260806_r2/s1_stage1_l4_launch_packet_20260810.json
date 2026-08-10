@@ -3,12 +3,19 @@
   "status": "CPU_PREFLIGHT_PASS_FUTURE_COMMANDS_ONLY",
   "authority_boundary": {
     "stage1_gpu_execution_authorized": false,
-    "required_future_execution_authorization": "S1_STAGE1_GPU_EXECUTION_AUTHORIZED",
+    "required_future_execution_authorization": "EXTERNAL_SINGLE_USE_PER_ARM_PERMIT",
     "not_a_launch_authorization": true,
     "required_hardware": {
       "gpu_count": 1,
       "gpu_name": "NVIDIA L4"
     }
+  },
+  "execution_permit_contract": {
+    "issuer": "scripts/classification_v2/04_baselines_smokes/classification_v2_authorize_s1_stage1_execution.py",
+    "schema_version": "classification_v2.s1_stage1_execution_permit.v1",
+    "per_arm": true,
+    "single_use": true,
+    "authority_gpu_flag_must_remain_false": true
   },
   "bound_authorities": {
     "s1_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
@@ -47,10 +54,10 @@
       "pt",
       "python",
       "scripts/classification_v2/04_baselines_smokes/classification_v2_run_s1_stage1_temporal_screening.py",
-      "--execution-authorization",
-      "S1_STAGE1_GPU_EXECUTION_AUTHORIZED",
       "--authority",
       "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
+      "--binding-bundle",
+      "${S1_STAGE1_RGB_BINDING_BUNDLE}",
       "--outputs-root",
       "outputs",
       "--repository-root",
@@ -60,12 +67,15 @@
   "arms": {
     "T6": {
       "trial_id": "s1_stage1_t6_seed20260804_steps4164",
+      "execution_permit_environment_variable": "S1_STAGE1_T6_EXECUTION_PERMIT",
       "data_bindings_environment_variable": "S1_STAGE1_T6_DATA_BINDINGS",
       "scientific_binding_sha256": "593344a3b915e899bd6404b590c7e0b5ef46c20428df20bbaa88be65d05a8d64",
       "event_weight_sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72",
       "command_argv_suffix": [
         "--view",
         "T6",
+        "--execution-permit",
+        "${S1_STAGE1_T6_EXECUTION_PERMIT}",
         "--data-bindings",
         "${S1_STAGE1_T6_DATA_BINDINGS}",
         "--trial-id",
@@ -74,12 +84,15 @@
     },
     "T8": {
       "trial_id": "s1_stage1_t8_seed20260804_steps4164",
+      "execution_permit_environment_variable": "S1_STAGE1_T8_EXECUTION_PERMIT",
       "data_bindings_environment_variable": "S1_STAGE1_T8_DATA_BINDINGS",
       "scientific_binding_sha256": "8f9cf5580a0e63f17c29aa6e1bf6d2f8ff272c5bbcab77e141ecaaccf9e2e375",
       "event_weight_sha256": "2e6e54bc298232b4026e16d400712d89748db7933c0f0cf2a1c271412fb9c7d9",
       "command_argv_suffix": [
         "--view",
         "T8",
+        "--execution-permit",
+        "${S1_STAGE1_T8_EXECUTION_PERMIT}",
         "--data-bindings",
         "${S1_STAGE1_T8_DATA_BINDINGS}",
         "--trial-id",
@@ -88,12 +101,15 @@
     },
     "T12": {
       "trial_id": "s1_stage1_t12_seed20260804_steps4164",
+      "execution_permit_environment_variable": "S1_STAGE1_T12_EXECUTION_PERMIT",
       "data_bindings_environment_variable": "S1_STAGE1_T12_DATA_BINDINGS",
       "scientific_binding_sha256": "0ebedcdcf5873c0e25f7995135e574ed3107e073d3022a7ff1e0de29e7d199e9",
       "event_weight_sha256": "b44b448629513255d65c82299cfde1930cf5d4011b066f4d8d90b30cbdc2d6a4",
       "command_argv_suffix": [
         "--view",
         "T12",
+        "--execution-permit",
+        "${S1_STAGE1_T12_EXECUTION_PERMIT}",
         "--data-bindings",
         "${S1_STAGE1_T12_DATA_BINDINGS}",
         "--trial-id",
@@ -102,12 +118,15 @@
     },
     "T16": {
       "trial_id": "s1_stage1_t16_seed20260804_steps4164",
+      "execution_permit_environment_variable": "S1_STAGE1_T16_EXECUTION_PERMIT",
       "data_bindings_environment_variable": "S1_STAGE1_T16_DATA_BINDINGS",
       "scientific_binding_sha256": "540376ab0b8253fbd72b1d5965b35c22474d388e6b8e993abf66edb39a08e659",
       "event_weight_sha256": "de3764236b49bde95f8eb1cce1508e1677a8ec7e85c6cf29a91dc6010056b7ac",
       "command_argv_suffix": [
         "--view",
         "T16",
+        "--execution-permit",
+        "${S1_STAGE1_T16_EXECUTION_PERMIT}",
         "--data-bindings",
         "${S1_STAGE1_T16_DATA_BINDINGS}",
         "--trial-id",
