@@ -35,6 +35,10 @@ from pig_behavior.classification_v2.models.balanced.contracts import (
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training import stage1_temporal_screening as stage1
+from pig_behavior.classification_v2.training.remote_input_resolution import (
+    RemoteInputResolutionError,
+    load_remote_input_authority,
+)
 from pig_behavior.classification_v2.training.stage1_rgb_binding import (
     Stage1RgbBindingError,
     resolve_stage1_execution_rgb_binding,
@@ -64,6 +68,8 @@ class ResolutionPlan:
     authority: Mapping[str, Any]
     base_stage1_authority_path: Path
     data_bindings_path: Path
+    runtime_input_authority_path: Path
+    runtime_input_binding: Mapping[str, Any]
     media_root: Path
     output_dir: Path
     trial_id: str
@@ -89,6 +95,8 @@ def create_resolution_plan(
     outputs_root: Path,
     base_stage1_authority_path: Path,
     data_bindings_path: Path,
+    runtime_input_authority_path: Path,
+    runtime_input_binding_path: Path,
     media_root: Path,
     output_dir: Path,
     trial_id: str,
@@ -113,15 +121,27 @@ def create_resolution_plan(
         raise PostS1ResolutionError(f"output already exists={resolved_output}")
     if "outer" in str(resolved_output).lower():
         raise PostS1ResolutionError("outer token in output path")
+    resolved_repository = Path(repository_root).resolve()
+    resolved_media_root = Path(media_root).resolve()
+    resolved_input_authority = Path(runtime_input_authority_path).resolve()
+    runtime_input_binding = _validate_runtime_input_binding(
+        authority,
+        repository_root=resolved_repository,
+        authority_path=resolved_input_authority,
+        binding_path=Path(runtime_input_binding_path).resolve(),
+        media_root=resolved_media_root,
+    )
     return ResolutionPlan(
-        repository_root=Path(repository_root).resolve(),
+        repository_root=resolved_repository,
         outputs_root=Path(outputs_root).resolve(),
         authority_path=authority_path,
         authority_sha256=_sha256_file(authority_path),
         authority=authority,
         base_stage1_authority_path=Path(base_stage1_authority_path).resolve(),
         data_bindings_path=Path(data_bindings_path).resolve(),
-        media_root=Path(media_root).resolve(),
+        runtime_input_authority_path=resolved_input_authority,
+        runtime_input_binding=runtime_input_binding,
+        media_root=resolved_media_root,
         output_dir=resolved_output,
         trial_id=trial_id,
         input_resolution=input_resolution,
@@ -366,6 +386,7 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
         "arms",
         "fixed_controls",
         "bound_stage1_authorities",
+        "runtime_input_authority",
         "outer_access_allowed",
         "forbidden_families",
     }
@@ -393,6 +414,51 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
         "posture",
     ]:
         raise PostS1ResolutionError("post-S1 forbidden-family boundary drifted")
+
+
+def _validate_runtime_input_binding(
+    authority: Mapping[str, Any],
+    *,
+    repository_root: Path,
+    authority_path: Path,
+    binding_path: Path,
+    media_root: Path,
+) -> Mapping[str, Any]:
+    """Require a verified runtime path without making it dataset identity."""
+
+    expected = authority["runtime_input_authority"]
+    if not isinstance(expected, Mapping):
+        raise PostS1ResolutionError("runtime input authority binding is invalid")
+    relative_segments = expected.get("relative_segments")
+    filename = expected.get("filename")
+    expected_sha256 = expected.get("sha256")
+    if (
+        not isinstance(relative_segments, list)
+        or not all(isinstance(segment, str) and segment for segment in relative_segments)
+        or not isinstance(filename, str)
+        or not isinstance(expected_sha256, str)
+    ):
+        raise PostS1ResolutionError("runtime input authority binding is incomplete")
+    if authority_path != (repository_root.joinpath(*relative_segments) / filename).resolve():
+        raise PostS1ResolutionError("runtime input authority path drifted")
+    if _sha256_file(authority_path) != expected_sha256:
+        raise PostS1ResolutionError("runtime input authority hash drifted")
+    try:
+        input_authority = load_remote_input_authority(authority_path)
+    except RemoteInputResolutionError as error:
+        raise PostS1ResolutionError(str(error)) from error
+    binding = _read_json(binding_path)
+    effective_root = binding.get("effective_remote_input_root")
+    if binding.get("scientific_input_authority_id") != input_authority.authority_id:
+        raise PostS1ResolutionError("runtime input scientific authority drifted")
+    if not isinstance(effective_root, str) or Path(effective_root).resolve() != media_root:
+        raise PostS1ResolutionError("media root does not match verified runtime input root")
+    if (
+        binding.get("expected_file_count") != input_authority.expected_file_count
+        or binding.get("expected_total_bytes") != input_authority.expected_total_bytes
+    ):
+        raise PostS1ResolutionError("runtime input population parity drifted")
+    return binding
 
 
 def _assert_l4(plan: ResolutionPlan) -> None:
@@ -427,6 +493,7 @@ def _manifest(
         "outer_examples_accessed": False,
         "authority_sha256": plan.authority_sha256,
         "data_hashes": dict(population.data_hashes),
+        "runtime_input": dict(plan.runtime_input_binding),
     }
 
 

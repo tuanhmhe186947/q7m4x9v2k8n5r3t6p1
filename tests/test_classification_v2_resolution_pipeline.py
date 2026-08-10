@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,6 +25,43 @@ from pig_behavior.classification_v2.datasets.resolution_pipeline import (
     scan_legacy_jpeg_headers,
     storage_projection,
 )
+from pig_behavior.classification_v2.training.post_s1_resolution_screening import (
+    PostS1ResolutionError,
+    _validate_runtime_input_binding,
+)
+from pig_behavior.classification_v2.training.remote_input_resolution import (
+    RemoteInputAuthority,
+    RemoteInputResolutionError,
+    resolve_remote_input_root,
+)
+
+
+def _remote_input_authority(
+    preferred: Path,
+    *registered: Path,
+) -> RemoteInputAuthority:
+    return RemoteInputAuthority(
+        authority_id="synthetic-input-authority",
+        expected_file_count=2,
+        expected_total_bytes=2,
+        preferred_runtime_locator=preferred,
+        registered_runtime_locators=(preferred, *registered),
+        sentinel_sha256={
+            "sentinel.txt": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        },
+        historical_parity_evidence={
+            "relative_path": "synthetic.json",
+            "sha256": "0" * 64,
+        },
+        parity_report_locator=Path("does-not-exist.json"),
+    )
+
+
+def _remote_input_root(path: Path, *, second_byte: bytes = b"b") -> Path:
+    path.mkdir(parents=True)
+    (path / "sentinel.txt").write_bytes(b"a")
+    (path / "payload.bin").write_bytes(second_byte)
+    return path
 
 
 def _binding_inputs(tmp_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -254,3 +293,154 @@ def test_partially_clipped_cvat_crop_preserves_current_clamp_semantics(
     assert image is not None
     assert image.shape == (3, 64, 64)
     assert dataset.video_seek_count == 1
+
+
+def test_remote_input_resolver_prefers_registered_matching_locator(tmp_path: Path) -> None:
+    preferred = _remote_input_root(tmp_path / "inputs")
+
+    binding = resolve_remote_input_root(_remote_input_authority(preferred))
+
+    assert binding.effective_remote_input_root == preferred.resolve()
+    assert binding.scientific_input_authority_id == "synthetic-input-authority"
+
+
+def test_remote_input_resolver_uses_registered_fallback_after_preferred_absence(
+    tmp_path: Path,
+) -> None:
+    preferred = tmp_path / "inputs"
+    fallback = _remote_input_root(tmp_path / "project" / "inputs")
+
+    binding = resolve_remote_input_root(_remote_input_authority(preferred, fallback))
+
+    assert binding.effective_remote_input_root == fallback.resolve()
+    assert binding.preferred_remote_input_root == preferred
+
+
+def test_remote_input_resolver_rejects_registered_fallback_parity_mismatch(
+    tmp_path: Path,
+) -> None:
+    preferred = tmp_path / "inputs"
+    fallback = _remote_input_root(tmp_path / "project" / "inputs", second_byte=b"wrong")
+
+    with pytest.raises(RemoteInputResolutionError, match="locator conflict"):
+        resolve_remote_input_root(_remote_input_authority(preferred, fallback))
+
+
+def test_remote_input_resolver_never_discovers_unregistered_inputs(tmp_path: Path) -> None:
+    preferred = tmp_path / "inputs"
+    _remote_input_root(tmp_path / "unregistered" / "inputs")
+
+    with pytest.raises(RemoteInputResolutionError, match="no registered"):
+        resolve_remote_input_root(_remote_input_authority(preferred))
+
+
+def test_remote_input_resolver_selects_equivalent_registered_alias_deterministically(
+    tmp_path: Path,
+) -> None:
+    preferred = _remote_input_root(tmp_path / "inputs")
+    equivalent = preferred / "."
+
+    binding = resolve_remote_input_root(_remote_input_authority(preferred, equivalent))
+
+    assert binding.effective_remote_input_root == preferred.resolve()
+    assert binding.resolved_candidates == (preferred.resolve(),)
+
+
+def test_locator_change_preserves_scientific_input_identity(tmp_path: Path) -> None:
+    first = _remote_input_root(tmp_path / "first")
+    second = _remote_input_root(tmp_path / "second")
+
+    first_binding = resolve_remote_input_root(_remote_input_authority(first))
+    second_binding = resolve_remote_input_root(_remote_input_authority(second))
+
+    assert (
+        first_binding.scientific_input_authority_id
+        == second_binding.scientific_input_authority_id
+    )
+    assert first_binding.effective_remote_input_root != second_binding.effective_remote_input_root
+
+
+def test_input_resolution_leaves_existing_outer_protection_unchanged(tmp_path: Path) -> None:
+    root = _remote_input_root(tmp_path / "inputs")
+    binding = resolve_remote_input_root(_remote_input_authority(root))
+
+    assert binding.scientific_input_authority_id == "synthetic-input-authority"
+    outer_root = tmp_path / "outer-protection"
+    outer_root.mkdir()
+    frames, windows, selection = _binding_inputs(outer_root)
+    selection["primary_s1_role"] = "outer"
+    with pytest.raises(ValueError, match="inner selection is empty"):
+        build_inner_resolution_binding_from_dataframes(
+            frames=frames,
+            windows=windows,
+            selection=selection,
+            media_root=outer_root,
+        )
+
+
+def test_resolution_runner_requires_verified_root_binding_for_media_root(
+    tmp_path: Path,
+) -> None:
+    media_root = tmp_path / "inputs"
+    media_root.mkdir()
+    contract_path = tmp_path / "remote-input-contract.json"
+    contract = {
+        "schema_version": "classification_v2.remote_input_root.v1",
+        "status": "ACTIVE_RUNTIME_LOCATOR_CONTRACT",
+        "scientific_input_authority": {
+            "authority_id": "synthetic-input-authority",
+            "historical_parity_evidence": {
+                "relative_path": "synthetic.json",
+                "sha256": "0" * 64,
+            },
+            "expected_population": {
+                "physical_file_count": 1,
+                "total_bytes": 1,
+            },
+            "registered_sentinels": {},
+        },
+        "runtime_input_locators": {
+            "preferred": str(media_root),
+            "registered": [str(media_root)],
+            "parity_report_locator": "parity.json",
+        },
+    }
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+    contract_sha256 = hashlib.sha256(contract_path.read_bytes()).hexdigest()
+    binding_path = tmp_path / "runtime-input-binding.json"
+    binding_path.write_text(
+        json.dumps(
+            {
+                "scientific_input_authority_id": "synthetic-input-authority",
+                "effective_remote_input_root": str(media_root),
+                "expected_file_count": 1,
+                "expected_total_bytes": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolution_authority = {
+        "runtime_input_authority": {
+            "relative_segments": ["."],
+            "filename": contract_path.name,
+            "sha256": contract_sha256,
+        }
+    }
+
+    verified = _validate_runtime_input_binding(
+        resolution_authority,
+        repository_root=tmp_path,
+        authority_path=contract_path,
+        binding_path=binding_path,
+        media_root=media_root,
+    )
+
+    assert verified["effective_remote_input_root"] == str(media_root)
+    with pytest.raises(PostS1ResolutionError, match="media root"):
+        _validate_runtime_input_binding(
+            resolution_authority,
+            repository_root=tmp_path,
+            authority_path=contract_path,
+            binding_path=binding_path,
+            media_root=tmp_path / "other-inputs",
+        )

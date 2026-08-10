@@ -21,6 +21,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--authority", required=True, type=Path)
     parser.add_argument("--base-stage1-authority", required=True, type=Path)
     parser.add_argument("--data-bindings", required=True, type=Path)
+    parser.add_argument("--runtime-input-authority", required=True, type=Path)
+    parser.add_argument("--runtime-input-binding", required=True, type=Path)
     parser.add_argument("--media-root", required=True, type=Path)
     parser.add_argument("--repository-root", required=True, type=Path)
     parser.add_argument("--outputs-root", required=True, type=Path)
@@ -42,6 +44,8 @@ def main() -> None:
         outputs_root=args.outputs_root,
         base_stage1_authority_path=args.base_stage1_authority,
         data_bindings_path=args.data_bindings,
+        runtime_input_authority_path=args.runtime_input_authority,
+        runtime_input_binding_path=args.runtime_input_binding,
         media_root=args.media_root,
         output_dir=args.output_dir,
         trial_id=args.trial_id,

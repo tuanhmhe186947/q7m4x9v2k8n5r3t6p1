@@ -1,0 +1,41 @@
+{
+  "schema_version": "classification_v2.remote_input_root.v1",
+  "status": "ACTIVE_RUNTIME_LOCATOR_CONTRACT",
+  "scientific_input_authority": {
+    "authority_id": "S1_REMOTE_INPUT_PARITY_R4",
+    "historical_parity_evidence": {
+      "relative_path": "s1_stage1_temporal_confirmation_evidence_20260810.json",
+      "sha256": "8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338"
+    },
+    "expected_population": {
+      "physical_file_count": 245936,
+      "total_bytes": 9151758436
+    },
+    "registered_sentinels": {
+      "effective_window_index.csv":
+        "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+      "native_unit_outer_roles.csv":
+        "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
+      "fold_event_weight_manifest.csv":
+        "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d"
+    }
+  },
+  "runtime_input_locators": {
+    "preferred": "/inputs",
+    "registered": [
+      "/inputs",
+      "/teamspace/studios/this_studio/pig_e0_r3/inputs"
+    ],
+    "parity_report_locator": "input_fast_transport_r4/remote_input_parity_report.json"
+  },
+  "rules": {
+    "remote_input_path_is_runtime_locator": true,
+    "scientific_input_identity_is_path_dependent": false,
+    "input_root_fallback_requires_parity_proof": true,
+    "arbitrary_input_directory_substitution_forbidden": true,
+    "missing_preferred_locator_alone_is_not_scientific_mismatch": true,
+    "lightning_teamspace": "pig-project",
+    "lightning_studio": "pig-gpu-l4",
+    "lightning_ssh_alias": "lightning-pig-gcp"
+  }
+}
