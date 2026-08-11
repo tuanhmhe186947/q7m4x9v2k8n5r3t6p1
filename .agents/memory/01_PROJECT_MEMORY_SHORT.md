@@ -756,25 +756,28 @@
 
 - Prompt: Repair only the expired C2V2-20260811-01 managed-task line-budget violation, create a
   successor readiness authority, and preserve scientific state.
-- Status: `IN_PROGRESS`.
+- Status: `DONE`.
 - Opened: `2026-08-12T00:20:56+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Owner token SHA256: `c662b34a43cc1545c5f44b129af78bdb90f70432dafc3682fdb2115c519f07ce`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `3`.
-- Lease expires: `2026-08-12T00:52:03+07:00`.
-- Block SHA256: `8bd06a245f5ae3ecc10ccb1c8dcd08b85f50eab201a116fe600d14deb7078f2c`.
+- Revision: `4`.
+- Lease expires: `2026-08-12T01:01:01+07:00`.
+- Block SHA256: `c802982174a27c4c1444f1f3f07bc1a5c2a1c6442cd75d559a4a0f047a7f3120`.
 - Acceptance: Old task remains DEFERRED and <=120 lines through manager compaction; fresh
   governance validation passes; a successor readiness authority is canonical on main.
 - Skills: `project-state-steward`, `experiment-lineage-reproducibility`.
 - [x] `GOVC-01` `[DONE]` Repair old task through the official manager
   - Evidence: Manager compact repair succeeded: C2V2-20260811-01 remains DEFERRED at revision 60
     with verified archive and 47 active lines.
-- [ ] `GOVC-02` `[IN_PROGRESS]` Validate and canonicalize governance evidence
-  - Next: Run the focused governance validator and test surface, then create the successor
-    readiness authority from fresh evidence.
+- [x] `GOVC-02` `[DONE]` Validate and canonicalize governance evidence
+  - Evidence: Fresh validator PASS, governance tests 33 passed, successor readiness authority
+    committed as f553c00811e634d1a14f63dbd927cd73be007e44, and authenticated read-only Lightning
+    inventory shows zero Studio rows.
+
+
 
 
 ## Previous-Day Closeout
