@@ -22,6 +22,16 @@ hash or import-source mismatch fails closed before input binding, media decode,
 or optimizer execution. Reuse the already verified remote inputs; do not
 retransmit them.
 
+## 2026-08-11 CVAT host-side media realization
+
+Materialize CVAT observations from the scientific `source_video_key` and its
+exact registered `source_video_path`. Convert only a registered
+`data/videos/*.mp4` path to a path relative to the verified input root, then
+derive the host realization below that root. Never recursively search,
+fuzzy-match a filename, or open an opaque CVAT context key as media. Fail
+closed for zero or more than one registered path; preserve legacy crop and
+frame/box/actor semantics.
+
 ## 2026-08-10 Lightning active-resource preflight
 
 All future Lightning scientific execution must validate exact resource types

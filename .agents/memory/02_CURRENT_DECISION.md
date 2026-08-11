@@ -16,6 +16,18 @@
   acceptance. Inputs, labels, folds, seed, event weights, and 4,164 steps are
   unchanged; no outer access, H5, posture, Stage 2, or backbone experiment.
 
+## 2026-08-11 CVAT scientific-media and host-runtime path contract
+
+- `SCIENTIFIC_MEDIA_ID_IS_RUNTIME_PATH=NO` and
+  `RUNTIME_MEDIA_PATH_REQUIRES_AUTHORITY_RESOLUTION=YES`.
+- A CVAT context key remains scientific identity only and must never be passed
+  to OpenCV as a file.
+- The exact `source_video_key` maps through its registered `source_video_path`
+  to an authority-relative `data/videos/*.mp4` path. Fuzzy matching is
+  forbidden; zero or ambiguous registrations fail closed.
+- Host paths are derived only under the verified input root. Legacy crop
+  handling remains unchanged.
+
 ## 2026-08-10 Lightning resource naming contract
 
 - `LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2`.

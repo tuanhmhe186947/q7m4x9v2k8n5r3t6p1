@@ -225,6 +225,11 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         """Resolve a relative audited media path against an explicit root only."""
 
         path = Path(str(frame["resolved_media_path"]))
+        if (
+            str(frame.get("source_type", "")) == "cvat_tracking_xml"
+            and path.suffix.lower() != ".mp4"
+        ):
+            raise ValueError("opaque CVAT scientific identifier cannot be opened as media")
         if path.is_absolute() or self.config.media_root is None:
             return path
         return Path(self.config.media_root) / path

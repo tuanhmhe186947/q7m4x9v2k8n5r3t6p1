@@ -100,6 +100,7 @@ def _source_fixture(tmp_path: Path) -> tuple[Path, dict[str, object]]:
                     "dataset_id": "dataset-a",
                     "video_key": video_key,
                     "source_video_key": video_key,
+                    "source_video_path": f"data/videos/{video_key}.mp4",
                     "object_track_key": actor,
                     "pig_id": actor,
                     "track_id": actor,
@@ -208,6 +209,18 @@ def test_materialized_binding_is_inner_only_hash_bound_and_portable(tmp_path: Pa
     inner_windows = pd.read_csv(binding_root / "inner_window_context.csv")
     assert set(inner_windows["window_id"]) == {"train-window", "validation-window"}
     assert set(inner_windows["calibration_role"]) == {"train", "validation"}
+    inner_frames = pd.read_csv(binding_root / "inner_frame_context.csv")
+    assert set(inner_frames["scientific_media_id"]) == {
+        "video-train",
+        "video-validation",
+    }
+    assert set(inner_frames["registered_relative_media_path"]) == {
+        "data/videos/video-train.mp4",
+        "data/videos/video-validation.mp4",
+    }
+    assert set(inner_frames["resolved_media_path"]) == set(
+        inner_frames["registered_relative_media_path"]
+    )
     resolved = resolve_execution_rgb_binding(
         data_bindings_path=Path(str(report["data_bindings_path"])),
         requested_roles=requested,

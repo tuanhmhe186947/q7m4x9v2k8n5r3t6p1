@@ -23,6 +23,10 @@ import pandas as pd
 from pig_behavior.classification_v2.datasets.image_context_index import (
     IMAGE_CONTEXT_SEQUENCE_DELIMITER,
 )
+from pig_behavior.classification_v2.training.cvat_media_resolution import (
+    CvatMediaResolutionError,
+    attach_registered_cvat_media_paths,
+)
 
 SCIENTIFIC_RGB_BINDING_SCHEMA = "classification_v2.pre_s1_calibration_rgb_binding.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.pre_s1_calibration_data_bindings.v2"
@@ -68,6 +72,7 @@ FRAME_SOURCE_COLUMNS = [
     "dataset_id",
     "video_key",
     "source_video_key",
+    "source_video_path",
     "object_track_key",
     "pig_id",
     "track_id",
@@ -950,6 +955,14 @@ def _sanitize_frame_paths(frames: pd.DataFrame) -> pd.DataFrame:
     )
     sanitized["media_logical_identity"] = identity
     sanitized["resolved_media_path"] = identity
+    try:
+        sanitized = attach_registered_cvat_media_paths(sanitized)
+    except CvatMediaResolutionError as error:
+        raise RgbBindingError(str(error)) from error
+    cvat = sanitized["source_type"].astype(str).eq("cvat_tracking_xml")
+    sanitized.loc[cvat, "resolved_media_path"] = sanitized.loc[
+        cvat, "registered_relative_media_path"
+    ]
     return sanitized
 
 
