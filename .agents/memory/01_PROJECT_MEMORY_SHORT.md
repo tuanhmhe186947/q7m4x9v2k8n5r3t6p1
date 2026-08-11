@@ -780,6 +780,54 @@
 
 
 
+### C2V2-20260812-02 - Overnight clean resolution execution
+
+- Prompt: Execute only registered Classification V2 resolution work through the one-Studio GCP
+  L4 safety contract; otherwise stop at the exact authority or cost gate.
+- Status: `BLOCKED`.
+- Opened: `2026-08-12T00:54:14+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner token SHA256: `459465285452e19dd952ca1530aedc792461c9492a7e19ef8a02aecf11464c4d`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `3`.
+- Lease expires: `2026-08-12T01:30:20+07:00`.
+- Block SHA256: `1bd114c768235ae54c2586db0910d3591fd8bb975215431b5a007974aef08c3e`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `b843e15209edd5d08bcf375d5a3ade9111828ff87b530ddd947520641940bc48`.
+  - Timestamp: 2026-08-12T01:00:20+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - Prior revision: 2
+  - Prior block SHA256: 572a28863fe9ef2082549e6f36730f9f14fb9c37e5e720046421a520922f93b9
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: Recovered same runtime session after prior-handoff owner token was unavailable;
+    current lease and task binding were revalidated.
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: A registered R64 rule is recovered before paid execution; one Studio at most is
+  used; all permitted artifacts are preserved; paid GPU is stopped; canonical authority records
+  the outcome.
+- Skills: `agent-harness-construction`, `project-state-steward`, `dataset-contract-leakage-
+  guard`, `scientific-ablation-controller`, `experiment-lineage-reproducibility`.
+- [ ] `OVR-00` `[BLOCKED]` Recover authoritative R64 and resolution decision rules
+  - Next: User must register the exact R64 reproduction classification logic, tolerances,
+    coverage prerequisites, class guardrails, and R128/R160 continuation rule described in docs/
+    classification_v2/pre_gpu_readiness/r64_control_reproduction_decision_gap_20260812.json.
+- [ ] `OVR-01` `[TODO]` Prepare one clean Studio and CPU gates
+  - Next: Create at most one CPU-first Studio, deploy only canonical bundle, reuse verified
+    transport, and pass all preflight gates.
+- [ ] `OVR-02` `[TODO]` Execute the permitted resolution branch
+  - Next: Pass live GCP L4 price gate, execute R64 and only conditionally R128/R160, then stop
+    paid GPU.
+- [ ] `OVR-03` `[TODO]` Canonicalize results and inspect encoder authority
+  - Next: Preserve and audit results, issue compact authority, and run only authorized next
+    scientific preparation.
+
 ## Previous-Day Closeout
 
 - Source date: `2026-08-11`.

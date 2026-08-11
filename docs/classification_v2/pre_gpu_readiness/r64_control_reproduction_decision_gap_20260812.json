@@ -1,0 +1,82 @@
+{
+  "schema_version": "classification_v2.r64_control_reproduction_decision_gap.v1",
+  "status": "BLOCKED_BEFORE_PAID_EXECUTION",
+  "generated_at": "2026-08-12T00:56:26.0161193+07:00",
+  "canonical_main": "9f4d68429eafbb0c528a55b6e3faca6383efaf83",
+  "blocked_gate": "R64_CONTROL_REPRODUCTION_DECISION_RULE",
+  "rule_lookup": {
+    "required_outcomes": ["CONSISTENT", "MATERIALLY_DIFFERENT", "INCONCLUSIVE"],
+    "searched_canonical_scope": "git-tracked repository at canonical main",
+    "searched_terms": [
+      "R64_CONTROL_REPRODUCTION",
+      "MATERIALLY_DIFFERENT",
+      "CONSISTENT plus INCONCLUSIVE",
+      "R64 tolerance, threshold, or reproduction"
+    ],
+    "result": "NOT_FOUND",
+    "r64_decision_rule_authority_path": null,
+    "r64_decision_rule_authority_sha256": null,
+    "r64_decision_rule_exact_logic": null
+  },
+  "registered_historical_r64_reference": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_stage1_initial_temporal_screen_evidence_20260810.json",
+    "authority_sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1",
+    "trial_id": "s1_stage1_t6_seed20260804_steps4164",
+    "git_sha": "71ad8e4b0827414edfa54152251a23f107fea26a",
+    "resolution": 64,
+    "temporal_view": "T6",
+    "model_realization": "B1_STAGE1_UNCHANGED",
+    "optimizer_steps": 4164,
+    "primary_native_10_class_macro_f1": 0.3629868671396542,
+    "common_cohort_native_macro_f1": 0.41740032693684137,
+    "primary_coverage": "3335/3335; missing=0; duplicate=0; out_of_population=0",
+    "common_cohort_coverage": "27378/27378; missing=0; duplicate=0; out_of_population=0",
+    "fight_primary_native": {"f1": 0.0, "tp": 0, "fp": 84, "fn": 15}
+  },
+  "registered_current_resolution_contract": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/post_s1_t6_resolution_screen_authority_20260811.json",
+    "authority_sha256": "43bba93b7f2f09da21247e50dc4d8e033b373d2e83ce4bdb2822292699fd6385",
+    "status": "USER_APPROVED_PRE_GPU_SCREEN",
+    "arms": [64, 128, 160],
+    "fixed_controls": "T6; B1_STAGE1_UNCHANGED; seed 20260804; 4164 AdamW steps; lr 0.003; weight_decay 0; batch_size 16; FP32; scheduler none",
+    "outer_access_allowed": false,
+    "forbidden_families": ["backbone", "augmentation", "crop_margin", "geometry", "motion", "roi", "social", "h5", "posture"],
+    "missing_from_contract": "No metric tolerance, coverage-to-classification mapping, per-class guardrail threshold, or continuation rule maps a new R64 result to CONSISTENT, MATERIALLY_DIFFERENT, or INCONCLUSIVE."
+  },
+  "registered_resolution_direction": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_post_stage1_resolution_direction_20260810.json",
+    "authority_sha256": "40a728697c8afea158f4f1fe8d2407cfd8140bd810ae60cd920e75112035e963",
+    "one_changed_family": "input_spatial_resolution_only",
+    "candidates": [64, 128, 160],
+    "resolution_ablation_executed": false
+  },
+  "candidate_decision_options_not_selected": [
+    {
+      "option": "Absolute primary-metric reproducibility band",
+      "would_require": "A pre-registered absolute tolerance around the historical primary native-unit macro-F1, complete coverage, and an exact disposition for boundary cases."
+    },
+    {
+      "option": "Paired-output and class-guardrail rule",
+      "would_require": "A pre-registered permitted prediction/metric difference plus explicit per-class and fight guardrails, including how the common cohort remains diagnostic-only."
+    },
+    {
+      "option": "Repeat-variation-informed rule",
+      "would_require": "An explicit authority defining which existing valid repeats quantify expected variation and how their variation maps to the three required outcomes."
+    }
+  ],
+  "required_user_authority": [
+    "Exact R64 outcome logic and all numeric tolerances.",
+    "Coverage and artifact-integrity preconditions for classification.",
+    "Per-class and fight guardrail treatment.",
+    "Whether and when a CONSISTENT result authorizes R128 then R160."
+  ],
+  "actions_intentionally_not_taken": {
+    "studio_created": false,
+    "studio_started": false,
+    "gpu_allocated": false,
+    "paid_gpu_used": false,
+    "permit_minted": false,
+    "remote_storage_mutated": false,
+    "outer_examples_accessed": false
+  }
+}
