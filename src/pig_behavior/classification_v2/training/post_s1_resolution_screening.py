@@ -69,6 +69,7 @@ class ResolutionPlan:
     base_stage1_authority_path: Path
     host_binding_path: Path
     canonical_code_sha: str
+    cvat_source_registration_path: Path
     rgb_source_root: Path
     runtime_input_authority_path: Path
     runtime_input_binding: Mapping[str, Any]
@@ -135,6 +136,10 @@ def create_resolution_plan(
         binding_path=Path(runtime_input_binding_path).resolve(),
         media_root=resolved_media_root,
     )
+    registration_path = _validate_cvat_source_registration(
+        authority,
+        repository_root=resolved_repository,
+    )
     return ResolutionPlan(
         repository_root=resolved_repository,
         outputs_root=Path(outputs_root).resolve(),
@@ -144,6 +149,7 @@ def create_resolution_plan(
         base_stage1_authority_path=Path(base_stage1_authority_path).resolve(),
         host_binding_path=Path(host_binding_path).resolve(),
         canonical_code_sha=canonical_code_sha,
+        cvat_source_registration_path=registration_path,
         rgb_source_root=Path(rgb_source_root).resolve(),
         runtime_input_authority_path=resolved_input_authority,
         runtime_input_binding=runtime_input_binding,
@@ -189,6 +195,7 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
             t6_population_provenance_hashes=rows.data_hashes,
             requested_roles=requested_roles,
             input_resolution=plan.input_resolution,
+            cvat_source_registration_path=plan.cvat_source_registration_path,
         )
     except (PostS1HostBindingError, RemoteInputResolutionError) as error:
         raise PostS1ResolutionError(str(error)) from error
@@ -399,6 +406,7 @@ def _validate_authority(authority: Mapping[str, Any]) -> None:
         "fixed_controls",
         "bound_stage1_authorities",
         "runtime_input_authority",
+        "cvat_source_registration",
         "outer_access_allowed",
         "forbidden_families",
     }
@@ -473,6 +481,42 @@ def _validate_runtime_input_binding(
     return binding
 
 
+def _validate_cvat_source_registration(
+    authority: Mapping[str, Any],
+    *,
+    repository_root: Path,
+) -> Path:
+    """Resolve only the hash-bound source-registration authority in the bundle."""
+
+    reference = authority.get("cvat_source_registration")
+    if not isinstance(reference, Mapping) or set(reference) != {
+        "relative_segments",
+        "filename",
+        "sha256",
+    }:
+        raise PostS1ResolutionError("CVAT source-registration reference is invalid")
+    segments = reference.get("relative_segments")
+    filename = reference.get("filename")
+    expected_sha256 = reference.get("sha256")
+    if (
+        not isinstance(segments, list)
+        or not segments
+        or any(not isinstance(segment, str) or segment in {"", ".", ".."} for segment in segments)
+        or not isinstance(filename, str)
+        or filename in {"", ".", ".."}
+        or "/" in filename
+        or "\\" in filename
+        or not isinstance(expected_sha256, str)
+    ):
+        raise PostS1ResolutionError("CVAT source-registration reference is incomplete")
+    candidate = repository_root.joinpath(*segments, filename).resolve()
+    if not candidate.is_relative_to(repository_root) or not candidate.is_file():
+        raise PostS1ResolutionError("CVAT source-registration authority is unavailable")
+    if _sha256_file(candidate) != expected_sha256:
+        raise PostS1ResolutionError("CVAT source-registration authority hash drifted")
+    return candidate
+
+
 def _assert_l4(plan: ResolutionPlan) -> None:
     if (
         plan.device_name != "cuda"
@@ -506,6 +550,10 @@ def _manifest(
         "authority_sha256": plan.authority_sha256,
         "data_hashes": dict(population.data_hashes),
         "runtime_input": dict(plan.runtime_input_binding),
+        "cvat_source_registration": {
+            "path": str(plan.cvat_source_registration_path),
+            "sha256": _sha256_file(plan.cvat_source_registration_path),
+        },
         "host_binding": {
             "path": str(plan.host_binding_path),
             "canonical_code_sha": plan.canonical_code_sha,

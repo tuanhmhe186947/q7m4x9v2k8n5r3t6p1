@@ -17,6 +17,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.training.cvat_source_registration import (
+    CvatSourceRegistrationError,
+    load_cvat_source_registration,
+)
 from pig_behavior.classification_v2.training.remote_input_resolution import (
     RemoteInputAuthority,
 )
@@ -63,6 +67,7 @@ def ensure_post_s1_t6_host_binding(
     t6_population_provenance_hashes: Mapping[str, str],
     requested_roles: pd.DataFrame,
     input_resolution: int,
+    cvat_source_registration_path: Path | None = None,
 ) -> ResolvedPostS1HostBinding:
     """Accept, or deterministically rematerialize, one derived host binding."""
 
@@ -76,6 +81,7 @@ def ensure_post_s1_t6_host_binding(
         t6_population_provenance_hashes=t6_population_provenance_hashes,
         requested_roles=requested_roles,
         input_resolution=input_resolution,
+        cvat_source_registration_path=cvat_source_registration_path,
     )
     binding_path = Path(binding_path).resolve()
     if binding_path.exists():
@@ -101,6 +107,7 @@ def _expected_identity(
     t6_population_provenance_hashes: Mapping[str, str],
     requested_roles: pd.DataFrame,
     input_resolution: int,
+    cvat_source_registration_path: Path | None,
 ) -> dict[str, Any]:
     if len(canonical_code_sha) != 40 or any(
         character not in "0123456789abcdef" for character in canonical_code_sha
@@ -128,6 +135,14 @@ def _expected_identity(
     if len(t6_population_authority_sha256) != 64:
         raise PostS1HostBindingError("T6 population authority hash is invalid")
     provenance = _normalized_hashes(t6_population_provenance_hashes)
+    registration_sha256 = None
+    if cvat_source_registration_path is not None:
+        try:
+            _, registration_sha256 = load_cvat_source_registration(
+                cvat_source_registration_path
+            )
+        except CvatSourceRegistrationError as error:
+            raise PostS1HostBindingError(str(error)) from error
     return {
         "scientific_identity": {
             "scientific_input_authority_id": input_authority.authority_id,
@@ -149,6 +164,12 @@ def _expected_identity(
             "expected_file_count": input_authority.expected_file_count,
             "expected_total_bytes": input_authority.expected_total_bytes,
             "parity_report_sha256": runtime_input_binding.get("parity_report_sha256"),
+            "cvat_source_registration_path": (
+                str(Path(cvat_source_registration_path).resolve())
+                if cvat_source_registration_path is not None
+                else None
+            ),
+            "cvat_source_registration_sha256": registration_sha256,
         },
         "requested_roles": roles["frame"],
     }
@@ -235,6 +256,13 @@ def _materialize(
                 expected_validation_windows=expected["scientific_identity"][
                     "role_counts"
                 ]["validation"],
+                cvat_source_registration_path=(
+                    Path(expected["runtime_realization"]["cvat_source_registration_path"])
+                    if expected["runtime_realization"].get(
+                        "cvat_source_registration_path"
+                    )
+                    else None
+                ),
             )
         except Stage1RgbBindingError as error:
             raise PostS1HostBindingError(str(error)) from error

@@ -40,6 +40,16 @@
     "filename": "remote_input_root_contract_20260811.json",
     "sha256": "2660b296a2e68df38b3260c77a342a11d30a742b29af59c606380db9fc9d2c89"
   },
+  "cvat_source_registration": {
+    "relative_segments": [
+      "docs",
+      "classification_v2",
+      "corrected_pooled_route_20260806",
+      "next_phase_20260806_r2"
+    ],
+    "filename": "cvat_source_registration_authority_20260811.json",
+    "sha256": "ae733c3c9f41a677e9d7e72eb55739e8723d5fee1174fae196e88df7f61a7114"
+  },
   "outer_access_allowed": false,
   "forbidden_families": [
     "backbone",

@@ -18,6 +18,11 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.training import pre_s1_rgb_binding as _legacy
+from pig_behavior.classification_v2.training.cvat_source_registration import (
+    CvatSourceRegistrationError,
+    audit_cvat_source_path_enrichment,
+    enrich_cvat_source_video_paths,
+)
 
 SCIENTIFIC_RGB_BINDING_SCHEMA = "classification_v2.s1_stage1_temporal_rgb_binding.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.s1_stage1_temporal_data_bindings.v1"
@@ -57,6 +62,7 @@ def materialize_stage1_rgb_binding(
     expected_validation_windows: int,
     input_parity_evidence: Mapping[str, object] | None = None,
     source_integrity_evidence: Mapping[str, object] | None = None,
+    cvat_source_registration_path: Path | None = None,
 ) -> dict[str, object]:
     """Create one immutable Stage-1 binding without rewriting RGB media."""
 
@@ -111,6 +117,18 @@ def materialize_stage1_rgb_binding(
             requested=context_ids,
             columns=_legacy.FRAME_SOURCE_COLUMNS,
         )
+        registration_sha256 = None
+        registration_audit = None
+        if cvat_source_registration_path is not None:
+            before_registration = source_frames.copy(deep=True)
+            source_frames, registration_sha256 = enrich_cvat_source_video_paths(
+                source_frames,
+                registration_path=cvat_source_registration_path,
+            )
+            registration_audit = audit_cvat_source_path_enrichment(
+                before_registration,
+                source_frames,
+            )
         frames = _legacy._sanitize_frame_paths(source_frames)
         frames = frames.sort_values("image_context_id", kind="stable").reset_index(
             drop=True
@@ -121,7 +139,7 @@ def materialize_stage1_rgb_binding(
             requested=context_ids,
             columns=_legacy.PACKED_INDEX_COLUMNS,
         )
-    except _legacy.RgbBindingError as exc:
+    except (_legacy.RgbBindingError, CvatSourceRegistrationError) as exc:
         raise Stage1RgbBindingError(str(exc)) from exc
     packed_index = packed_index.sort_values("image_context_id", kind="stable").reset_index(
         drop=True
@@ -196,6 +214,9 @@ def materialize_stage1_rgb_binding(
         },
         "coverage": audit["coverage"],
     }
+    if registration_sha256 is not None:
+        scientific["source_media"]["cvat_source_registration_sha256"] = registration_sha256
+        scientific["source_media"]["cvat_source_registration_audit"] = registration_audit
     scientific_path = output_dir / "scientific_stage1_rgb_binding.json"
     _legacy._write_json_atomic(scientific_path, scientific)
     data_bindings_path = write_stage1_execution_path_realization(
@@ -749,12 +770,33 @@ def _validate_scientific_binding(
         "source_cache_audit_sha256",
         "source_packed_cache_audit_sha256",
     }
-    if set(source_media) != required_media:
+    allowed_media = required_media | {
+        "cvat_source_registration_sha256",
+        "cvat_source_registration_audit",
+    }
+    if not required_media.issubset(source_media) or not set(source_media).issubset(
+        allowed_media
+    ):
         raise Stage1RgbBindingError("Stage-1 RGB source media fields are invalid")
     if source_media.get("packed_cache_sha256") != source_media.get(
         "source_packed_cache_sha256"
     ):
         raise Stage1RgbBindingError("Stage-1 RGB packed-cache provenance drifted")
+    registration_hash = source_media.get("cvat_source_registration_sha256")
+    if registration_hash is not None and (
+        not isinstance(registration_hash, str) or len(registration_hash) != 64
+    ):
+        raise Stage1RgbBindingError("CVAT source-registration provenance is invalid")
+    registration_audit = source_media.get("cvat_source_registration_audit")
+    if registration_audit is not None and (
+        not isinstance(registration_audit, Mapping)
+        or registration_audit.get("valid") is not True
+        or registration_audit.get("scientific_projection_sha256_before")
+        != registration_audit.get("scientific_projection_sha256_after")
+        or registration_audit.get("review_projection_sha256_before")
+        != registration_audit.get("review_projection_sha256_after")
+    ):
+        raise Stage1RgbBindingError("CVAT source-registration audit is invalid")
 
 
 def _validate_view(view: str, sequence_length: int) -> None:

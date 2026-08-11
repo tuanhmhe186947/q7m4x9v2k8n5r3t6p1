@@ -1,0 +1,103 @@
+{
+  "schema_version": "classification_v2.cvat_source_registration.v1",
+  "status": "ACTIVE_PATH_ONLY_ENRICHMENT",
+  "scope": "current_12_video_cvat_reviewed_rgb_source_locator_only",
+  "scientific_mutation_allowed": "source_video_path_only",
+  "contract": {
+    "CVAT_SOURCE_VIDEO_KEY_IS_SCIENTIFIC_IDENTITY": true,
+    "CVAT_SOURCE_VIDEO_PATH_REQUIRES_CANONICAL_REGISTRATION": true,
+    "CVAT_SOURCE_REGISTRATION_MUST_BE_ONE_TO_ONE": true,
+    "CVAT_SOURCE_REGISTRATION_IS_PATH_ONLY_ENRICHMENT": true,
+    "RAW_CVAT_REBUILD_FOR_SOURCE_PATH_REPAIR": "FORBIDDEN",
+    "FRAME_LEVEL_MANUAL_PATH_PATCHING": "FORBIDDEN",
+    "REVIEW_LAYER_REGENERATION_DURING_PATH_REPAIR": "FORBIDDEN",
+    "LABEL_CHANGE_DURING_PATH_REPAIR": "FORBIDDEN",
+    "SPLIT_CHANGE_DURING_PATH_REPAIR": "FORBIDDEN",
+    "SCIENTIFIC_PROJECTION_MUST_REMAIN_IDENTICAL": true,
+    "REVIEW_PROJECTION_MUST_REMAIN_IDENTICAL": true,
+    "FUZZY_CVAT_VIDEO_RESOLUTION": "FORBIDDEN"
+  },
+  "source_authorities": {
+    "tracking_video_manifest": {
+      "relative_segments": [
+        "docs",
+        "tracking",
+        "b0_b1_prediction_regeneration"
+      ],
+      "filename": "B0_B1_COMMON_EXECUTION_MANIFEST_20260728.json",
+      "sha256": "756ae9ad827b19da2366cdbc9635e92c67a6227bd89aeaf1222afc1e20ad988c"
+    },
+    "cvat_key_canonicalization": {
+      "relative_segments": [
+        "docs",
+        "classification_v2",
+        "corrected_pooled_route_20260806",
+        "next_phase_20260806_r2"
+      ],
+      "filename": "cvat_legacy_duplicate_removal_authority.json",
+      "sha256": "0bc1cb2639c35e68b81437f769458660c5698f22500982a27c59f9716e941d29"
+    }
+  },
+  "registrations": [
+    {
+      "source_video_key": "Pigs281119_000085_30fps",
+      "registered_relative_media_path": "data/videos/Pigs281119_000085_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs281119_000085_30fps"}
+    },
+    {
+      "source_video_key": "Pigs281119_000114_30fps",
+      "registered_relative_media_path": "data/videos/Pigs281119_000114_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs281119_000114_30fps"}
+    },
+    {
+      "source_video_key": "Pigs291119_000216_30fps",
+      "registered_relative_media_path": "data/videos/Pigs291119_000216_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000216_30fps"}
+    },
+    {
+      "source_video_key": "Pigs291119_000225_30fps.mp4",
+      "registered_relative_media_path": "data/videos/Pigs291119_000225_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000225_30fps"}
+    },
+    {
+      "source_video_key": "Pigs291119_000226_30fps",
+      "registered_relative_media_path": "data/videos/Pigs291119_000226_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000226_30fps"}
+    },
+    {
+      "source_video_key": "Pigs291119_000231_30fps",
+      "registered_relative_media_path": "data/videos/Pigs291119_000231_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000231_30fps"}
+    },
+    {
+      "source_video_key": "Pigs291119_000233_30fps",
+      "registered_relative_media_path": "data/videos/Pigs291119_000233_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000233_30fps"}
+    },
+    {
+      "source_video_key": "Pigs301119_000330",
+      "registered_relative_media_path": "data/videos/Pigs301119_000330_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs301119_000330_30fps"}
+    },
+    {
+      "source_video_key": "pigs301119_000327",
+      "registered_relative_media_path": "data/videos/Pigs301119_000327_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs301119_000327_30fps"}
+    },
+    {
+      "source_video_key": "pigs301119_000328",
+      "registered_relative_media_path": "data/videos/Pigs301119_000328_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs301119_000328_30fps"}
+    },
+    {
+      "source_video_key": "pigs301119_000329",
+      "registered_relative_media_path": "data/videos/Pigs301119_000329_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs301119_000329_30fps"}
+    },
+    {
+      "source_video_key": "test video Pigs291119_000302_30fps",
+      "registered_relative_media_path": "data/videos/Pigs291119_000302_30fps.mp4",
+      "source_provenance": {"tracking_video_key": "Pigs291119_000302_30fps"}
+    }
+  ]
+}

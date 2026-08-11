@@ -86,6 +86,7 @@ def _ensure(
     roles: pd.DataFrame | None = None,
     resolution: int = 64,
     name: str = "host-binding.json",
+    cvat_source_registration_path: Path | None = None,
 ) -> binding.ResolvedPostS1HostBinding:
     root = tmp_path / "inputs"
     root.mkdir(exist_ok=True)
@@ -100,6 +101,7 @@ def _ensure(
         t6_population_provenance_hashes={"fold_roles": "e" * 64},
         requested_roles=roles if roles is not None else _roles(),
         input_resolution=resolution,
+        cvat_source_registration_path=cvat_source_registration_path,
     )
 
 
@@ -189,3 +191,43 @@ def test_equivalent_locator_keeps_scientific_identity_and_resolution_only_change
     assert identities[0] == identities[1] == identities[2]
     assert [item["input_resolution"] for item in runtimes] == [64, 128, 160]
     assert runtimes[0]["effective_remote_input_root"] != runtimes[1]["effective_remote_input_root"]
+
+
+def test_cvat_registration_hash_is_runtime_provenance_and_drift_regenerates(
+    tmp_path: Path,
+    fake_stage1: None,
+) -> None:
+    registration = tmp_path / "registration.json"
+    registration.write_text(
+        json.dumps(
+            {
+                "schema_version": "classification_v2.cvat_source_registration.v1",
+                "status": "ACTIVE_PATH_ONLY_ENRICHMENT",
+                "registrations": [
+                    {
+                        "source_video_key": "key-a",
+                        "registered_relative_media_path": "data/videos/a.mp4",
+                        "source_provenance": {"tracking_video_key": "a"},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    initial = _ensure(
+        tmp_path,
+        cvat_source_registration_path=registration,
+    )
+    registration.write_text(
+        registration.read_text(encoding="utf-8").replace("a.mp4", "b.mp4"),
+        encoding="utf-8",
+    )
+    refreshed = _ensure(
+        tmp_path,
+        cvat_source_registration_path=registration,
+    )
+
+    assert initial.regenerated is True
+    assert refreshed.regenerated is True
+    assert refreshed.binding_sha256 != initial.binding_sha256
