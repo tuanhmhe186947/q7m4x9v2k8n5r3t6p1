@@ -1,0 +1,132 @@
+{
+  "schema_version": "classification_v2.r64_control_reproduction_rule.v1",
+  "semantic_identity": "r64_control_reproduction_rule_20260812",
+  "status": "FROZEN_USER_AUTHORIZED_PRE_EXECUTION_RULE",
+  "created_before_new_r64": true,
+  "user_authorized": true,
+  "scope": {
+    "question": "Whether the new post-S1 64x64 path is a valid control bridge for matched R128 and R160 resolution arms.",
+    "engineering_reproducibility_bridge": true,
+    "formal_statistical_equivalence_test": false,
+    "promotion_threshold": false,
+    "outer_test_decision": false,
+    "final_model_selection_rule": false,
+    "paper_facing_superiority_claim": false
+  },
+  "supersedes": {
+    "path": "docs/classification_v2/pre_gpu_readiness/r64_control_reproduction_decision_gap_20260812.json",
+    "sha256": "19843098d260403f5c1b8eb9e68bdde47df86fb0f769da2398ed21f018dde78d",
+    "reason": "The user supplied the exact pre-execution operational rule required by the recorded gap."
+  },
+  "historical_anchor": {
+    "initial_t6_seed20260804": {
+      "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_stage1_initial_temporal_screen_evidence_20260810.json",
+      "authority_sha256": "c356c215abb04312c8268fce5a6159575c376504684772978e7b7b00488f48f1",
+      "trial_id": "s1_stage1_t6_seed20260804_steps4164",
+      "temporal_view": "T6",
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "seed": 20260804,
+      "optimizer_steps": 4164,
+      "primary_native_unit_10_class_macro_f1": 0.3629868671396542,
+      "common_cohort_macro_f1": 0.41740032693684137,
+      "primary_coverage": "3335/3335; missing=0; duplicate=0; out_of_population=0",
+      "common_cohort_coverage": "27378/27378; missing=0; duplicate=0; out_of_population=0"
+    },
+    "non_collapsed_t6_seed20260806_variability_reference": {
+      "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_stage1_temporal_confirmation_evidence_20260810.json",
+      "authority_sha256": "8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338",
+      "trial_id": "s1_stage1_t6_seed20260806_steps4164",
+      "valid": true,
+      "primary_native_unit_10_class_macro_f1": 0.3346715056647214,
+      "common_cohort_macro_f1": 0.4139645985246183,
+      "primary_delta_from_anchor": -0.02831536147493281,
+      "common_delta_from_anchor": -0.0034357284122230666,
+      "primary_coverage": "3335/3335; missing=0; duplicate=0; out_of_population=0",
+      "common_cohort_coverage": "27378/27378; missing=0; duplicate=0; out_of_population=0"
+    },
+    "excluded_collapsed_t6_seed20260805": {
+      "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_t6_seed20260805_forensic_authority_20260811.json",
+      "authority_sha256": "a96a55f72f23ca2c6df90e8b7ba7b32ab3dc47fb492d6232b4557426d373af3d",
+      "forensic_classification": "MODEL_PREDICTION_COLLAPSE_SUPPORTED",
+      "exclusion": "Excluded from empirical non-collapse variability rationale only; historical evidence remains preserved and valid."
+    }
+  },
+  "operational_tolerance": {
+    "absolute_macro_f1_tolerance": 0.03,
+    "apply_independently_to": [
+      "PRIMARY_NATIVE_UNIT_10_CLASS_MACRO_F1",
+      "COMMON_COHORT_MACRO_F1"
+    ],
+    "rationale": "The observed non-collapsed T6 seed20260804 versus seed20260806 primary variation is approximately 0.0283. The 0.03 value is a conservative rounded pre-run operational envelope, not a confidence interval or statistical equivalence margin."
+  },
+  "required_matched_parity": {
+    "fixed_contract": {
+      "temporal_view": "T6",
+      "resolution": 64,
+      "model_realization": "B1_STAGE1_UNCHANGED",
+      "seed": 20260804,
+      "optimizer_steps": 4164,
+      "optimizer": "AdamW",
+      "learning_rate": 0.003,
+      "weight_decay": 0.0,
+      "batch_size": 16,
+      "precision": "FP32",
+      "scheduler": "none",
+      "early_stopping": "DISABLED"
+    },
+    "registered_semantics": [
+      "scientific_input_authority",
+      "inner_train_validation_roles",
+      "event_weights",
+      "class_order",
+      "evaluator",
+      "native_unit_collapse",
+      "common_cohort_projection",
+      "RGB_semantics",
+      "bbox_semantics",
+      "preprocessing_semantics",
+      "permit_semantics",
+      "protected_stage1_executor_semantics"
+    ],
+    "completion_gates": {
+      "permit_validated_and_consumed": true,
+      "completed_optimizer_steps": 4164,
+      "prediction_coverage": "COMPLETE",
+      "primary_metric_available": true,
+      "common_cohort_metric_available": true
+    }
+  },
+  "registered_prediction_collapse_check": {
+    "forensic_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_t6_seed20260805_forensic_authority_20260811.json",
+    "forensic_authority_sha256": "a96a55f72f23ca2c6df90e8b7ba7b32ab3dc47fb492d6232b4557426d373af3d",
+    "native_prediction_checker": "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_native_temporal_predictions.py",
+    "rule": "Apply the existing registered collapse assessment and do not introduce a new collapse threshold in this rule."
+  },
+  "decision_logic": {
+    "deltas": {
+      "delta_primary": "new_primary_macro_f1 - 0.3629868671396542",
+      "delta_common": "new_common_macro_f1 - 0.41740032693684137"
+    },
+    "INCONCLUSIVE": "Any required scientific or technical parity condition cannot be established, including wrong input, seed, optimizer exposure, prediction coverage, evaluator, class order, common-cohort projection, artifact integrity, binding, or another registered invariant failure. A technically unmatched run is never MATERIALLY_DIFFERENT.",
+    "MATERIALLY_DIFFERENT": "Only a valid matched run with abs(delta_primary) > 0.03, abs(delta_common) > 0.03, or a material collapse reported by the registered prediction-collapse check.",
+    "CONSISTENT": "Only a valid matched run with abs(delta_primary) <= 0.03, abs(delta_common) <= 0.03, and a passing registered prediction-collapse check."
+  },
+  "continuation_rule": {
+    "CONSISTENT": "Authorizes matched R128 followed by R160 in this campaign.",
+    "MATERIALLY_DIFFERENT": "Forbids R128 and R160 in this campaign.",
+    "INCONCLUSIVE": "Forbids R128 and R160 in this campaign."
+  },
+  "bound_resolution_contract": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/post_s1_t6_resolution_screen_authority_20260811.json",
+    "authority_sha256": "43bba93b7f2f09da21247e50dc4d8e033b373d2e83ce4bdb2822292699fd6385",
+    "allowed_arms": [64, 128, 160],
+    "outer_access_allowed": false
+  },
+  "runtime_bundle_impact": {
+    "authority_path_is_outside_included_top_level_paths": true,
+    "bundle_invalidated": false,
+    "reused_bundle_sha256": "85b0f07a8820e80952497fc04447386927f623d6bd3c578ac42f10486fda92b3"
+  },
+  "outer_access_allowed": false
+}

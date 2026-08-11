@@ -784,16 +784,16 @@
 
 - Prompt: Execute only registered Classification V2 resolution work through the one-Studio GCP
   L4 safety contract; otherwise stop at the exact authority or cost gate.
-- Status: `BLOCKED`.
+- Status: `TODO`.
 - Opened: `2026-08-12T00:54:14+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner token SHA256: `459465285452e19dd952ca1530aedc792461c9492a7e19ef8a02aecf11464c4d`.
+- Owner token SHA256: `1a0bd55a2a64b8e51daf15db3a481d648d2fb97f4b358491d067b10cad00f39e`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `3`.
-- Lease expires: `2026-08-12T01:30:20+07:00`.
-- Block SHA256: `1bd114c768235ae54c2586db0910d3591fd8bb975215431b5a007974aef08c3e`.
+- Revision: `6`.
+- Lease expires: `2026-08-12T02:00:38+07:00`.
+- Block SHA256: `4968faf7dbf955c16764500625626bdb5aefde3a356ff2e10e4e615f09778865`.
 - Ownership reason: `same-session-token-recovery`.
 - Ownership audit event: `b843e15209edd5d08bcf375d5a3ade9111828ff87b530ddd947520641940bc48`.
   - Timestamp: 2026-08-12T01:00:20+07:00
@@ -809,15 +809,32 @@
   - Reason: Recovered same runtime session after prior-handoff owner token was unavailable;
     current lease and task binding were revalidated.
   - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `a3b4e937f840180b0a1058ad27b3f6b1cc75feb8febc63a037a94b8b679a0f3d`.
+  - Timestamp: 2026-08-12T01:26:23+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - Prior revision: 3
+  - Prior block SHA256: 1bd114c768235ae54c2586db0910d3591fd8bb975215431b5a007974aef08c3e
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: User supplied the explicit R64 bridge; recover the same manager-bound task before
+    registering the pre-execution rule.
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
 - Acceptance: A registered R64 rule is recovered before paid execution; one Studio at most is
   used; all permitted artifacts are preserved; paid GPU is stopped; canonical authority records
   the outcome.
 - Skills: `agent-harness-construction`, `project-state-steward`, `dataset-contract-leakage-
   guard`, `scientific-ablation-controller`, `experiment-lineage-reproducibility`.
-- [ ] `OVR-00` `[BLOCKED]` Recover authoritative R64 and resolution decision rules
-  - Next: User must register the exact R64 reproduction classification logic, tolerances,
-    coverage prerequisites, class guardrails, and R128/R160 continuation rule described in docs/
-    classification_v2/pre_gpu_readiness/r64_control_reproduction_decision_gap_20260812.json.
+- [x] `OVR-00` `[DONE]` Recover authoritative R64 and resolution decision rules
+  - Evidence: Historical R64 anchor and non-collapsed T6 seed20260806 reference verified from
+    preserved machine-readable authorities; user-authorized bridge frozen at
+    docs/classification_v2/pre_gpu_readiness/r64_control_reproduction_rule_20260812.json,
+    SHA256=0f969f4324fed7e57e05d4837e782beb2a5dc97adb4863c5b7f1c6036393f05e; JSON contract,
+    fresh governance, and 33 governance tests PASS; new path is outside the registered runtime
+    bundle.
 - [ ] `OVR-01` `[TODO]` Prepare one clean Studio and CPU gates
   - Next: Create at most one CPU-first Studio, deploy only canonical bundle, reuse verified
     transport, and pass all preflight gates.
