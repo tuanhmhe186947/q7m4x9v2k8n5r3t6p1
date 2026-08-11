@@ -1,5 +1,21 @@
 # Current Decision
 
+## 2026-08-11 Classification V2 post-S1 canonical remote package rule
+
+- Status: `IN_PROGRESS`; this is an engineering deployment repair, not a new
+  scientific experiment or a performance claim.
+- `REMOTE_SCIENTIFIC_CODE_DEPLOYMENT_MODE=SINGLE_CANONICAL_BUNDLE`.
+- The bundle is derived from exact canonical Git objects, excludes all working
+  tree dirt, records its canonical Git SHA and SHA256, and replaces all
+  piecemeal remote module copying.
+- Local and remote import closure must prove that every critical post-S1 module
+  resolves from the bundle before input binding, real-media preflight, or an
+  optimizer step. Any import or hash mismatch fails closed.
+- The only permitted scientific comparison remains the sequential T6/B1
+  resolution screen: R64 first, then R128 and R160 only after R64 control
+  acceptance. Inputs, labels, folds, seed, event weights, and 4,164 steps are
+  unchanged; no outer access, H5, posture, Stage 2, or backbone experiment.
+
 ## 2026-08-10 Lightning resource naming contract
 
 - `LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2`.

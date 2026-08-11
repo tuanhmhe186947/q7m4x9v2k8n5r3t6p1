@@ -1,5 +1,27 @@
 # Workflow
 
+## 2026-08-11 Classification V2 canonical remote code deployment
+
+Before any post-S1 scientific run, export one compact runtime bundle directly
+from the final canonical Git SHA. Include the complete tracked runtime closure
+(`src/pig_behavior`, `scripts/classification_v2`, root packaging files, and
+the required corrected-route authority); exclude `.git`, datasets, outputs,
+caches, virtual environments, temporary worktrees, and all working-tree dirt.
+
+Record the canonical Git SHA, archive SHA256, size, file count, included paths,
+and critical-entrypoint hashes in the bundle manifest. Extract and prove the
+exact package locally under an isolated import path before starting Lightning.
+The proof must cover `resolution_pipeline`, `stage1_temporal_screening`,
+`remote_input_resolution`, host binding, the resolution executor, and its
+non-training CLI path.
+
+Transfer the archive and manifest once, verify its SHA256 remotely before an
+atomic extraction under a canonical-SHA-specific directory, then repeat the
+isolated import proof there. PIECEMEAL_REMOTE_MODULE_COPYING is forbidden. A
+hash or import-source mismatch fails closed before input binding, media decode,
+or optimizer execution. Reuse the already verified remote inputs; do not
+retransmit them.
+
 ## 2026-08-10 Lightning active-resource preflight
 
 All future Lightning scientific execution must validate exact resource types
