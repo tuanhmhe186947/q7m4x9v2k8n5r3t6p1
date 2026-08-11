@@ -784,16 +784,16 @@
 
 - Prompt: Execute only registered Classification V2 resolution work through the one-Studio GCP
   L4 safety contract; otherwise stop at the exact authority or cost gate.
-- Status: `BLOCKED`.
+- Status: `IN_PROGRESS`.
 - Opened: `2026-08-12T00:54:14+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner token SHA256: `3b5787f0ba1f0f5daea495a698207bb54d71fe3e3710694c50996ee20e09b989`.
+- Owner token SHA256: `2fcce5e723578e2d88e426fb69a5edde0009588694ab1a19e62fcc27608f9e26`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `9`.
-- Lease expires: `2026-08-12T02:14:14+07:00`.
-- Block SHA256: `57bfc208b60b7e619605c35d91bdd14c8367cdbb50351785745452c6f2d67a08`.
+- Revision: `11`.
+- Lease expires: `2026-08-12T02:55:59+07:00`.
+- Block SHA256: `80c34eafb7bae923f2ae24c64f5600d64a1e5fcdd768a9b0485fb06d70da6958`.
 - Ownership reason: `same-session-token-recovery`.
 - Ownership audit event: `b843e15209edd5d08bcf375d5a3ade9111828ff87b530ddd947520641940bc48`.
   - Timestamp: 2026-08-12T01:00:20+07:00
@@ -836,6 +836,19 @@
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - Reason: normal same-runtime recovery after handoff; resume OVR-01 from local gates
   - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `09670017b0765974635dc3f70ed602ae64dee8835f2869c2a57b2c950fc9a6e1`.
+  - Timestamp: 2026-08-12T02:25:52+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - Prior revision: 9
+  - Prior block SHA256: 57bfc208b60b7e619605c35d91bdd14c8367cdbb50351785745452c6f2d67a08
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: resume same-runtime
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
 - Acceptance: A registered R64 rule is recovered before paid execution; one Studio at most is
   used; all permitted artifacts are preserved; paid GPU is stopped; canonical authority records
   the outcome.
@@ -848,9 +861,9 @@
     SHA256=0f969f4324fed7e57e05d4837e782beb2a5dc97adb4863c5b7f1c6036393f05e; JSON contract,
     fresh governance, and 33 governance tests PASS; new path is outside the registered runtime
     bundle.
-- [ ] `OVR-01` `[BLOCKED]` Prepare one clean Studio and CPU gates
-  - Next: Obtain action-time user authorization for a specific non-paid template or other clean
-    creation route before creating pig-gpu-l4-gcp; leave compute off.
+- [ ] `OVR-01` `[IN_PROGRESS]` Prepare one clean Studio and CPU gates
+  - Next: Inspect the authenticated Lightning UI and official non-browser controls for a blank
+    Studio creation route without selecting a template or AI Builder.
 - [ ] `OVR-02` `[TODO]` Execute the permitted resolution branch
   - Next: Pass live GCP L4 price gate, execute R64 and only conditionally R128/R160, then stop
     paid GPU.
