@@ -75,6 +75,9 @@ class ResolutionPlan:
     runtime_input_binding: Mapping[str, Any]
     media_root: Path
     output_dir: Path
+    stage1_data_bindings_path: Path
+    stage1_binding_bundle_path: Path
+    execution_permit_path: Path
     trial_id: str
     input_resolution: int
     device_name: str
@@ -85,6 +88,7 @@ class ResolutionPopulation:
     """Inner-only B1 data with an on-the-fly resolution realization."""
 
     rows: stage1.Stage1Rows
+    stage1_plan: stage1.Stage1Plan
     binding: ResolutionIndependentRGBBinding
     data_hashes: Mapping[str, str]
     load_batch: Any
@@ -96,6 +100,9 @@ def create_resolution_plan(
     *,
     repository_root: Path,
     outputs_root: Path,
+    stage1_data_bindings_path: Path,
+    stage1_binding_bundle_path: Path,
+    execution_permit_path: Path,
     base_stage1_authority_path: Path,
     host_binding_path: Path,
     canonical_code_sha: str,
@@ -155,6 +162,9 @@ def create_resolution_plan(
         runtime_input_binding=runtime_input_binding,
         media_root=resolved_media_root,
         output_dir=resolved_output,
+        stage1_data_bindings_path=Path(stage1_data_bindings_path).resolve(),
+        stage1_binding_bundle_path=Path(stage1_binding_bundle_path).resolve(),
+        execution_permit_path=Path(execution_permit_path).resolve(),
         trial_id=trial_id,
         input_resolution=input_resolution,
         device_name=device_name,
@@ -170,9 +180,12 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
         seed=SEED,
         repository_root=plan.repository_root,
         outputs_root=plan.outputs_root,
+        output_dir=plan.output_dir,
+        data_bindings_path=plan.stage1_data_bindings_path,
+        execution_permit_path=plan.execution_permit_path,
+        binding_bundle_path=plan.stage1_binding_bundle_path,
         trial_id="s1_stage1_t6_seed20260804_steps4164",
-        device_name="cpu",
-        allow_existing_output=True,
+        device_name=plan.device_name,
     )
     hashes = stage1.preflight_stage1(base)
     rows = stage1.load_stage1_inner_rows(base, hashes)
@@ -254,6 +267,7 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
 
     return ResolutionPopulation(
         rows=rows,
+        stage1_plan=base,
         binding=binding,
         data_hashes={
             **rows.data_hashes,
@@ -282,6 +296,19 @@ def run_resolution_arm(
         raise PostS1ResolutionError("steps must be in 1..4164")
     if steps == MAX_STEPS:
         _assert_l4(plan)
+        inherited_population = stage1.Stage1Population(
+            train=population.rows.train,
+            validation=population.rows.validation,
+            expected_native_units=population.rows.expected_native_units,
+            common_cohort_native_units=population.rows.common_cohort_native_units,
+            load_batch=population.load_batch,
+            close=population.close,
+            data_hashes=population.data_hashes,
+        )
+        return stage1.run_stage1_temporal_screening(
+            population.stage1_plan,
+            inherited_population,
+        )
     elif plan.device_name != "cpu":
         raise PostS1ResolutionError("representative short gate is CPU-only")
     plan.output_dir.mkdir(parents=True, exist_ok=False)

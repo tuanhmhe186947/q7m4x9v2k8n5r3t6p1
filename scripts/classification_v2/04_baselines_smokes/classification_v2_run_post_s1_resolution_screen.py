@@ -28,6 +28,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--media-root", required=True, type=Path)
     parser.add_argument("--repository-root", required=True, type=Path)
     parser.add_argument("--outputs-root", required=True, type=Path)
+    parser.add_argument("--stage1-data-bindings", required=True, type=Path)
+    parser.add_argument("--stage1-binding-bundle", required=True, type=Path)
+    parser.add_argument("--execution-permit", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--trial-id", required=True)
     parser.add_argument("--input-resolution", required=True, type=int)
@@ -44,6 +47,9 @@ def main() -> None:
         args.authority,
         repository_root=args.repository_root,
         outputs_root=args.outputs_root,
+        stage1_data_bindings_path=args.stage1_data_bindings,
+        stage1_binding_bundle_path=args.stage1_binding_bundle,
+        execution_permit_path=args.execution_permit,
         base_stage1_authority_path=args.base_stage1_authority,
         host_binding_path=args.host_binding_path,
         canonical_code_sha=args.canonical_code_sha,

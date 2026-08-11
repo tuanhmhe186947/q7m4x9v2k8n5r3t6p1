@@ -25,6 +25,9 @@ from pig_behavior.classification_v2.datasets.resolution_pipeline import (
     scan_legacy_jpeg_headers,
     storage_projection,
 )
+from pig_behavior.classification_v2.training import (
+    post_s1_resolution_screening as post_s1,
+)
 from pig_behavior.classification_v2.training.post_s1_resolution_screening import (
     PostS1ResolutionError,
     _validate_runtime_input_binding,
@@ -444,3 +447,51 @@ def test_resolution_runner_requires_verified_root_binding_for_media_root(
             binding_path=binding_path,
             media_root=tmp_path / "other-inputs",
         )
+
+
+def test_full_resolution_arm_delegates_to_inherited_stage1_executor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inherited_plan = object()
+    rows = SimpleNamespace(
+        train=pd.DataFrame({"window_id": ["train"]}),
+        validation=pd.DataFrame({"window_id": ["validation"]}),
+        expected_native_units=pd.DataFrame({"native_unit_id": ["native"]}),
+        common_cohort_native_units=pd.DataFrame({"native_unit_id": ["native"]}),
+    )
+    population = SimpleNamespace(
+        rows=rows,
+        stage1_plan=inherited_plan,
+        load_batch=object(),
+        close=object(),
+        data_hashes={"post_s1_host_binding": "binding"},
+    )
+    plan = SimpleNamespace(device_name="cuda")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        post_s1,
+        "_assert_l4",
+        lambda value: captured.setdefault("l4", value),
+    )
+
+    def run_inherited(plan_value: object, population_value: object) -> dict[str, object]:
+        captured["plan"] = plan_value
+        captured["population"] = population_value
+        return {"status": "PASS", "executor": "inherited"}
+
+    monkeypatch.setattr(
+        post_s1.stage1,
+        "run_stage1_temporal_screening",
+        run_inherited,
+    )
+
+    assert post_s1.run_resolution_arm(plan, population, steps=4164) == {
+        "status": "PASS",
+        "executor": "inherited",
+    }
+    assert captured["l4"] is plan
+    assert captured["plan"] is inherited_plan
+    inherited_population = captured["population"]
+    assert inherited_population.load_batch is population.load_batch
+    assert inherited_population.data_hashes == population.data_hashes

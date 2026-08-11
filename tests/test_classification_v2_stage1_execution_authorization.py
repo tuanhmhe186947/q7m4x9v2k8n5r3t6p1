@@ -1161,5 +1161,55 @@ def test_cuda_plan_requires_bound_permit_before_data_access(tmp_path: Path) -> N
             outputs_root=outputs,
             trial_id=authorization.canonical_trial_id("T6"),
             device_name="cuda",
-            engineering_smoke=False,
-        )
+        engineering_smoke=False,
+    )
+
+
+def test_real_executor_validates_fixture_binding_and_permit_before_optimizer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run the protected executor through validation without an optimizer step."""
+    outputs, _bundle, permits, scientific = _permits(tmp_path, monkeypatch)
+    data_bindings = _data_bindings(tmp_path, scientific["T6"])
+    authority, authority_sha256 = _authority()
+    seed_authorization = stage1.validate_stage1_seed_authorization(
+        authority_path=AUTHORITY,
+        authority=authority,
+        authority_sha256=authority_sha256,
+        seed=authorization.SEED,
+        view="T6",
+        confirmation_authority_path=None,
+    )
+    plan = stage1.Stage1Plan(
+        repository_root=ROOT,
+        outputs_root=outputs,
+        authority_path=AUTHORITY,
+        authority_sha256=authority_sha256,
+        authority=authority,
+        view="T6",
+        seed=authorization.SEED,
+        seed_authorization=seed_authorization,
+        output_dir=outputs / "boundary-t6",
+        trial_id=authorization.canonical_trial_id("T6"),
+        engineering_smoke=False,
+        device_name="cpu",
+        data_bindings_path=data_bindings,
+        execution_permit=permits["T6"],
+        allow_consumed_execution_permit=False,
+    )
+
+    class OptimizerBoundary(RuntimeError):
+        pass
+
+    monkeypatch.setattr(stage1, "_assert_execution_hardware", lambda _plan: None)
+    monkeypatch.setattr(
+        stage1.torch.optim,
+        "AdamW",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OptimizerBoundary()),
+    )
+
+    with pytest.raises(OptimizerBoundary):
+        stage1.run_stage1_temporal_screening(plan, SimpleNamespace())
+
+    assert not permits["T6"].path.exists()
