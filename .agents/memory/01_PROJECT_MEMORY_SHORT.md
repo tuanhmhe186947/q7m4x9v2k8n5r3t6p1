@@ -784,16 +784,16 @@
 
 - Prompt: Execute only registered Classification V2 resolution work through the one-Studio GCP
   L4 safety contract; otherwise stop at the exact authority or cost gate.
-- Status: `TODO`.
+- Status: `BLOCKED`.
 - Opened: `2026-08-12T00:54:14+07:00`.
 - Concurrency: `atomic-v1`.
 - Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner token SHA256: `1a0bd55a2a64b8e51daf15db3a481d648d2fb97f4b358491d067b10cad00f39e`.
+- Owner token SHA256: `3b5787f0ba1f0f5daea495a698207bb54d71fe3e3710694c50996ee20e09b989`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `6`.
-- Lease expires: `2026-08-12T02:00:38+07:00`.
-- Block SHA256: `4968faf7dbf955c16764500625626bdb5aefde3a356ff2e10e4e615f09778865`.
+- Revision: `9`.
+- Lease expires: `2026-08-12T02:14:14+07:00`.
+- Block SHA256: `57bfc208b60b7e619605c35d91bdd14c8367cdbb50351785745452c6f2d67a08`.
 - Ownership reason: `same-session-token-recovery`.
 - Ownership audit event: `b843e15209edd5d08bcf375d5a3ade9111828ff87b530ddd947520641940bc48`.
   - Timestamp: 2026-08-12T01:00:20+07:00
@@ -823,6 +823,19 @@
   - Reason: User supplied the explicit R64 bridge; recover the same manager-bound task before
     registering the pre-execution rule.
   - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Ownership audit event: `38bd7421359ea1252b0ab93051f078a8939e3218d077b75b46ff61eabb364c65`.
+  - Timestamp: 2026-08-12T01:40:00+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - Prior revision: 7
+  - Prior block SHA256: 9c864c18d99746f3cd73878258e1cd1cecd9b802db47314e2622628c61ba9d7f
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: normal same-runtime recovery after handoff; resume OVR-01 from local gates
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
 - Acceptance: A registered R64 rule is recovered before paid execution; one Studio at most is
   used; all permitted artifacts are preserved; paid GPU is stopped; canonical authority records
   the outcome.
@@ -835,9 +848,9 @@
     SHA256=0f969f4324fed7e57e05d4837e782beb2a5dc97adb4863c5b7f1c6036393f05e; JSON contract,
     fresh governance, and 33 governance tests PASS; new path is outside the registered runtime
     bundle.
-- [ ] `OVR-01` `[TODO]` Prepare one clean Studio and CPU gates
-  - Next: Create at most one CPU-first Studio, deploy only canonical bundle, reuse verified
-    transport, and pass all preflight gates.
+- [ ] `OVR-01` `[BLOCKED]` Prepare one clean Studio and CPU gates
+  - Next: Obtain action-time user authorization for a specific non-paid template or other clean
+    creation route before creating pig-gpu-l4-gcp; leave compute off.
 - [ ] `OVR-02` `[TODO]` Execute the permitted resolution branch
   - Next: Pass live GCP L4 price gate, execute R64 and only conditionally R128/R160, then stop
     paid GPU.
