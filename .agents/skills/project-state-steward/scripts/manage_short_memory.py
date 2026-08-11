@@ -23,7 +23,9 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[4]
 MEMORY_RELATIVE = Path(".agents/memory/01_PROJECT_MEMORY_SHORT.md")
 LOCK_RELATIVE = Path(".agents/runtime/short_memory.lock")
+TASK_HISTORY_RELATIVE = Path(".agents/memory/managed_task_history")
 CONCURRENCY_SCHEMA = "atomic-v1"
+TASK_ARCHIVE_SCHEMA = "managed-task-archive-v1"
 DEFAULT_LEASE_SECONDS = 1800
 MAX_LEASE_SECONDS = 86400
 RUNTIME_SESSION_ENV = "CODEX_THREAD_ID"
@@ -402,6 +404,207 @@ def _line_value(block: str, label: str) -> str | None:
 
 def raw_block_sha256(block: str) -> str:
     return _sha256_text(block)
+
+
+def _archive_values(block: str) -> dict[str, str] | None:
+    """Return integrity anchors for a compacted task, rejecting partial state."""
+    labels = (
+        "Archive reference",
+        "Archive SHA256",
+        "Archived content SHA256",
+        "Pre-compaction revision",
+        "Pre-compaction Block SHA256",
+    )
+    values = {label: _line_value(block, label) for label in labels}
+    if not any(values.values()):
+        return None
+    missing = [label for label, value in values.items() if value is None]
+    if missing:
+        raise LedgerError(
+            "archive_metadata_missing",
+            f"Compacted task archive metadata is incomplete: {', '.join(missing)}.",
+            "Restore the active block from the manager-controlled archive transition.",
+            "Do not infer or manually complete archive metadata.",
+        )
+    archive_sha = values["Archive SHA256"] or ""
+    content_sha = values["Archived content SHA256"] or ""
+    if not HEX_SHA256_RE.fullmatch(archive_sha) or not HEX_SHA256_RE.fullmatch(content_sha):
+        raise LedgerError(
+            "archive_hash_invalid",
+            "Compacted task archive hashes must be lowercase SHA-256 values.",
+            "Inspect the manager-created archive and active integrity anchors.",
+            "Do not accept malformed archive hashes.",
+        )
+    try:
+        revision = int(values["Pre-compaction revision"] or "")
+    except ValueError as exc:
+        raise LedgerError(
+            "archive_revision_invalid",
+            "Pre-compaction revision must be a positive integer.",
+            "Restore the manager-generated archive metadata.",
+            "Do not guess archive lineage.",
+        ) from exc
+    if revision < 1 or not HEX_SHA256_RE.fullmatch(
+        values["Pre-compaction Block SHA256"] or ""
+    ):
+        raise LedgerError(
+            "archive_lineage_invalid",
+            "Compacted task archive lineage is invalid.",
+            "Inspect the manager-generated archive metadata.",
+            "Do not continue from an unverifiable compacted task.",
+        )
+    return {
+        "reference": values["Archive reference"] or "",
+        "archive_sha256": archive_sha,
+        "content_sha256": content_sha,
+        "pre_revision": str(revision),
+        "pre_block_sha256": values["Pre-compaction Block SHA256"] or "",
+    }
+
+
+def _archive_path(root: Path, task_id: str, revision: int) -> Path:
+    return root / TASK_HISTORY_RELATIVE / task_id / f"revision-{revision:06d}.json"
+
+
+def _archive_reference(root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as exc:
+        raise LedgerError(
+            "archive_path_outside_root",
+            "Task archive path must remain within the coordination root.",
+            "Use the manager-controlled task history location.",
+            "Do not place managed history in an external or user-owned path.",
+        ) from exc
+
+
+def _write_task_archive(
+    root: Path,
+    *,
+    task_id: str,
+    block: str,
+    metadata: dict[str, Any],
+    timestamp: datetime,
+) -> dict[str, str]:
+    """Persist the exact pre-compaction block before replacing its short form."""
+    path = _archive_path(root, task_id, metadata["revision"])
+    if path.exists():
+        raise LedgerError(
+            "archive_already_exists",
+            (
+                "Immutable history already exists for "
+                f"{task_id} revision {metadata['revision']}."
+            ),
+            (
+                "Inspect whether the task has already been compacted or reconcile "
+                "the failed transition."
+            ),
+            "Do not overwrite manager-controlled historical evidence.",
+        )
+    content_sha256 = raw_block_sha256(block)
+    payload = {
+        "archive_schema": TASK_ARCHIVE_SCHEMA,
+        "archived_at": _iso_seconds(timestamp),
+        "content": block,
+        "content_sha256": content_sha256,
+        "pre_compaction_block_sha256": metadata["block_sha256"],
+        "pre_compaction_revision": metadata["revision"],
+        "task_id": task_id,
+    }
+    serialized = json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_write(path, serialized)
+    return {
+        "reference": _archive_reference(root, path),
+        "archive_sha256": _sha256_text(serialized),
+        "content_sha256": content_sha256,
+    }
+
+
+def _verify_task_archive(root: Path, task_id: str, block: str) -> dict[str, Any] | None:
+    """Verify the archive is lossless and anchored by the compact active block."""
+    values = _archive_values(block)
+    if values is None:
+        return None
+    path = (root / values["reference"]).resolve()
+    expected_parent = (root / TASK_HISTORY_RELATIVE / task_id).resolve()
+    try:
+        path.relative_to(expected_parent)
+    except ValueError as exc:
+        raise LedgerError(
+            "archive_reference_invalid",
+            "Compacted task archive reference escapes its manager-controlled task history.",
+            "Restore the active continuation from a verified manager checkpoint.",
+            "Do not follow arbitrary archive paths.",
+        ) from exc
+    if path.suffix != ".json" or not path.is_file():
+        raise LedgerError(
+            "archive_missing",
+            "Compacted task archive is unavailable.",
+            "Restore the immutable archive before resuming the task.",
+            "Do not infer history from the compact continuation.",
+        )
+    serialized = path.read_bytes().decode("utf-8")
+    if not secrets.compare_digest(_sha256_text(serialized), values["archive_sha256"]):
+        raise LedgerError(
+            "archive_hash_mismatch",
+            "Compacted task archive bytes do not match the active integrity anchor.",
+            "Stop and restore the manager-controlled archive from verified storage.",
+            "Do not resume from tampered or drifted history.",
+        )
+    try:
+        payload = json.loads(serialized)
+    except json.JSONDecodeError as exc:
+        raise LedgerError(
+            "archive_json_invalid",
+            "Compacted task archive is not valid JSON.",
+            "Restore the immutable manager-generated archive.",
+            "Do not reconstruct historical content manually.",
+        ) from exc
+    if not isinstance(payload, dict) or payload.get("archive_schema") != TASK_ARCHIVE_SCHEMA:
+        raise LedgerError(
+            "archive_schema_invalid",
+            "Compacted task archive does not use the supported archive schema.",
+            "Restore the manager-generated archive.",
+            "Do not accept an unversioned task-history record.",
+        )
+    content = payload.get("content")
+    if payload.get("task_id") != task_id or not isinstance(content, str):
+        raise LedgerError(
+            "archive_content_invalid",
+            "Compacted task archive does not identify the expected task content.",
+            "Restore the correct manager-generated archive.",
+            "Do not continue from mismatched historical evidence.",
+        )
+    if not secrets.compare_digest(raw_block_sha256(content), values["content_sha256"]):
+        raise LedgerError(
+            "archive_content_hash_mismatch",
+            "Archived task content does not match its active content integrity anchor.",
+            "Restore the immutable manager-generated archive.",
+            "Do not resume from altered history.",
+        )
+    archived = parse_managed_task(content)
+    if archived is None or archived["revision"] != int(values["pre_revision"]):
+        raise LedgerError(
+            "archive_history_invalid",
+            "Archived task content is not a valid managed predecessor.",
+            "Restore the manager-created historical block.",
+            "Do not fabricate a predecessor revision.",
+        )
+    if not secrets.compare_digest(archived["block_sha256"], values["pre_block_sha256"]):
+        raise LedgerError(
+            "archive_chain_mismatch",
+            "Archived predecessor block hash does not match the active chain anchor.",
+            "Restore the matching manager-generated history record.",
+            "Do not continue from a broken task hash chain.",
+        )
+    return {
+        "archive_reference": values["reference"],
+        "archive_sha256": values["archive_sha256"],
+        "archived_content_sha256": values["content_sha256"],
+        "pre_compaction_revision": archived["revision"],
+        "pre_compaction_block_sha256": archived["block_sha256"],
+    }
 
 
 def managed_block_sha256(block: str) -> str:
@@ -784,7 +987,7 @@ def exclusive_file_lock(path: Path, timeout_seconds: float) -> Iterator[None]:
 
 
 def _atomic_write(path: Path, text: str) -> None:
-    mode = stat.S_IMODE(path.stat().st_mode)
+    mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o644
     file_descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent,
         prefix=f".{path.name}.",
@@ -1200,6 +1403,118 @@ def _set_task_status(block: str, status_value: str) -> str:
     return replacement
 
 
+def _compact_task_block(
+    block: str,
+    *,
+    task_id: str,
+    phase: str,
+    blocker: str | None,
+    resume_point: str,
+    authority_refs: list[str],
+    canonical_sha: str | None,
+    archive: dict[str, str],
+) -> str:
+    """Render a bounded continuation whose complete predecessor is archived."""
+    heading = next(
+        (line for line in block.splitlines() if line.startswith(f"### {task_id} - ")),
+        None,
+    )
+    if heading is None:
+        raise LedgerError(
+            "task_heading_missing",
+            "Managed task heading is unavailable for compaction.",
+            "Restore the task block before attempting a manager transition.",
+            "Do not invent a replacement task identity.",
+        )
+    title = heading.split(" - ", 1)[1].strip()
+    status = _task_status(block)
+    if status in TERMINAL_STATES:
+        raise LedgerError(
+            "compaction_terminal_task",
+            "Terminal tasks do not require active-state compaction.",
+            "Use rollover to archive completed task context.",
+            "Do not create a continuation for completed work.",
+        )
+    if status == "BLOCKED" and not blocker:
+        raise LedgerError(
+            "compaction_blocker_required",
+            "A blocked task must retain its current blocker in compact form.",
+            "Provide the exact current blocker before compaction.",
+            "Do not hide a blocked state behind archival shorthand.",
+        )
+    opened = _line_value(block, "Opened")
+    if not opened:
+        raise LedgerError(
+            "task_opened_missing",
+            "Managed task has no Opened metadata for compact continuation.",
+            "Restore the task block through a verified manager checkpoint.",
+            "Do not invent task lifecycle metadata.",
+        )
+    clean_phase = _clean_scalar(phase, "phase", 120)
+    clean_resume = _clean_scalar(resume_point, "resume_point", 800)
+    clean_refs = [_clean_scalar(ref, "authority_ref", 240) for ref in authority_refs]
+    if not clean_refs:
+        raise LedgerError(
+            "compaction_authority_required",
+            "Compaction requires at least one retained authority reference.",
+            "Provide the current authority or result reference for continuation.",
+            "Do not discard the basis for future task actions.",
+        )
+    clean_blocker = _clean_scalar(blocker, "blocker", 800) if blocker else None
+    clean_sha = _clean_scalar(canonical_sha, "canonical_sha", 64) if canonical_sha else None
+    if clean_sha and not re.fullmatch(r"[0-9a-f]{7,64}", clean_sha):
+        raise LedgerError(
+            "canonical_sha_invalid",
+            "Canonical SHA must be a lowercase Git hash prefix or full hash.",
+            "Provide the verified canonical Git SHA.",
+            "Do not record an ambiguous code authority.",
+        )
+    nl = _newline(block)
+    step_id = f"{task_id.rsplit('-', 2)[0]}-99"
+    lines = [f"### {task_id} - {title}{nl}", nl]
+    lines.extend(
+        _wrap_field(
+            "Prompt",
+            "Continue from immutable managed history through the recorded phase and resume point.",
+            nl,
+        )
+    )
+    lines.append(f"- Status: `{status}`.{nl}")
+    lines.append(f"- Opened: `{opened}`.{nl}")
+    lines.extend(
+        _wrap_field(
+            "Acceptance",
+            "Archive integrity and active continuation metadata remain verifiable.",
+            nl,
+        )
+    )
+    lines.extend(_wrap_field("Phase", clean_phase, nl))
+    if clean_blocker:
+        lines.extend(_wrap_field("Blocker", clean_blocker, nl))
+    lines.extend(_wrap_field("Resume point", clean_resume, nl))
+    lines.extend(_wrap_field("Authority references", "; ".join(clean_refs), nl))
+    if clean_sha:
+        lines.append(f"- Canonical SHA: `{clean_sha}`.{nl}")
+    lines.append(f"- Archive reference: `{archive['reference']}`.{nl}")
+    lines.append(f"- Archive SHA256: `{archive['archive_sha256']}`.{nl}")
+    lines.append(f"- Archived content SHA256: `{archive['content_sha256']}`.{nl}")
+    lines.append(f"- Pre-compaction revision: `{archive['pre_revision']}`.{nl}")
+    lines.append(f"- Pre-compaction Block SHA256: `{archive['pre_block_sha256']}`.{nl}")
+    lines.append(nl)
+    lines.append(f"- [ ] `{step_id}` `[{status}]` Resume archived task from compact state.{nl}")
+    lines.extend(_wrap_detail("Next", clean_resume, nl))
+    lines.append(nl)
+    compacted = "".join(lines)
+    if len(compacted.splitlines()) > 120:
+        raise LedgerError(
+            "compaction_line_budget_exceeded",
+            "Compact continuation would still exceed the 120-line active-task limit.",
+            "Shorten retained continuation fields and retry through the manager.",
+            "Do not weaken the short-memory governance limit.",
+        )
+    return compacted
+
+
 class ShortMemoryLedger:
     """Locked, compare-and-swap interface to the shared short-memory ledger."""
 
@@ -1235,7 +1550,12 @@ class ShortMemoryLedger:
         with self._locked():
             text = self._read()
             span = _task_span(text, task_id)
-            return _describe(task_id, span["block"], _now(now))
+            result = _describe(task_id, span["block"], _now(now))
+            archive = _verify_task_archive(self.root, task_id, span["block"])
+            if archive:
+                result.update(archive)
+                result["active_task_line_count"] = len(span["block"].splitlines())
+            return result
 
     def rollover(self, now: datetime | None = None) -> dict[str, Any]:
         current = _now(now)
@@ -1394,7 +1714,7 @@ class ShortMemoryLedger:
         *,
         task_id: str,
         owner_session: str,
-        owner_token: str,
+        owner_token: str | None,
         worktree: Path,
         expected_revision: int,
         expected_recorded_block_sha256: str,
@@ -1654,6 +1974,199 @@ class ShortMemoryLedger:
             mutation=mutate,
             now=now,
         )
+
+    def compact(
+        self,
+        *,
+        task_id: str,
+        owner_session: str,
+        owner_token: str,
+        worktree: Path,
+        expected_revision: int,
+        expected_block_sha256: str,
+        phase: str,
+        blocker: str | None,
+        resume_point: str,
+        authority_refs: list[str],
+        canonical_sha: str | None = None,
+        same_session_recovery: bool = False,
+        new_owner_token: str | None = None,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Archive exact task bytes and replace them with a bounded continuation."""
+        current = _now(now)
+        owner = _validate_owner(owner_session)
+        resolved_worktree = _resolve_path(worktree)
+        lease = current + timedelta(seconds=_validate_lease_seconds(lease_seconds))
+        if owner_token is not None and len(owner_token) < 16:
+            raise LedgerError(
+                "owner_token_weak",
+                "Compaction requires a private owner token with at least 16 characters.",
+                "Use the token retained by the task-owning session.",
+                "Do not mutate public managed metadata alone.",
+            )
+        with self._locked():
+            text = self._read()
+            span = _task_span(text, task_id)
+            block = span["block"]
+            metadata = parse_managed_task(block)
+            if metadata is None:
+                raise LedgerError(
+                    "task_not_managed",
+                    "Only managed task blocks can be compacted.",
+                    "Adopt legacy work through the manager before compacting it.",
+                    "Do not manually archive an unmanaged task.",
+                )
+            if _archive_values(block) is not None:
+                raise LedgerError(
+                    "task_already_compacted",
+                    "This active task already references immutable compacted history.",
+                    "Inspect and verify the existing archive instead of compacting again.",
+                    "Do not create a second compact continuation for one active block.",
+                )
+            runtime_session = _environment_runtime_session()
+            bound_runtime = metadata["owner_runtime_session"]
+            if bound_runtime and runtime_session and bound_runtime != runtime_session:
+                raise LedgerError(
+                    "runtime_session_mismatch",
+                    "The Codex runtime thread differs from the managed task binding.",
+                    "Use the bound thread or an authorized administrative takeover.",
+                    "Do not reuse a private token from another Codex thread.",
+                )
+            if metadata["owner_session"] != owner:
+                raise LedgerError(
+                    "owner_token_mismatch",
+                    "The compaction caller does not own this managed task.",
+                    "Use the active owner token or complete an authorized takeover.",
+                    "Do not compact another session's task.",
+                )
+            if _resolve_path(metadata["worktree"]) != resolved_worktree:
+                raise LedgerError(
+                    "worktree_mismatch",
+                    "Compaction caller worktree differs from the managed task binding.",
+                    "Run from the recorded worktree or use an authorized rebind path.",
+                    "Do not attach archived history to another worktree.",
+                )
+            if metadata["revision"] != expected_revision:
+                raise LedgerError(
+                    "revision_conflict",
+                    "Task revision changed after the compaction inspection.",
+                    "Inspect the current task and retry with fresh CAS values.",
+                    "Do not compact a stale task snapshot.",
+                )
+            if not secrets.compare_digest(metadata["block_sha256"], expected_block_sha256):
+                raise LedgerError(
+                    "block_cas_conflict",
+                    "Task block hash changed after the compaction inspection.",
+                    "Inspect the exact current task before retrying.",
+                    "Do not overwrite newer task history.",
+                )
+            recovered = False
+            token = owner_token
+            if owner_token is not None:
+                if not secrets.compare_digest(
+                    metadata["owner_token_sha256"], _token_sha256(owner_token)
+                ):
+                    raise LedgerError(
+                        "owner_token_mismatch",
+                        "The private owner token does not match this managed task.",
+                        "Use the active owner token or same-session recovery.",
+                        "Do not compact another session's task.",
+                    )
+            else:
+                if not same_session_recovery:
+                    raise LedgerError(
+                        "owner_token_missing",
+                        "Compaction requires the private owner token.",
+                        "Use the owning token or explicitly request same-session recovery.",
+                        "Do not mutate public task metadata alone.",
+                    )
+                if runtime_session is None or bound_runtime != runtime_session:
+                    raise LedgerError(
+                        "recovery_runtime_mismatch",
+                        "Same-session compaction recovery requires the bound Codex runtime.",
+                        "Use the original thread or an authorized administrative takeover.",
+                        "Do not treat another thread as the task owner.",
+                    )
+                token = new_owner_token or secrets.token_urlsafe(32)
+                if len(token) < 16:
+                    raise LedgerError(
+                        "owner_token_weak",
+                        "Replacement owner token must contain at least 16 characters.",
+                        "Use a generated cryptographically random token.",
+                        "Do not recover ownership with a guessable credential.",
+                    )
+                recovered = True
+            archive = _write_task_archive(
+                self.root,
+                task_id=task_id,
+                block=block,
+                metadata=metadata,
+                timestamp=current,
+            )
+            archive.update(
+                {
+                    "pre_revision": str(metadata["revision"]),
+                    "pre_block_sha256": metadata["block_sha256"],
+                }
+            )
+            compacted = _compact_task_block(
+                block,
+                task_id=task_id,
+                phase=phase,
+                blocker=blocker,
+                resume_point=resume_point,
+                authority_refs=authority_refs,
+                canonical_sha=canonical_sha,
+                archive=archive,
+            )
+            if recovered:
+                compacted = _append_ownership_audit(
+                    compacted,
+                    timestamp=current,
+                    action="same-session-compaction-recovery",
+                    from_owner=metadata["owner_session"],
+                    from_runtime_session=metadata["owner_runtime_session"],
+                    to_owner=metadata["owner_session"],
+                    to_runtime_session=runtime_session,
+                    prior_revision=metadata["revision"],
+                    prior_block_sha256=metadata["block_sha256"],
+                    prior_worktree=resolved_worktree,
+                    new_worktree=resolved_worktree,
+                    reason="same-session compaction recovery",
+                    authority=f"{RUNTIME_SESSION_ENV} match plus lock and CAS",
+                )
+            if len(compacted.splitlines()) > 120:
+                raise LedgerError(
+                    "compaction_line_budget_exceeded",
+                    "Compact continuation exceeds the 120-line active-task limit.",
+                    "Shorten retained continuation fields and retry through the manager.",
+                    "Do not weaken the short-memory governance limit.",
+                )
+            managed = _with_managed_metadata(
+                compacted,
+                owner_session=owner,
+                owner_runtime_session=bound_runtime or runtime_session,
+                owner_token_sha256=_token_sha256(token),
+                worktree=resolved_worktree,
+                revision=metadata["revision"] + 1,
+                lease_expires=lease,
+                previous_owner=metadata["previous_owner"],
+                ownership_reason=(
+                    "same-session-compaction-recovery"
+                    if recovered
+                    else metadata["ownership_reason"]
+                ),
+            )
+            updated = _replace_task(text, span, managed)
+            self._commit(updated)
+            result = _describe(task_id, _task_span(updated, task_id)["block"], current)
+            result.update(_verify_task_archive(self.root, task_id, managed) or {})
+            result["active_task_line_count"] = len(managed.splitlines())
+            if recovered and new_owner_token is None:
+                result["owner_token"] = token
+            return result
 
     def renew(
         self,
@@ -2106,6 +2619,19 @@ def build_parser() -> argparse.ArgumentParser:
     renew_parser.add_argument("--expected-block-sha256", required=True)
     _common_owner_arguments(renew_parser)
 
+    compact_parser = subparsers.add_parser("compact")
+    compact_parser.add_argument("--task-id", required=True)
+    compact_parser.add_argument("--expected-revision", type=int, required=True)
+    compact_parser.add_argument("--expected-block-sha256", required=True)
+    compact_parser.add_argument("--phase", required=True)
+    compact_parser.add_argument("--blocker")
+    compact_parser.add_argument("--resume-point", required=True)
+    compact_parser.add_argument("--authority-ref", action="append", required=True)
+    compact_parser.add_argument("--canonical-sha")
+    compact_parser.add_argument("--same-session-recovery", action="store_true")
+    compact_parser.add_argument("--new-owner-token")
+    _common_owner_arguments(compact_parser)
+
     recover_parser = subparsers.add_parser("recover")
     recover_parser.add_argument("--task-id", required=True)
     recover_parser.add_argument("--expected-owner-session", required=True)
@@ -2303,6 +2829,35 @@ def main(argv: list[str] | None = None) -> int:
                 lease_seconds=args.lease_seconds,
             )
             result = _success("Task ownership lease renewed atomically.", task, ledger.memory_path)
+        elif args.command == "compact":
+            if not args.owner_token and not args.same_session_recovery:
+                raise LedgerError(
+                    "owner_token_missing",
+                    "Task compaction requires the private owner token.",
+                    "Use the token retained by the owning session.",
+                    "Do not compact public task metadata alone.",
+                )
+            task = ledger.compact(
+                task_id=args.task_id,
+                owner_session=args.owner_session,
+                owner_token=args.owner_token,
+                worktree=args.worktree,
+                expected_revision=args.expected_revision,
+                expected_block_sha256=args.expected_block_sha256,
+                phase=args.phase,
+                blocker=args.blocker,
+                resume_point=args.resume_point,
+                authority_refs=args.authority_ref,
+                canonical_sha=args.canonical_sha,
+                same_session_recovery=args.same_session_recovery,
+                new_owner_token=args.new_owner_token,
+                lease_seconds=args.lease_seconds,
+            )
+            result = _success(
+                "Managed task compacted with immutable verified history.",
+                task,
+                ledger.memory_path,
+            )
         elif args.command == "recover":
             task = ledger.recover_same_session(
                 task_id=args.task_id,

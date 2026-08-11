@@ -626,3 +626,131 @@ def test_process_exit_releases_os_lock(tmp_path: Path, manager: ModuleType) -> N
     )
     assert result.returncode == 0
     assert ledger.inspect("TASK-20260803-01", now=NOW)["managed"] is True
+
+
+def test_compaction_preserves_lossless_history_and_unrelated_tasks(
+    tmp_path: Path, manager: ModuleType
+) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    normal = _create_task(ledger, "NORMAL-20260803-01")
+    oversized = _create_task(ledger, "OVERSIZE-20260803-01", step_count=60)
+    normal_before = ledger.inspect(normal["task_id"], now=NOW)
+    text_before = ledger.memory_path.read_bytes().decode("utf-8")
+    oversized_before = manager._task_span(text_before, oversized["task_id"])["block"]
+
+    assert "archive_reference" not in normal_before
+    assert len(oversized_before.splitlines()) > 120
+
+    compacted = ledger.compact(
+        task_id=oversized["task_id"],
+        owner_session=oversized["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=oversized["revision"],
+        expected_block_sha256=oversized["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Inspect verified archive before continuing the next bounded step.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        canonical_sha="abcdef0",
+        now=NOW + timedelta(seconds=10),
+    )
+
+    assert compacted["task_id"] == oversized["task_id"]
+    assert compacted["revision"] == oversized["revision"] + 1
+    assert compacted["pre_compaction_revision"] == oversized["revision"]
+    assert compacted["pre_compaction_block_sha256"] == oversized["block_sha256"]
+    assert compacted["active_task_line_count"] <= 120
+    archive_path = tmp_path / compacted["archive_reference"]
+    payload = json.loads(archive_path.read_text(encoding="utf-8"))
+    assert payload["content"] == oversized_before
+    assert payload["content_sha256"] == manager.raw_block_sha256(oversized_before)
+
+    normal_after = ledger.inspect(normal["task_id"], now=NOW)
+    assert normal_after["raw_block_sha256"] == normal_before["raw_block_sha256"]
+    verified = ledger.inspect(oversized["task_id"], now=NOW)
+    assert verified["archive_sha256"] == compacted["archive_sha256"]
+
+
+def test_compaction_refuses_repeat_and_detects_archive_tampering(
+    tmp_path: Path, manager: ModuleType
+) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    created = _create_task(ledger, "ARCHIVE-20260803-01", step_count=60)
+    compacted = ledger.compact(
+        task_id=created["task_id"],
+        owner_session=created["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=created["revision"],
+        expected_block_sha256=created["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Verify archive integrity before resuming.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        now=NOW + timedelta(seconds=10),
+    )
+
+    with pytest.raises(manager.LedgerError, match="task_already_compacted"):
+        ledger.compact(
+            task_id=created["task_id"],
+            owner_session=created["owner_session"],
+            owner_token=OWNER_TOKEN,
+            worktree=tmp_path,
+            expected_revision=compacted["revision"],
+            expected_block_sha256=compacted["block_sha256"],
+            phase="GENERIC_COMPACTION_TEST",
+            blocker=None,
+            resume_point="Verify archive integrity before resuming.",
+            authority_refs=["tests/test_short_memory_task_manager.py"],
+            now=NOW + timedelta(seconds=20),
+        )
+
+    archive_path = tmp_path / compacted["archive_reference"]
+    archive_path.write_text(
+        archive_path.read_text(encoding="utf-8").replace("managed fixture", "tampered"),
+        encoding="utf-8",
+    )
+    with pytest.raises(manager.LedgerError, match="archive_hash_mismatch"):
+        ledger.inspect(created["task_id"], now=NOW)
+
+
+def test_same_session_recovery_compacts_exact_predecessor(
+    tmp_path: Path, manager: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(manager.RUNTIME_SESSION_ENV, "thread-alpha-0001")
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    created = _create_task(
+        ledger,
+        "RECOVERY-COMPACT-20260803-01",
+        owner="thread-alpha-0001",
+        step_count=60,
+    )
+    original_text = ledger.memory_path.read_bytes().decode("utf-8")
+    original_block = manager._task_span(original_text, created["task_id"])["block"]
+
+    compacted = ledger.compact(
+        task_id=created["task_id"],
+        owner_session=created["owner_session"],
+        owner_token=None,
+        worktree=tmp_path,
+        expected_revision=created["revision"],
+        expected_block_sha256=created["block_sha256"],
+        phase="GENERIC_RECOVERY_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Resume only after archive integrity verification.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        same_session_recovery=True,
+        new_owner_token=OTHER_TOKEN,
+        now=NOW + timedelta(seconds=10),
+    )
+
+    payload = json.loads(
+        (tmp_path / compacted["archive_reference"]).read_text(encoding="utf-8")
+    )
+    assert payload["content"] == original_block
+    assert compacted["pre_compaction_revision"] == created["revision"]
+    assert compacted["ownership_audit_events"] == 1
