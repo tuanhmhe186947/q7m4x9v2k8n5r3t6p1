@@ -4,8 +4,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-11`.
-- Expires: `2026-08-12T00:00:00+07:00`.
+- Opened: `2026-08-12`.
+- Expires: `2026-08-13T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -705,156 +705,30 @@
 
 
 
-### C2V2-20260810-02 - Resume S1 temporal confirmation after provenance fix
-
-- Prompt: Continue C2V2-20260810-01 after its precheck was terminalized before scientific
-  execution; run exactly four repaired permit-bound T6/T16 Stage-1 confirmation arms, validate
-  evidence, stop the existing L4, and canonicalize results.
-- Status: `DONE`.
-- Opened: `2026-08-10T20:48:33+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019feb6c-fb11-7291-8848-b48b05114be7`.
-- Owner runtime session: `019feb6c-fb11-7291-8848-b48b05114be7`.
-- Owner token SHA256: `66a2b2b8e3f497962b02801fce2f349f144bafcab7552a256245970a6358f3f3`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `14`.
-- Lease expires: `2026-08-11T04:25:42+07:00`.
-- Block SHA256: `af05efade29220283cdefa3dbb111232196ed7171d6ff50ec9a17b73daddea2d`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `d936467005d15b86152cf4784835c5801341353d07cc57c334434319bc313ba4`.
-  - Timestamp: 2026-08-10T21:06:55+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 3
-  - Prior block SHA256: 1bffe83db81b58d427442512de73b6ac8f10df2c74206033cea5a60435524eba
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: resume_after_context_compaction_same_runtime
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `1ec680aa46cc05368e6f683cc403fac430277162f2c14696ddc8b7b2d2e160b4`.
-  - Timestamp: 2026-08-10T21:39:39+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 6
-  - Prior block SHA256: 70682638144d5264460bb6d2578714be2839f6e801954fac5b4aecd426c4d451
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: resume_after_handoff_same_runtime
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `add23b8634f5d03ee3075aa757db77e3f547d2a9e05823f019276bb6d48d4521`.
-  - Timestamp: 2026-08-10T22:02:14+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 7
-  - Prior block SHA256: 5735d933579bbffb1c96a09032b298dc37133bd33f618c44d5ed00839bf75f04
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: resume_after_context_compaction_same_runtime
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `912e4c9f4ade82199497dcb4dd27176881febe11723aa940b6e4fdeec74fa8e7`.
-  - Timestamp: 2026-08-10T22:41:10+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 8
-  - Prior block SHA256: 6da594198c4b66835cd70851bd0fde1a7e880035e1dfa215d2b7f10a60ddf127
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: resume same-session continuation after context handoff
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `42eb19fda1c9b7b76d797ad7243b7aea8b5e654e8858ac473bccc1fd0db30754`.
-  - Timestamp: 2026-08-10T23:49:02+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 9
-  - Prior block SHA256: 55b912e5a15d86b49e5f5f32ff673a5ffcf6e2d73cbef9e354f3cdc42d36ef5d
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: same-session-resume-after-arm4-completion
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `987dbb4a4a8f2790d4f221f3f60193157025baf95d00c75df043eee186fa586d`.
-  - Timestamp: 2026-08-10T23:49:18+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - From runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To owner: 019feb6c-fb11-7291-8848-b48b05114be7
-  - To runtime session: 019feb6c-fb11-7291-8848-b48b05114be7
-  - Prior revision: 10
-  - Prior block SHA256: 0f4d52ef6ae62553feb0f55fd512509960edaf078502a8103cf006c8e289d852
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: same-session-private-token-retention
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: Exactly four valid 64x64 B1_STAGE1_UNCHANGED arms at 4164 steps for T6/T16 seeds
-  20260805/20260806; exact Lightning naming/resource gates and provenance hashes pass; complete
-  metrics/fight diagnostics/artifact hashes collected; GPU stopped; validated result authority
-  reachable from canonical main; no Stage 2 or outer/test access.
-- Skills: `scientific-ablation-controller`, `experiment-lineage-reproducibility`, `dataset-
-  contract-leakage-guard`, `project-state-steward`, `terminal-ops`.
-- [x] `S1-2` `[DONE]` RETIRE_OLD_WORKTREE
-  - Evidence: Old task-owned provenance-fix residue
-    .codex_worktrees/s1_stage1_provenance_contract_fix_dd7b8d39 removed after bounded path
-    verification; git worktree prune completed; unrelated worktrees and root owner dirt
-    untouched.
-- [x] `S1-3` `[DONE]` REMOTE_PREFLIGHT
-  - Evidence: Existing pig-gpu-l4 started in teamspace pig-project; SSH alias reachable; remote
-    root present; exactly one NVIDIA L4; remote parity PASS 245936 files/9151758436 bytes; fresh
-    remote runtime clean at 03d71d3dd3852809bf520818fc41ee98952bbde9; retention and naming
-    hashes match; fail-closed resource preflight PASS.
-- [x] `S1-4` `[DONE]` RUN_CONFIRMATIONS
-  - Evidence: Four registered 64x64 B1 arms completed exactly 4164 steps with consumed single-
-    use permits; four local artifact manifests each verified 13/13, complete primary/common
-    native coverage, zero missing/duplicate/unexpected predictions, outer access disabled;
-    scientific telemetry total 0.2143882204002777 GPU-hours; pig-gpu-l4 control plane verified
-    Stopped after artifact transfer.
-- [x] `S1-5` `[DONE]` CLOSEOUT
-  - Evidence: Artifact-derived confirmation evidence committed as
-    3a9ef750facb120280044b8f37995f6f1916568f and fast-forwarded into main; current raw authority
-    SHA256=8e406449136103adbd3abd0f6086dd9200ff64ab9d4344d355d60ef73967c338; 74 focused tests
-    and Ruff PASS; pig-gpu-l4 control plane Stopped; task-owned execution worktree retired and
-    pruned without touching protected root dirt.
-
-
-
-
 ### C2V2-20260811-01 - Close Stage-1 and run isolated T6 resolution screen
 
 - Prompt: Continue from immutable managed history through the recorded phase and resume point.
-- Status: `BLOCKED`.
+- Status: `DEFERRED`.
 - Opened: `2026-08-11T00:37:10+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fecbc-ffc3-7880-a719-165d2a73770f`.
-- Owner runtime session: `019fecbc-ffc3-7880-a719-165d2a73770f`.
-- Owner token SHA256: `a5d4840c415e1a8dbc0942e90654250dd5caa5e5378d5582557745590da42457`.
+- Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner token SHA256: `be48b4efa08d91ea58e34458d6e41f42ce26cd3924f2a83c00aa6a64c15e116f`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\post_s1_resolution_execution_20260811`.
-- Revision: `47`.
-- Lease expires: `2026-08-11T14:29:02+07:00`.
-- Block SHA256: `d1281fcc2294d232ca58522dfa306602656876c0ad57f03983748e358c4dca2a`.
-- Previous owner: `codex_root_019fecbc_post_s1`.
+- Revision: `60`.
+- Lease expires: `2026-08-12T00:51:31+07:00`.
+- Block SHA256: `d40cbdfc2c76817a344fc7b299f92849513264cdc2abcedcf76064d62fba80dc`.
+- Previous owner: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
 - Ownership reason: `same-session-compaction-recovery`.
-- Ownership audit event: `010f93af10ffd7c7b80e3bd2cdf82ad001c8c6695fbbdf8354f14da0f0e4ff0b`.
-  - Timestamp: 2026-08-11T13:59:02+07:00
+- Ownership audit event: `19c8e54a7f49a746594ca1ed6b77e9c2e7458caf8a8b6106084a8b0a8223baf3`.
+  - Timestamp: 2026-08-12T00:21:31+07:00
   - Action: same-session-compaction-recovery
-  - From owner: 019fecbc-ffc3-7880-a719-165d2a73770f
-  - From runtime session: 019fecbc-ffc3-7880-a719-165d2a73770f
-  - To owner: 019fecbc-ffc3-7880-a719-165d2a73770f
-  - To runtime session: 019fecbc-ffc3-7880-a719-165d2a73770f
-  - Prior revision: 46
-  - Prior block SHA256: d039e6e630695bea473cfd25265ad91c1f22255c5e733a7b578762a5812c561e
+  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
+  - Prior revision: 59
+  - Prior block SHA256: 4a8893fd8a95d612d4edc06edb148b1ba68bb0a8cdde7528d7b382e7b69e2e6b
   - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\post_s1_resol
     ution_execution_20260811
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_worktrees\post_s1_resolut
@@ -863,35 +737,56 @@
   - Authority: CODEX_THREAD_ID match plus lock and CAS
 - Acceptance: Archive integrity and active continuation metadata remain verifiable.
 - Skills: `agent-harness-construction`, `scientific-ablation-controller`.
-- Phase: POST_S1_EXECUTION_ADAPTER
+- Phase: FINAL_PRE_GPU_GOVERNANCE_CLOSURE
 - Blocker: governance_line_budget_compaction
-- Resume point: canonicalize_adapter_rebuild_bundle_remote_gates
-- Authority references: C2V2-20260811-01; docs/CLASSIFICATION_V2_CURRENT_STATE.md
-- Canonical SHA: `b6dd480`.
+- Resume point: Historical task remains deferred; resume only through a new explicit authority.
+- Authority references: docs/classification_v2/corrected_pooled_route_20260806/next_phase_202608
+  06_r2/post_s1_r64_pre_gpu_readiness_20260811.json; C2V2-20260812-01
+- Canonical SHA: `7d4bd1c94435f57abbb49d23c6936aefd44c1eee`.
 - Archive reference: `.agents/memory/managed_task_history/C2V2-20260811-01/revision-000045.json`.
 - Archive SHA256: `db1394a3d886dbac969c01d6411518899ef70ef68f3b1518bae3929e87dd0971`.
 - Archived content SHA256: `3097f6b96a425eb95e74430ce89a6e4f18c76c7d1a3040ff09b9696af1b53e96`.
 - Pre-compaction revision: `45`.
 - Pre-compaction Block SHA256: `160844457ff28c1e22caf15130fedaf282e0d724e8baf85262ca3d8e0ab2c153`.
 
-- [ ] `C2V2-99` `[BLOCKED]` Resume archived task from compact state.
-  - Next: canonicalize_adapter_rebuild_bundle_remote_gates
+- [ ] `C2V2-99` `[DEFERRED]` Resume archived task from compact state.
+  - Next: Historical task remains deferred; resume only through a new explicit authority.
+
+### C2V2-20260812-01 - Final pre-GPU governance closure
+
+- Prompt: Repair only the expired C2V2-20260811-01 managed-task line-budget violation, create a
+  successor readiness authority, and preserve scientific state.
+- Status: `IN_PROGRESS`.
+- Opened: `2026-08-12T00:20:56+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
+- Owner token SHA256: `c662b34a43cc1545c5f44b129af78bdb90f70432dafc3682fdb2115c519f07ce`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `3`.
+- Lease expires: `2026-08-12T00:52:03+07:00`.
+- Block SHA256: `8bd06a245f5ae3ecc10ccb1c8dcd08b85f50eab201a116fe600d14deb7078f2c`.
+- Acceptance: Old task remains DEFERRED and <=120 lines through manager compaction; fresh
+  governance validation passes; a successor readiness authority is canonical on main.
+- Skills: `project-state-steward`, `experiment-lineage-reproducibility`.
+- [x] `GOVC-01` `[DONE]` Repair old task through the official manager
+  - Evidence: Manager compact repair succeeded: C2V2-20260811-01 remains DEFERRED at revision 60
+    with verified archive and 47 active lines.
+- [ ] `GOVC-02` `[IN_PROGRESS]` Validate and canonicalize governance evidence
+  - Next: Run the focused governance validator and test surface, then create the successor
+    readiness authority from fresh evidence.
+
 
 ## Previous-Day Closeout
 
-- Source date: `2026-08-10`.
-- Completed: GOVCOORD-20260810-01, S1B3-20260810-01, S1RGB-20260810-01, S1INT-20260810-01,
-  S1REM-20260810-01, S1FREEZE-20260810-01, S1PERMIT-20260810-01, S1LAUNCHPACKET-20260810-01,
-  S1PERMITTEST-20260810-01, RESRGB-20260810-01, S1REMOTE-20260810-01, S1ARTIFACT-20260810-01,
-  S1PERMITROTATE-20260810-01, GOVBUDGET-20260810-01, S1REMOTEEXEC-20260810-01,
-  S1T8EXEC-20260810-02, S1T12EXEC-20260810-01, S1T16EXEC-20260810-01, GOVTERM-20260810-01,
-  S1CONSOL-20260810-01, C2V2-20260810-01
+- Source date: `2026-08-11`.
+- Completed: C2V2-20260810-02, GOV-20260811-01, C2V2-20260811-02, C2V2-20260811-03
 - Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
   CLASSIFICATION-20260807-01, C2V2-20260807-03, C2V2-20260807-04, C2V2-20260807-05,
   C2V2-20260809-03, C2V2-20260809-04, S1-POSTCLOSURE-20260809-01, S1-B-20260809-01,
-  GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260810-02; active
+  GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01; active
   tasks remain resume capsules in short memory
-- Purge after: `2026-08-12T00:00:00+07:00`.
+- Purge after: `2026-08-13T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 
