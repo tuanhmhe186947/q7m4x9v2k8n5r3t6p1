@@ -40,9 +40,9 @@
       "category": "governance",
       "source_root": "project",
       "relative_path": ".agents/skills/project-state-steward/SKILL.md",
-      "version_or_commit": "local-v6",
+ "version_or_commit": "local-v7",
       "file_sha256":
-        "771a4aabacd424cb1675f618b53228a514a9a9795ee6a7ba3f51fa55df8c4f69",
+ "a271c167beb5f3fb0115b78415f90e5e4a8b97cd3b3232a90aa20099a7dd8f0b",
       "bundle_paths": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -53,17 +53,17 @@
         "templates/memory_maturity_candidate.json"
       ],
       "bundle_sha256":
-        "c74df1b149bdb21a734987dffdbf7153cf5408dfab1e25969f92bd2ed7ad452b",
+      "ed4f70fca375a8ca1e009edc0015230a0ee17ee25cdb7068c34023fdc7683091",
       "git_identity": {
         "schema_version": "pig.git-tracked-identity.v1",
         "relative_path": ".agents/skills/project-state-steward/SKILL.md",
         "git_reference": "HEAD",
-        "blob_oid": "c1fef35035bb8f48a433d6ab474580e4a4c78523",
+ "blob_oid": "7288adcb909bf2724a4423f3ce73dcb38f93b26c",
         "bundle_blob_oids": {
-          "SKILL.md": "c1fef35035bb8f48a433d6ab474580e4a4c78523",
+ "SKILL.md": "7288adcb909bf2724a4423f3ce73dcb38f93b26c",
           "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
-          "scripts/manage_short_memory.py": "ea2f7cf727fe664eba9c0c8bb04b10c78bb1e823",
+        "scripts/manage_short_memory.py": "c2ac5b927cb0d87060cf4036da4d9ae16c7ef42a",
           "scripts/validate_governance_contracts.py": "f6386bdb5af4418d269b62c65afcd101b1a98578",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
@@ -71,12 +71,12 @@
       },
       "tool_api_dependencies": ["filesystem", "git", "python", "pytest"],
       "selected_date": "2026-07-31",
-      "last_reviewed": "2026-08-10",
-      "last_real_use": "2026-08-10",
-      "proof_task": "managed-capsule aggregate budget regression and governance audit",
-      "stale_signal": "validator_budget_or_identity_regression",
+      "last_reviewed": "2026-08-11",
+      "last_real_use": "2026-08-11",
+      "proof_task": "C2V2-20260811-01 generic managed-task compaction",
+      "stale_signal": "archive retention or integrity validation failure",
       "next_maintenance_action":
-        "forward-test admin takeover only after exact user authorization"
+        "revalidate immutable archive retrieval before new manager storage changes"
     },
     {
       "skill_id": "thesis-evidence-writing",

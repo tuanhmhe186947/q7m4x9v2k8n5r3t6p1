@@ -754,3 +754,32 @@ def test_same_session_recovery_compacts_exact_predecessor(
     assert payload["content"] == original_block
     assert compacted["pre_compaction_revision"] == created["revision"]
     assert compacted["ownership_audit_events"] == 1
+
+
+def test_compaction_preflight_failure_leaves_no_orphaned_archive(
+    tmp_path: Path, manager: ModuleType
+) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    created = _create_task(ledger, "PREFLIGHT-20260803-01", step_count=60)
+
+    with pytest.raises(manager.LedgerError, match="canonical_sha_invalid"):
+        ledger.compact(
+            task_id=created["task_id"],
+            owner_session=created["owner_session"],
+            owner_token=OWNER_TOKEN,
+            worktree=tmp_path,
+            expected_revision=created["revision"],
+            expected_block_sha256=created["block_sha256"],
+            phase="GENERIC_COMPACTION_TEST",
+            blocker=None,
+            resume_point="Do not resume after failed preflight.",
+            authority_refs=["tests/test_short_memory_task_manager.py"],
+            canonical_sha="not-a-git-hash",
+            now=NOW + timedelta(seconds=10),
+        )
+
+    assert not (tmp_path / manager.TASK_HISTORY_RELATIVE).exists()
+    unchanged = ledger.inspect(created["task_id"], now=NOW)
+    assert unchanged["revision"] == created["revision"]
+    assert unchanged["block_sha256"] == created["block_sha256"]

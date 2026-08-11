@@ -478,15 +478,15 @@ def _archive_reference(root: Path, path: Path) -> str:
         ) from exc
 
 
-def _write_task_archive(
+def _prepare_task_archive(
     root: Path,
     *,
     task_id: str,
     block: str,
     metadata: dict[str, Any],
     timestamp: datetime,
-) -> dict[str, str]:
-    """Persist the exact pre-compaction block before replacing its short form."""
+) -> tuple[Path, str, dict[str, str]]:
+    """Build a lossless archive record without creating persistent state yet."""
     path = _archive_path(root, task_id, metadata["revision"])
     if path.exists():
         raise LedgerError(
@@ -512,13 +512,32 @@ def _write_task_archive(
         "task_id": task_id,
     }
     serialized = json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    _atomic_write(path, serialized)
-    return {
+    return path, serialized, {
         "reference": _archive_reference(root, path),
         "archive_sha256": _sha256_text(serialized),
         "content_sha256": content_sha256,
     }
+
+
+def _write_task_archive(
+    root: Path,
+    *,
+    task_id: str,
+    block: str,
+    metadata: dict[str, Any],
+    timestamp: datetime,
+) -> dict[str, str]:
+    """Persist a prepared archive only after the compact transition preflight."""
+    path, serialized, archive = _prepare_task_archive(
+        root,
+        task_id=task_id,
+        block=block,
+        metadata=metadata,
+        timestamp=timestamp,
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_write(path, serialized)
+    return archive
 
 
 def _verify_task_archive(root: Path, task_id: str, block: str) -> dict[str, Any] | None:
@@ -2098,7 +2117,7 @@ class ShortMemoryLedger:
                         "Do not recover ownership with a guessable credential.",
                     )
                 recovered = True
-            archive = _write_task_archive(
+            _, _, archive = _prepare_task_archive(
                 self.root,
                 task_id=task_id,
                 block=block,
@@ -2160,6 +2179,23 @@ class ShortMemoryLedger:
                 ),
             )
             updated = _replace_task(text, span, managed)
+            persisted_archive = _write_task_archive(
+                self.root,
+                task_id=task_id,
+                block=block,
+                metadata=metadata,
+                timestamp=current,
+            )
+            if any(
+                persisted_archive[key] != archive[key]
+                for key in ("reference", "archive_sha256", "content_sha256")
+            ):
+                raise LedgerError(
+                    "archive_preflight_drift",
+                    "Prepared archive integrity anchors changed before commit.",
+                    "Inspect concurrent archive storage changes and retry from fresh CAS.",
+                    "Do not bind an active task to uninspected history bytes.",
+                )
             self._commit(updated)
             result = _describe(task_id, _task_span(updated, task_id)["block"], current)
             result.update(_verify_task_archive(self.root, task_id, managed) or {})
