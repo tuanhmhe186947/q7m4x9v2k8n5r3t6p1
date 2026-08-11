@@ -626,6 +626,21 @@ def _verify_task_archive(root: Path, task_id: str, block: str) -> dict[str, Any]
     }
 
 
+def _verified_archive_content(root: Path, task_id: str, block: str) -> str:
+    """Return predecessor bytes only after the active archive chain verifies."""
+    values = _archive_values(block)
+    if values is None:
+        raise LedgerError(
+            "archive_missing",
+            "Compaction repair requires an existing immutable archive.",
+            "Use normal compaction for an unarchived task.",
+            "Do not reconstruct predecessor content manually.",
+        )
+    _verify_task_archive(root, task_id, block)
+    payload = json.loads((root / values["reference"]).read_bytes().decode("utf-8"))
+    return payload["content"]
+
+
 def managed_block_sha256(block: str) -> str:
     canonical, count = HASH_LINE_RE.subn(
         rf"\g<1>{'0' * 64}\g<2>",
@@ -1432,6 +1447,7 @@ def _compact_task_block(
     authority_refs: list[str],
     canonical_sha: str | None,
     archive: dict[str, str],
+    skill_source_block: str | None = None,
 ) -> str:
     """Render a bounded continuation whose complete predecessor is archived."""
     heading = next(
@@ -1488,6 +1504,16 @@ def _compact_task_block(
             "Provide the verified canonical Git SHA.",
             "Do not record an ambiguous code authority.",
         )
+    skills_block = skill_source_block or block
+    skills_match = re.search(r"^- Skills:\s*(?P<value>.+)$", skills_block, re.MULTILINE)
+    skills = re.findall(r"`([^`]+)`", skills_match.group("value")) if skills_match else []
+    if not skills:
+        raise LedgerError(
+            "compaction_skills_missing",
+            "Compaction requires the selected skills retained by the active task.",
+            "Restore skills from verified managed history before compacting.",
+            "Do not discard the task's reasoning and execution provenance.",
+        )
     nl = _newline(block)
     step_id = f"{task_id.rsplit('-', 2)[0]}-99"
     lines = [f"### {task_id} - {title}{nl}", nl]
@@ -1507,6 +1533,7 @@ def _compact_task_block(
             nl,
         )
     )
+    lines.extend(_wrap_skills(skills, nl))
     lines.extend(_wrap_field("Phase", clean_phase, nl))
     if clean_blocker:
         lines.extend(_wrap_field("Blocker", clean_blocker, nl))
@@ -2008,6 +2035,7 @@ class ShortMemoryLedger:
         resume_point: str,
         authority_refs: list[str],
         canonical_sha: str | None = None,
+        repair_existing: bool = False,
         same_session_recovery: bool = False,
         new_owner_token: str | None = None,
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
@@ -2037,12 +2065,20 @@ class ShortMemoryLedger:
                     "Adopt legacy work through the manager before compacting it.",
                     "Do not manually archive an unmanaged task.",
                 )
-            if _archive_values(block) is not None:
+            existing_archive = _archive_values(block)
+            if existing_archive is not None and not repair_existing:
                 raise LedgerError(
                     "task_already_compacted",
                     "This active task already references immutable compacted history.",
                     "Inspect and verify the existing archive instead of compacting again.",
                     "Do not create a second compact continuation for one active block.",
+                )
+            if existing_archive is None and repair_existing:
+                raise LedgerError(
+                    "task_compaction_repair_not_applicable",
+                    "Repair applies only to an active task with verified archived history.",
+                    "Use normal compaction for a task without an archive reference.",
+                    "Do not create repair-only state for an unarchived task.",
                 )
             runtime_session = _environment_runtime_session()
             bound_runtime = metadata["owner_runtime_session"]
@@ -2117,19 +2153,30 @@ class ShortMemoryLedger:
                         "Do not recover ownership with a guessable credential.",
                     )
                 recovered = True
-            _, _, archive = _prepare_task_archive(
-                self.root,
-                task_id=task_id,
-                block=block,
-                metadata=metadata,
-                timestamp=current,
-            )
-            archive.update(
-                {
-                    "pre_revision": str(metadata["revision"]),
-                    "pre_block_sha256": metadata["block_sha256"],
+            archive_source = None
+            if repair_existing:
+                archive_source = _verified_archive_content(self.root, task_id, block)
+                archive = {
+                    "reference": existing_archive["reference"],
+                    "archive_sha256": existing_archive["archive_sha256"],
+                    "content_sha256": existing_archive["content_sha256"],
+                    "pre_revision": existing_archive["pre_revision"],
+                    "pre_block_sha256": existing_archive["pre_block_sha256"],
                 }
-            )
+            else:
+                _, _, archive = _prepare_task_archive(
+                    self.root,
+                    task_id=task_id,
+                    block=block,
+                    metadata=metadata,
+                    timestamp=current,
+                )
+                archive.update(
+                    {
+                        "pre_revision": str(metadata["revision"]),
+                        "pre_block_sha256": metadata["block_sha256"],
+                    }
+                )
             compacted = _compact_task_block(
                 block,
                 task_id=task_id,
@@ -2139,6 +2186,7 @@ class ShortMemoryLedger:
                 authority_refs=authority_refs,
                 canonical_sha=canonical_sha,
                 archive=archive,
+                skill_source_block=archive_source,
             )
             if recovered:
                 compacted = _append_ownership_audit(
@@ -2179,23 +2227,24 @@ class ShortMemoryLedger:
                 ),
             )
             updated = _replace_task(text, span, managed)
-            persisted_archive = _write_task_archive(
-                self.root,
-                task_id=task_id,
-                block=block,
-                metadata=metadata,
-                timestamp=current,
-            )
-            if any(
-                persisted_archive[key] != archive[key]
-                for key in ("reference", "archive_sha256", "content_sha256")
-            ):
-                raise LedgerError(
-                    "archive_preflight_drift",
-                    "Prepared archive integrity anchors changed before commit.",
-                    "Inspect concurrent archive storage changes and retry from fresh CAS.",
-                    "Do not bind an active task to uninspected history bytes.",
+            if not repair_existing:
+                persisted_archive = _write_task_archive(
+                    self.root,
+                    task_id=task_id,
+                    block=block,
+                    metadata=metadata,
+                    timestamp=current,
                 )
+                if any(
+                    persisted_archive[key] != archive[key]
+                    for key in ("reference", "archive_sha256", "content_sha256")
+                ):
+                    raise LedgerError(
+                        "archive_preflight_drift",
+                        "Prepared archive integrity anchors changed before commit.",
+                        "Inspect concurrent archive storage changes and retry from fresh CAS.",
+                        "Do not bind an active task to uninspected history bytes.",
+                    )
             self._commit(updated)
             result = _describe(task_id, _task_span(updated, task_id)["block"], current)
             result.update(_verify_task_archive(self.root, task_id, managed) or {})
@@ -2664,6 +2713,7 @@ def build_parser() -> argparse.ArgumentParser:
     compact_parser.add_argument("--resume-point", required=True)
     compact_parser.add_argument("--authority-ref", action="append", required=True)
     compact_parser.add_argument("--canonical-sha")
+    compact_parser.add_argument("--repair-existing", action="store_true")
     compact_parser.add_argument("--same-session-recovery", action="store_true")
     compact_parser.add_argument("--new-owner-token")
     _common_owner_arguments(compact_parser)
@@ -2885,6 +2935,7 @@ def main(argv: list[str] | None = None) -> int:
                 resume_point=args.resume_point,
                 authority_refs=args.authority_ref,
                 canonical_sha=args.canonical_sha,
+                repair_existing=args.repair_existing,
                 same_session_recovery=args.same_session_recovery,
                 new_owner_token=args.new_owner_token,
                 lease_seconds=args.lease_seconds,

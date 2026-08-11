@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -783,3 +784,62 @@ def test_compaction_preflight_failure_leaves_no_orphaned_archive(
     unchanged = ledger.inspect(created["task_id"], now=NOW)
     assert unchanged["revision"] == created["revision"]
     assert unchanged["block_sha256"] == created["block_sha256"]
+
+
+def test_compaction_repair_rebuilds_incomplete_continuation_from_archive(
+    tmp_path: Path, manager: ModuleType
+) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    created = _create_task(ledger, "REPAIR-20260803-01", step_count=60)
+    compacted = ledger.compact(
+        task_id=created["task_id"],
+        owner_session=created["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=created["revision"],
+        expected_block_sha256=created["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Verify archive integrity before resuming.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        now=NOW + timedelta(seconds=10),
+    )
+    text = ledger.memory_path.read_bytes().decode("utf-8")
+    span = manager._task_span(text, created["task_id"])
+    incomplete = re.sub(r"^- Skills:.*\r?\n", "", span["block"], flags=re.MULTILINE)
+    repaired_metadata = manager._with_managed_metadata(
+        incomplete,
+        owner_session=created["owner_session"],
+        owner_runtime_session=None,
+        owner_token_sha256=manager._token_sha256(OWNER_TOKEN),
+        worktree=tmp_path,
+        revision=compacted["revision"],
+        lease_expires=NOW + timedelta(minutes=5),
+    )
+    ledger.memory_path.write_bytes(
+        manager._replace_task(text, span, repaired_metadata).encode("utf-8")
+    )
+    incomplete_snapshot = ledger.inspect(created["task_id"], now=NOW)
+
+    repaired = ledger.compact(
+        task_id=created["task_id"],
+        owner_session=created["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=incomplete_snapshot["revision"],
+        expected_block_sha256=incomplete_snapshot["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Verify archive integrity before resuming.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        repair_existing=True,
+        now=NOW + timedelta(seconds=20),
+    )
+
+    repaired_block = manager._task_span(
+        ledger.memory_path.read_bytes().decode("utf-8"), created["task_id"]
+    )["block"]
+    assert "- Skills:" in repaired_block
+    assert repaired["revision"] == compacted["revision"] + 1
+    assert repaired["archive_reference"] == compacted["archive_reference"]
