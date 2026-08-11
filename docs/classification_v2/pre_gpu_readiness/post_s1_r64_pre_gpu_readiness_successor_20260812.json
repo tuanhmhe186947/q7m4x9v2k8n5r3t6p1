@@ -1,0 +1,84 @@
+{
+  "schema_version": "classification_v2.post_s1_r64_pre_gpu_readiness_successor.v1",
+  "status": "READY_TO_CREATE_ONE_CLEAN_EXECUTION_STUDIO",
+  "generated_at": "2026-08-12T00:29:27.8895546+07:00",
+  "managed_task": {
+    "task_id": "C2V2-20260812-01",
+    "phase": "FINAL_PRE_GPU_GOVERNANCE_CLOSURE"
+  },
+  "supersedes": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/post_s1_r64_pre_gpu_readiness_20260811.json",
+    "sha256": "2b2e34565eb8a07b4245bac40467539c8e9b5199db616430d9f2be3ddfe296bb",
+    "reason": "TASK_GOVERNANCE_LINE_BUDGET_REPAIR",
+    "preserved_unchanged": true
+  },
+  "canonical_main": {
+    "sha256": "cb206ea7d78d7c662c87e9936eb22dc8a9b35346",
+    "relation": "This is the validated canonical main containing the governance repair. This authority is committed separately outside the runtime bundle surface, so its publication does not invalidate that validated code bundle.",
+    "frozen_stage1_executor_changed": false,
+    "scientific_authority_changed": false
+  },
+  "task_governance_repair": {
+    "task_id": "C2V2-20260811-01",
+    "previous_state": "DEFERRED",
+    "previous_revision": 59,
+    "previous_active_task_block_lines": 169,
+    "previous_lease_state": "EXPIRED",
+    "manager_action": "compact --repair-existing --same-session-recovery",
+    "administrative_takeover": false,
+    "current_state": "DEFERRED",
+    "current_revision": 60,
+    "current_active_task_block_lines": 47,
+    "active_task_line_limit": 120,
+    "archive_reference": ".agents/memory/managed_task_history/C2V2-20260811-01/revision-000045.json",
+    "archive_sha256": "db1394a3d886dbac969c01d6411518899ef70ef68f3b1518bae3929e87dd0971",
+    "archived_content_sha256": "3097f6b96a425eb95e74430ce89a6e4f18c76c7d1a3040ff09b9696af1b53e96",
+    "validator": "PASS",
+    "manager_validator_parity": "PASS"
+  },
+  "local_validation": {
+    "task_governance_validator": "PASS",
+    "fresh_main_governance": "PASS",
+    "local_test_gate": "PASS",
+    "fresh_test_evidence": "tests/test_project_governance_contract.py: 33 passed",
+    "reused_test_evidence": "Previous authority recorded 162 focused functional tests passed; only the task-governance validator was invalidated by this repair.",
+    "combined_test_evidence": "162 preserved functional passes plus 33 fresh governance-contract passes"
+  },
+  "canonical_code_bundle": {
+    "bundle_invalidated": false,
+    "reuse_reason": "The governance-repair commit changes only .agents/memory/01_PROJECT_MEMORY_SHORT.md. Neither that path nor this successor authority path is in remote_code_bundle.RUNTIME_PATHS.",
+    "sha256": "85b0f07a8820e80952497fc04447386927f623d6bd3c578ac42f10486fda92b3",
+    "manifest_path": "outputs/classification_v2/pre_gpu_readiness_20260811_7d4bd1c/remote_code_bundle_manifest.json",
+    "local_packaged_import_closure": "PASS",
+    "dependency_lock_sha256": "15a86a8dcce0249c9292a736bb45c9a157e51d5b0e5c833a04c08e1462b155fc"
+  },
+  "reused_scientific_and_transport_evidence": {
+    "root_input_transport_authority": "PASS",
+    "root_input_transport_sha256": "0bafb03de7471e55e452e6e1d8b15d0e40444144a480465a2da0cae691b601c1",
+    "stage1_salvage_hash_audit": "PASS",
+    "stage1_runs_preserved": "8/8",
+    "stage1_artifact_hashes_verified": "104/104",
+    "host_binding_producer_ready": true,
+    "rgb_binding_producer_ready": true,
+    "cvat_media_resolver_ready": true,
+    "legacy_media_resolver_ready": true,
+    "r64_permit_producer_ready": true,
+    "real_r64_permit_minted": false,
+    "r64_config_frozen": true
+  },
+  "no_remote_execution_effect": {
+    "active_studios": 0,
+    "active_studios_verification": "Read-only authenticated Lightning My Studios inventory at 2026-08-12T00:29:27.8895546+07:00 displayed no Studio rows.",
+    "studio_created": false,
+    "studio_started": false,
+    "gpu_used": false,
+    "paid_gpu_used": false,
+    "remote_storage_mutated": false,
+    "dataset_reuploaded": false,
+    "outer_examples_accessed": false
+  },
+  "decision": {
+    "ready_to_create_one_clean_execution_studio": true,
+    "unresolved_blockers": []
+  }
+}
