@@ -81,10 +81,12 @@ def test_current_authority_resolves_the_exact_twelve_cvat_keys_once() -> None:
 
     assert len(mapping) == 12
     assert len(set(mapping.values())) == 12
-    assert authority_sha256 == "ae733c3c9f41a677e9d7e72eb55739e8723d5fee1174fae196e88df7f61a7114"
+    assert authority_sha256 == "891a7bbe28ca33fc6fb1f264d9ea3bc90476376d8d7f4735b9eeedb5a7752526"
     assert mapping["Pigs291119_000225_30fps.mp4"] == (
         "data/videos/Pigs291119_000225_30fps.mp4"
     )
+    assert mapping["Pigs291119_000231"] == "data/videos/Pigs291119_000231_30fps.mp4"
+    assert mapping["Pigs291119_000233"] == "data/videos/Pigs291119_000233_30fps.mp4"
     assert mapping["test video Pigs291119_000302_30fps"] == (
         "data/videos/Pigs291119_000302_30fps.mp4"
     )

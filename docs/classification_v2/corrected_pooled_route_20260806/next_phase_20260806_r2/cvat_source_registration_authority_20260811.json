@@ -65,12 +65,12 @@
       "source_provenance": {"tracking_video_key": "Pigs291119_000226_30fps"}
     },
     {
-      "source_video_key": "Pigs291119_000231_30fps",
+      "source_video_key": "Pigs291119_000231",
       "registered_relative_media_path": "data/videos/Pigs291119_000231_30fps.mp4",
       "source_provenance": {"tracking_video_key": "Pigs291119_000231_30fps"}
     },
     {
-      "source_video_key": "Pigs291119_000233_30fps",
+      "source_video_key": "Pigs291119_000233",
       "registered_relative_media_path": "data/videos/Pigs291119_000233_30fps.mp4",
       "source_provenance": {"tracking_video_key": "Pigs291119_000233_30fps"}
     },
