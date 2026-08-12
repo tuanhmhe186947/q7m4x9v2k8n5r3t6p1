@@ -1,5 +1,39 @@
 # Current Decision
 
+## 2026-08-13 Lightning operational authority and resume rules
+
+- `TEAMSPACE=ironheart211224/pig-project` exactly.
+- `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp` exactly. Never infer a Studio name
+  from the Teamspace name.
+- `lightning studio create` is forbidden during task resume. If the authorized
+  Studio is missing or mismatched, stop and report it; never create another
+  Studio automatically.
+- Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
+  runtime materialization, host binding, resolver checks, and the six CPU
+  preflights. L4/GPU is forbidden until all six CPU preflights pass.
+- Agent browser/UI use is forbidden. Use PowerShell, `uvx` Lightning CLI/SDK,
+  SSH, or shared filesystem; a human handles genuinely UI-only actions.
+- Keep execution scope narrow: one objective at a time. Do not expand a small
+  blocker into a full infrastructure investigation.
+- On context compaction, recover from the task manager and machine-readable
+  checkpoint before repeating work; do not repeat completed phases.
+- Do not reinterpret Teamspace Drive, Studio runtime, `/inputs`, or Data
+  Connections without checking the existing storage authority.
+- UI silence does not prove a backend stall. Check backend, process, and
+  checkpoint state independently before killing or restarting work.
+- Report observed facts separately from inference. For quota, auth, or platform
+  failure claims, preserve and report the exact error.
+- User time and GPU credit are hard constraints. No L4 for debugging, hashing,
+  binding, Git, packaging, waiting, or preflight.
+- Never create, delete, or migrate infrastructure for convenience.
+- Never reset, clean, stash, or restore unrelated owner work.
+- Default interaction is short prompts and incremental execution. Use long
+  campaign prompts only when the user explicitly requests them.
+- When a mistake is confirmed, persist the correction before continuing so the
+  same class of error is not repeated.
+- This decision is reachable through the canonical authority index and is
+  supported by `03_PROJECT_RULES.md` and `08_WORKFLOW.md`.
+
 ## 2026-08-11 Classification V2 post-S1 canonical remote package rule
 
 - Status: `IN_PROGRESS`; this is an engineering deployment repair, not a new
@@ -28,7 +62,11 @@
 - Host paths are derived only under the verified input root. Legacy crop
   handling remains unchanged.
 
-## 2026-08-10 Lightning resource naming contract
+## Historical 2026-08-10 Lightning resource naming contract
+
+This historical contract is superseded for active execution by the exact
+2026-08-13 Lightning operational authority above. Its names remain only as
+lineage evidence.
 
 - `LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2`.
 - `TEAMSPACE_NAME=pig-project`.

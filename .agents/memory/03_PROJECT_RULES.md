@@ -165,6 +165,78 @@
 
 ## classification_v2 active rules
 
+### Lightning operational rules (2026-08-13)
+
+1. `TEAMSPACE=ironheart211224/pig-project`.
+2. `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp`.
+3. Never infer a Studio name from the Teamspace name.
+4. `lightning studio create` is forbidden during task resume. If the authorized
+   Studio is missing or mismatched, stop and report it; never create another
+   Studio automatically.
+5. Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
+   runtime materialization, host binding, resolver checks, and the six CPU
+   preflights. L4/GPU is forbidden until all six CPU preflights pass.
+6. Agent browser/UI use is forbidden. Use PowerShell, `uvx` Lightning CLI/SDK,
+   SSH, or shared filesystem. A human handles genuinely UI-only actions.
+7. Keep prompt and execution scope narrow: one objective at a time. Do not
+   expand a small blocker into a full infrastructure investigation.
+8. Do not repeat completed phases after context compaction. Recover from the
+   task manager and machine-readable checkpoint first.
+9. Do not reinterpret Teamspace Drive, Studio runtime, `/inputs`, or Data
+   Connections without checking the existing storage authority.
+10. UI silence does not prove backend stall. Check backend, process, and
+   checkpoint state independently before killing or restarting work.
+11. Do not invent explanations. Distinguish observed fact from inference. If
+    claiming quota, auth, or platform failure, preserve and report the exact
+    error.
+12. User time and GPU credit are hard constraints. No L4 for debugging,
+    hashing, binding, Git, packaging, waiting, or preflight.
+13. Never create, delete, or migrate infrastructure merely for convenience.
+14. Never reset, clean, stash, or restore unrelated owner work.
+15. Default interaction is short prompts and incremental execution. Use long
+    campaign prompts only when the user explicitly requests them.
+16. When a mistake is confirmed, persist the correction before continuing so
+    the same class of error is not repeated.
+
+### Lightning remote-storage and scope gate (2026-08-11)
+
+1. The current task's permitted effect is a hard upper bound. Authentication,
+   CLI access, a stopped Studio, CPU-only status, or zero-GPU cost does not
+   expand an inventory task into a remote write or a different resource scope.
+2. A remote mutation includes upload, copy, sync, extraction, overwrite,
+   deletion, or any action expected to change bytes in a Studio volume or
+   Teamspace Drive. A read-only task records `REMOTE_MUTATION=FORBIDDEN`.
+3. Before any remote mutation, the current task needs fresh user authorization
+   that names the target resource/path, source content hash and bytes,
+   operation, byte ceiling, replacement permission, expected final hash/size,
+   and the unique-purpose proof. A missing field is a halt, not an invitation
+   to infer permission from reuse or convenience.
+4. `REUSE_BEFORE_REUPLOAD` means reference the existing hash-bound authority;
+   it never authorizes copying that authority into another remote location.
+   The Classification V2 transport archive is retained in Teamspace Drive, not
+   staged, backed up, or inventoried through a Studio volume.
+5. `pig-gpu-l4-r2` is no-touch by default: do not list its volume, copy to or
+   from it, start it, or delete from it without a new user authorization that
+   explicitly names R2 and the desired preservation or disposal outcome.
+6. Before a Lightning CLI, browser, or control-plane step, classify its effect
+   in the current task as `READ_ONLY` or `REMOTE_MUTATION` and select
+   `agent-harness-construction`. A read-only classification cannot later be
+   used to select a command whose intended or possible effect changes remote
+   storage.
+
+### Operational recovery classification (2026-08-12)
+
+1. A failed access command is evidence about that route, not automatically
+   about the Studio, resource, or scientific authority.
+2. Before declaring `BLOCKED`, classify the issue as scientific, cost,
+   destructive/authority, operational, transient infrastructure, or warning.
+   Only the first three may stop the scientific branch immediately.
+3. For an operational or transient issue, test up to three distinct,
+   already-authorized low-cost routes and preserve the valid goal and gates.
+4. Missing fields from an interface are not contrary evidence when that
+   interface cannot observe the claimed fact. This never permits a scientific,
+   cost, provenance, or remote-mutation gate to be weakened.
+
 ### Active-goal routing after review close
 
 The active work after the frozen 3,243-unit review close is the post-review

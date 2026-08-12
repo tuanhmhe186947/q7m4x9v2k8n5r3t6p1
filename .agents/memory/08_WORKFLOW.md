@@ -1,6 +1,51 @@
 # Workflow
 
+## 2026-08-13 Lightning resume and execution gate
+
+Before any Lightning, GPU, or execution command, resolve the existing storage
+authority and require these exact values:
+
+```text
+TEAMSPACE=ironheart211224/pig-project
+ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp
+STUDIO_NAME_MUST_NOT_BE_INFERRED_FROM_TEAMSPACE=YES
+STUDIO_CREATE_DURING_RESUME=FORBIDDEN
+AGENT_BROWSER_UI=FORBIDDEN
+```
+
+If `pig-gpu-l4-gcp` is missing or mismatched, stop and report it. Never create
+another Studio automatically. Starting the existing `pig-gpu-l4-gcp` on CPU is
+authorized for `/inputs` runtime materialization, host binding, resolver checks,
+and the six CPU preflights. Do not switch to L4/GPU until all six CPU
+preflights pass. Use PowerShell, `uvx` Lightning CLI/SDK, SSH, or shared
+filesystem; humans handle genuinely UI-only actions. Keep one objective per
+prompt/execution scope and do not turn a small blocker into an infrastructure
+investigation.
+
+On context compaction, recover from the task manager and machine-readable
+checkpoint before repeating a phase. Check backend, process, and checkpoint
+state independently; UI silence alone is not evidence of a stall. Preserve the
+exact error before claiming quota, auth, or platform failure, and distinguish
+observed facts from inference.
+
+Do not reinterpret Teamspace Drive, Studio runtime, `/inputs`, or Data
+Connections without the existing storage authority. Do not spend L4 credit on
+debugging, hashing, binding, Git, packaging, waiting, or preflight. Never
+create, delete, or migrate infrastructure for convenience, and never reset,
+clean, stash, or restore unrelated owner work. Use short incremental prompts by
+default; use a long campaign prompt only when explicitly requested. Persist a
+confirmed correction before continuing.
+
 ## 2026-08-11 Classification V2 canonical remote code deployment
+
+This workflow is not permission to mutate remote storage during inventory or
+cleanup. Before its transfer/extraction step, a current task must hold the
+user-approved remote-mutation envelope in the Lightning remote-storage and
+scope gate: exact target path, source hash/bytes, operation, byte ceiling,
+replacement permission, expected final hash/size, and unique-purpose proof.
+The retained Teamspace Drive archive is referenced by its hash; it is never
+copied into a Studio volume for staging, backup, inspection, or convenience.
+`pig-gpu-l4-r2` remains no-touch unless a fresh authorization names it.
 
 Before any post-S1 scientific run, export one compact runtime bundle directly
 from the final canonical Git SHA. Include the complete tracked runtime closure
@@ -32,10 +77,14 @@ fuzzy-match a filename, or open an opaque CVAT context key as media. Fail
 closed for zero or more than one registered path; preserve legacy crop and
 frame/box/actor semantics.
 
-## 2026-08-10 Lightning active-resource preflight
+## Historical 2026-08-10 Lightning active-resource preflight
 
-All future Lightning scientific execution must validate exact resource types
-and identities before GPU launch:
+This historical preflight is superseded for active execution by the exact
+2026-08-13 Lightning resume and execution gate above. Retain its values only as
+lineage evidence; do not use them to select an active resource.
+
+The historical preflight validated these resource types and identities before
+its GPU launch:
 
 ```text
 LIGHTNING_RESOURCE_NAMING_CONTRACT_VERSION=20260810-v2
