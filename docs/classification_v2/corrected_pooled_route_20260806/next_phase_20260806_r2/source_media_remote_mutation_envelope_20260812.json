@@ -1,0 +1,79 @@
+{
+  "schema_version": "classification_v2.source_media_remote_mutation_envelope.v1",
+  "status": "FROZEN_PRE_MUTATION",
+  "task": {
+    "task_id": "C2V2-20260812-02",
+    "manager_revision": 47,
+    "canonical_main_sha": "31d983920b287eccb170145ee0b93c9fa15e9587"
+  },
+  "user_authorization": {
+    "reference": "attachments/332e8c00-0d57-4bbf-9edf-b59f42122189/pasted-text.txt",
+    "exactly_two_new_immutable_authorities_if_absent": true,
+    "replacement": false,
+    "overwrite_existing_authority": false,
+    "delete_existing_remote_data": false,
+    "base_transport_changed": false,
+    "base_transport_reupload_forbidden": true,
+    "new_studio_creation_forbidden": true,
+    "paid_gpu_for_publication_forbidden": true,
+    "outer_examples_access_forbidden": true
+  },
+  "base_transport": {
+    "sha256": "0bafb03de7471e55e452e6e1d8b15d0e40444144a480465a2da0cae691b601c1",
+    "changed": false
+  },
+  "drive_reuse_query": {
+    "teamspace_id": "01kkjpg368znrn5jjxw57mvgqg",
+    "queried_prefix": "uploads/classification_v2_source_media",
+    "recursive": true,
+    "truncated": false,
+    "exact_authorities_present": false
+  },
+  "cvat_raw": {
+    "source_role": "registered_original_raw_mp4",
+    "local_root": "data/videos",
+    "registration_authority": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/cvat_source_registration_authority_20260811.json",
+    "registered_member_count": 12,
+    "excluded_000263": true,
+    "scientific_payload_bytes": 3428817239,
+    "member_manifest_sha256": "2cf72fdd3b4dfd9f690e7290a85f33bb5de57fa35dedca46422f9ed2012bb5ee",
+    "member_manifest_identity_source": "current managed-task continuation evidence",
+    "local_member_rehash": "PASS",
+    "metadata_local_path": ".codex_tmp/cvat_raw_member_manifest_2cf72fdd3b4dfd9f690e7290a85f33bb5de57fa35dedca46422f9ed2012bb5ee.json",
+    "metadata_size_bytes": 7171,
+    "metadata_file_sha256": "45028a4a474e7cafb859df00f6579a37d353747457921aaab354c362a337e67c",
+    "local_path_size_hash_audit": "652454c0271a72f5fd2fc95151b50311b3f45b246455047ea3c6043d18de55ff",
+    "publication_mode": "direct_original_files",
+    "target_uri": "lit://ironheart211224/pig-project/uploads/classification_v2_source_media/cvat_raw/2cf72fdd3b4dfd9f690e7290a85f33bb5de57fa35dedca46422f9ed2012bb5ee/",
+    "metadata_max_bytes": 1048576
+  },
+  "legacy_crops": {
+    "source_role": "immutable_recovered_crop_jpeg_tree",
+    "local_root": "outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    "member_count": 58242,
+    "scientific_payload_bytes": 959953215,
+    "member_manifest_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+    "local_member_rehash": "PASS",
+    "metadata_local_path": ".codex_tmp/legacy_member_manifest_5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a_verified.tsv",
+    "metadata_size_bytes": 13671515,
+    "metadata_file_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+    "publication_mode": "single_uncompressed_tar_carrier",
+    "carrier_local_path": ".codex_tmp/c2v2_legacy_crops_5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a.tar",
+    "carrier_size_bytes": 1064304640,
+    "carrier_sha256": "a4af7825e6ba474fca6a757a9272e20661df46bf13e9cc3841350dedbae57f9b",
+    "carrier_max_bytes": 1100000000,
+    "target_uri": "lit://ironheart211224/pig-project/uploads/classification_v2_source_media/legacy_crops/5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a/",
+    "metadata_max_bytes": 33554432
+  },
+  "unique_purpose": {
+    "cvat": "Reusable original raw MP4 authority for source-backed actor imagery and compatible RGB or encoder work.",
+    "legacy": "Reusable immutable recovered crop JPEG authority for the Legacy source family in the same runtime pipeline."
+  },
+  "scientific_invariants": {
+    "historical_64_npy_role": "CONTROL_ONLY",
+    "r64_bridge_required": true,
+    "executor_semantics_changed": false,
+    "labels_changed": false,
+    "splits_changed": false
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "schema_version": "classification_v2.source_media_authority.v1",
+  "status": "PUBLISHED_AND_REMOTE_HASH_VERIFIED",
+  "managed_task": "C2V2-20260812-02",
+  "canonical_code_before_authority_commit": "31d983920b287eccb170145ee0b93c9fa15e9587",
+  "source_media_remote_mutation_envelope": {
+    "relative_directory": "docs/classification_v2/corrected_pooled_route_20260806",
+    "filename": "next_phase_20260806_r2/source_media_remote_mutation_envelope_20260812.json",
+    "sha256": "87a28370b58c106c2673acb1bfafd13814e4bf9be8bf268d0e94d7ad82b15bf2",
+    "replacement": false,
+    "overwrite": false,
+    "delete": false
+  },
+  "base_transport": {
+    "sha256": "0bafb03de7471e55e452e6e1d8b15d0e40444144a480465a2da0cae691b601c1",
+    "changed": false,
+    "reuploaded": false
+  },
+  "cvat_raw": {
+    "role": "registered_original_raw_mp4",
+    "local_root": "C:/Users/ironh/Downloads/PIG_Behavior_Project/data/videos",
+    "registration_authority": {
+      "relative_directory": "docs/classification_v2/corrected_pooled_route_20260806",
+      "filename": "next_phase_20260806_r2/cvat_source_registration_authority_20260811.json",
+      "sha256": "891a7bbe28ca33fc6fb1f264d9ea3bc90476376d8d7f4735b9eeedb5a7752526"
+    },
+    "registered_video_count": 12,
+    "excluded_000263": true,
+    "scientific_payload_bytes": 3428817239,
+    "member_manifest_sha256": "2cf72fdd3b4dfd9f690e7290a85f33bb5de57fa35dedca46422f9ed2012bb5ee",
+    "local_path_size_sha256_audit": {
+      "sha256": "652454c0271a72f5fd2fc95151b50311b3f45b246455047ea3c6043d18de55ff"
+    },
+    "remote_drive": {
+      "uri_prefix": "lit://ironheart211224/pig-project/uploads",
+      "relative_segments": [
+        "classification_v2_source_media",
+        "cvat_raw",
+        "2cf72fdd3b4dfd9f690e7290a85f33bb5de57fa35dedca46422f9ed2012bb5ee"
+      ]
+    },
+    "publication_mode": "direct_original_files",
+    "metadata": {
+      "remote_filename": "cvat_raw_member_manifest.json",
+      "size_bytes": 7171,
+      "sha256": "45028a4a474e7cafb859df00f6579a37d353747457921aaab354c362a337e67c"
+    },
+    "remote_hash_audit": {
+      "status": "PASS",
+      "member_count": 12,
+      "scientific_payload_bytes": 3428817239,
+      "all_member_sha256_match": true,
+      "metadata_sha256_match": true
+    }
+  },
+  "legacy_crops": {
+    "role": "immutable_recovered_crop_jpeg_tree",
+    "local_root": {
+      "project_root": "C:/Users/ironh/Downloads/PIG_Behavior_Project",
+      "relative_directory": "outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2",
+      "relative_leaf": "06_full_recovery/crops"
+    },
+    "member_count": 58242,
+    "scientific_payload_bytes": 959953215,
+    "member_manifest_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+    "remote_drive": {
+      "uri_prefix": "lit://ironheart211224/pig-project/uploads",
+      "relative_segments": [
+        "classification_v2_source_media",
+        "legacy_crops",
+        "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a"
+      ]
+    },
+    "publication_mode": "single_uncompressed_tar_carrier",
+    "tar_carrier": {
+      "remote_filename": "legacy_crops.tar",
+      "size_bytes": 1064304640,
+      "sha256": "a4af7825e6ba474fca6a757a9272e20661df46bf13e9cc3841350dedbae57f9b",
+      "maximum_size_bytes": 1100000000,
+      "remote_hash_match": true
+    },
+    "metadata": {
+      "remote_filename": "legacy_member_manifest.tsv",
+      "size_bytes": 13671515,
+      "sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+      "remote_hash_match": true
+    },
+    "remote_hash_audit": {
+      "status": "PASS",
+      "materialized_tree_audit": "PENDING_CPU_MATERIALIZATION"
+    }
+  },
+  "verification": {
+    "drive_reuse_query": "one exact-prefix recursive SDK query; no prior authority found",
+    "publication_interface": "official Lightning SDK Teamspace upload_file",
+    "remote_hash_method": "independent authenticated SDK artifact-byte stream SHA-256",
+    "streamed_remote_bytes": 4506800565,
+    "browser_used": false,
+    "studio_started_for_publication": false,
+    "gpu_used_for_publication": false
+  },
+  "scientific_invariants": {
+    "historical_64_npy_role": "CONTROL_ONLY",
+    "new_resolution_pipeline_source": "HIGH_FIDELITY_SOURCE_MEDIA",
+    "r64_bridge_required": true,
+    "executor_semantics_changed": false,
+    "labels_changed": false,
+    "splits_changed": false,
+    "outer_examples_accessed": false
+  }
+}
