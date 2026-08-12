@@ -1,0 +1,106 @@
+{
+  "schema_version": "classification_v2.auxiliary_derived_authority.v1",
+  "status": "PUBLISHED_AND_VERIFIED",
+  "authority_id": "S1_T6_MINIMUM_EXECUTOR_CLOSURE_E0106B_20260812",
+  "artifact_role": "s1_t6_minimum_executor_closure",
+  "prepared_at": "2026-08-12T10:42:09+07:00",
+  "source_local_root": "outputs/classification_v2/s1_post_temporal_closure_20260809",
+  "source_relative_root": "s1_primary_f3_32d5b53c_20260809_retry2",
+  "source_file_count": 6,
+  "source_total_bytes": 96412684,
+  "primary_artifact": {
+    "relative_path": "fold3_primary_inner_eligibility.csv",
+    "role": "registered FOLD_3 inner eligibility authority",
+    "size_bytes": 58451284,
+    "expected_sha256": "e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c",
+    "actual_local_sha256": "e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c",
+    "rows": 134970
+  },
+  "members": [
+    {
+      "relative_path": "s1_primary_derived_artifacts_audit.json",
+      "size_bytes": 25984,
+      "sha256": "c1d17f648ff2dd979028ec46b562d93f85f414f7c4d9babf019d13e9a71a0abd"
+    },
+    {
+      "relative_path": "fold3_primary_inner_eligibility.csv",
+      "size_bytes": 58451284,
+      "sha256": "e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c"
+    },
+    {
+      "relative_path": "fold3_t6_event_weights.csv",
+      "size_bytes": 20177568,
+      "sha256": "600a45bea5bc4c9bbd8889ecda6024a0cd24417974d738cb88aded3657c38c72"
+    },
+    {
+      "relative_path": "fold3_t6_validation_native_units.csv",
+      "size_bytes": 407929,
+      "sha256": "b62a3c0a11ef178c2aced15eb6d7f6372ad0a226a8d0df318278640be09d351f"
+    },
+    {
+      "relative_path": "fold3_common_t6_t8_t12_t16_native_units.csv",
+      "size_bytes": 3700312,
+      "sha256": "cb66f0b5079c1727d9726c499cb52d2fb428b0d9db2ff60b4be83600606f38a8"
+    },
+    {
+      "relative_path": "fold3_t6_primary_windows.csv",
+      "size_bytes": 13649607,
+      "sha256": "e986a9ffc0a00360080b31d7697d193756ea45bd894ce4892f74786f50f5ef33"
+    }
+  ],
+  "producer_authority": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json",
+    "sha256": "9daf6a3bda89678c2b3ddd6ba9a0132fa1be16b583bfafb1cc76eb610ff8b1e4",
+    "materializer_path": "scripts/classification_v2/02_train_ready_exports/classification_v2_materialize_s1_primary_authorities.py",
+    "materializer_sha256": "a544a0b45ba1f0bff036a02a58d7207522782c8239a6f7bc7de723d6e882ba5e"
+  },
+  "scientific_input_authority": {
+    "effective_window_index_sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+    "grouped_role_authority_sha256": "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
+    "grouped_split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+  },
+  "base_transport": {
+    "sha256": "0bafb03de7471e55e452e6e1d8b15d0e40444144a480465a2da0cae691b601c1",
+    "contains_derived_artifact": false,
+    "changed": false
+  },
+  "contract_parity": {
+    "status": "PASS",
+    "schema_and_column_order": "PASS",
+    "row_and_window_identity": "PASS",
+    "roles": ["train", "validation"],
+    "view_types": ["T6_contiguous", "T8_contiguous", "T12_contiguous", "T16_contiguous"],
+    "outer_rows_written": 0,
+    "executor_required_members": "PASS",
+    "frozen_executor_changed": false,
+    "executor_semantics_changed": false
+  },
+  "publication": {
+    "operation": "local_to_teamspace_drive_new_immutable_upload",
+    "replacement_allowed": false,
+    "remote_uri": "lit://ironheart211224-8jzo4/pig-project/uploads/classification_v2/derived_authorities/s1_t6_minimum_executor_closure/e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c/s1_t6_executor_closure_e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c.tar.gz",
+    "package_filename": "s1_t6_executor_closure_e0106ba2f666c4684461d355bace7b842896717d837afd1950a41044079a312c.tar.gz",
+    "package_size_bytes": 2982129,
+    "package_sha256": "2302d8eb99631b520e5258d96e6772e85291485951ed8df9773a28e1d16ffc7f",
+    "remote_exists": true,
+    "publication_timestamp": "2026-08-12T10:51:38+07:00",
+    "remote_size_bytes": 2982129,
+    "remote_package_sha256": "2302d8eb99631b520e5258d96e6772e85291485951ed8df9773a28e1d16ffc7f",
+    "remote_hash_match": true,
+    "verification_method": "official Lightning CLI upload followed by independent CLI download and SHA-256 audit",
+    "materialized_remote_verification": {
+      "status": "PASS",
+      "file_count": 6,
+      "total_bytes": 96412684,
+      "member_hashes_matched": "6/6"
+    }
+  },
+  "operation_classification": {
+    "required_now": true,
+    "reusable_investment": true,
+    "avoidable_rework": false,
+    "speculative": false
+  },
+  "scientific_semantics_changed": false,
+  "auxiliary_derived_authority_required": true
+}
