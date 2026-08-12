@@ -97,6 +97,9 @@ adds a hash-bound audit event. Never `apply_patch` a managed block. Halt on ID
 collision, stale CAS, unaudited active-lease takeover, runtime mismatch, or
 external task drift.
 
+Compacted continuation steps must retain the full task ID before their `-99`
+suffix. A generic family prefix can collide with another compacted task.
+
 The tool plan and short checklist serve different scopes: the tool plan drives
 the live interaction, while short memory survives a new chat. Reconcile them at
 every phase boundary and before final handoff.

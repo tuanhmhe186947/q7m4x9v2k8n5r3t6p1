@@ -674,6 +674,49 @@ def test_compaction_preserves_lossless_history_and_unrelated_tasks(
     assert verified["archive_sha256"] == compacted["archive_sha256"]
 
 
+def test_compaction_uses_task_scoped_continuation_step_ids(
+    tmp_path: Path, manager: ModuleType
+) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    first = _create_task(ledger, "C2V2-20260803-01", step_count=60)
+    first_compacted = ledger.compact(
+        task_id=first["task_id"],
+        owner_session=first["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=first["revision"],
+        expected_block_sha256=first["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Inspect the verified archive before resuming.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        now=NOW + timedelta(seconds=10),
+    )
+    second = _create_task(
+        ledger,
+        "C2V2-20260803-02",
+        now=NOW + timedelta(seconds=20),
+        step_count=60,
+    )
+    second_compacted = ledger.compact(
+        task_id=second["task_id"],
+        owner_session=second["owner_session"],
+        owner_token=OWNER_TOKEN,
+        worktree=tmp_path,
+        expected_revision=second["revision"],
+        expected_block_sha256=second["block_sha256"],
+        phase="GENERIC_COMPACTION_TEST",
+        blocker=None,
+        resume_point="Inspect the verified archive before resuming.",
+        authority_refs=["tests/test_short_memory_task_manager.py"],
+        now=NOW + timedelta(seconds=30),
+    )
+
+    assert first_compacted["steps"][0]["step_id"] == "C2V2-20260803-01-99"
+    assert second_compacted["steps"][0]["step_id"] == "C2V2-20260803-02-99"
+
+
 def test_compaction_refuses_repeat_and_detects_archive_tampering(
     tmp_path: Path, manager: ModuleType
 ) -> None:

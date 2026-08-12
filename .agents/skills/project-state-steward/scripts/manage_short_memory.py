@@ -1515,7 +1515,7 @@ def _compact_task_block(
             "Do not discard the task's reasoning and execution provenance.",
         )
     nl = _newline(block)
-    step_id = f"{task_id.rsplit('-', 2)[0]}-99"
+    step_id = f"{task_id}-99"
     lines = [f"### {task_id} - {title}{nl}", nl]
     lines.extend(
         _wrap_field(
