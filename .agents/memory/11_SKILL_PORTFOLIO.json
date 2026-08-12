@@ -40,9 +40,9 @@
       "category": "governance",
       "source_root": "project",
       "relative_path": ".agents/skills/project-state-steward/SKILL.md",
- "version_or_commit": "local-v7",
+ "version_or_commit": "826416c",
       "file_sha256":
- "a271c167beb5f3fb0115b78415f90e5e4a8b97cd3b3232a90aa20099a7dd8f0b",
+ "aed8806dafd877c6ba4d20d8ce9795e213930845be4a05cd8f1c35eb2ff530a0",
       "bundle_paths": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -53,17 +53,17 @@
         "templates/memory_maturity_candidate.json"
       ],
       "bundle_sha256":
-      "9b806928b510c9af551e760c8563af054712bb853da44ebdd42276ef95954ae8",
+      "df1164dc8feee59cd4696cd0c7b646c70a4cebcb675847648ede75539d001a2a",
       "git_identity": {
         "schema_version": "pig.git-tracked-identity.v1",
         "relative_path": ".agents/skills/project-state-steward/SKILL.md",
         "git_reference": "HEAD",
- "blob_oid": "7288adcb909bf2724a4423f3ce73dcb38f93b26c",
+ "blob_oid": "cd27e7ba5efe745a67adeccc1156c5027452c523",
         "bundle_blob_oids": {
- "SKILL.md": "7288adcb909bf2724a4423f3ce73dcb38f93b26c",
+ "SKILL.md": "cd27e7ba5efe745a67adeccc1156c5027452c523",
           "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
-        "scripts/manage_short_memory.py": "3dff0380047d4c2795d5ed8dd0cfa88b61a85771",
+        "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
           "scripts/validate_governance_contracts.py": "f6386bdb5af4418d269b62c65afcd101b1a98578",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
@@ -71,12 +71,12 @@
       },
       "tool_api_dependencies": ["filesystem", "git", "python", "pytest"],
       "selected_date": "2026-07-31",
-      "last_reviewed": "2026-08-11",
-      "last_real_use": "2026-08-11",
-      "proof_task": "C2V2-20260811-01 generic managed-task compaction",
-      "stale_signal": "archive retention or integrity validation failure",
+      "last_reviewed": "2026-08-12",
+      "last_real_use": "2026-08-12",
+      "proof_task": "C2V2-20260812-02 compacted-step collision repair",
+      "stale_signal": "compacted-step collision or archive integrity failure",
       "next_maintenance_action":
-        "revalidate immutable archive retrieval before new manager storage changes"
+        "revalidate task-scoped continuation IDs before manager storage changes"
     },
     {
       "skill_id": "thesis-evidence-writing",
