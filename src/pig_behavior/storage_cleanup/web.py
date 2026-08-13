@@ -26,9 +26,10 @@ class ScanRequest(BaseModel):
 
 
 class PreviewRequest(BaseModel):
-    """Opaque tokens from the latest server-side scan."""
+    """Opaque tokens and an explicit owner override decision."""
 
     tokens: list[str] = Field(min_length=1, max_length=500)
+    allow_protected: bool = False
 
 
 class CommitRequest(BaseModel):
@@ -209,7 +210,10 @@ def create_app(service: CleanupService | None = None) -> FastAPI:
     @app.post("/api/recycle/preview")
     def preview(payload: PreviewRequest) -> dict[str, object]:
         try:
-            return cleanup_service.preview(payload.tokens)
+            return cleanup_service.preview(
+                payload.tokens,
+                allow_protected=payload.allow_protected,
+            )
         except CleanupError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 

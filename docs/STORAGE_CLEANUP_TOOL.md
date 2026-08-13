@@ -57,7 +57,10 @@ lineage review instead of being recommended as disposable cache.
   backend also rejects overlapping parent/child selections.
 - A preview is bound to an exact item fingerprint and expires after five
   minutes.
-- A second typed confirmation is required.
+- Normal items require the generated confirmation phrase. Protected or
+  review-required items remain unselected by default; the local owner may
+  explicitly enable the override, review the warning, and type `DELETE`.
+  Reparse points and links remain non-overridable.
 - Files changed after scanning are rejected.
 - The tool has no permanent-delete operation and never empties Recycle Bin.
 

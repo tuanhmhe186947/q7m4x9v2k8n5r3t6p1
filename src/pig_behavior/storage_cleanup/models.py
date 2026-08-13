@@ -37,6 +37,7 @@ class CleanupItem:
     importance_level: str
     importance_reason: str
     selectable: bool
+    owner_override_allowed: bool = False
     protected_reason: str | None = None
     detail: str | None = None
 
@@ -62,6 +63,7 @@ class CleanupItem:
             "importance_level": self.importance_level,
             "importance_reason": self.importance_reason,
             "selectable": self.selectable,
+            "owner_override_allowed": self.owner_override_allowed,
             "protected_reason": self.protected_reason,
             "detail": self.detail,
         }

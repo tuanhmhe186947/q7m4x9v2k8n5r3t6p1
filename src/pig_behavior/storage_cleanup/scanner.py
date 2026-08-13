@@ -498,7 +498,7 @@ class StorageScanner:
                 now=now,
                 min_age_days=0.0,
                 risk="protected",
-                reason="Large scientific data; shown for review and never selectable.",
+                reason="Large scientific data; protected by default and requires review.",
                 force_protected="Scientific/data artifact requires manual lineage review.",
             ):
                 if item.fingerprint.size_bytes >= self.large_threshold_bytes:
@@ -514,7 +514,7 @@ class StorageScanner:
                 now=now,
                 min_age_days=0.0,
                 risk="protected",
-                reason="Large project file; shown for review and never selectable.",
+                reason="Large project file; protected by default and requires review.",
                 force_protected="Project data requires manual lineage review.",
             ):
                 if item.fingerprint.size_bytes >= self.large_threshold_bytes:
@@ -810,6 +810,11 @@ class StorageScanner:
             importance_level=importance_level,
             importance_reason=importance_reason,
             selectable=selectable,
+            owner_override_allowed=(
+                not selectable
+                and protected_reason is not None
+                and not inspected.reparse_point
+            ),
             protected_reason=protected_reason,
             detail=detail,
         )

@@ -6,6 +6,7 @@ const state = {
   selected: new Set(),
   preview: null,
   commitInProgress: false,
+  ownerOverrideEnabled: false,
   ageSelectionDays: null,
   visibleLimit: 200,
   browseStack: [],
@@ -23,6 +24,7 @@ const elements = {
   customAgeDays: document.querySelector("#custom-age-days"),
   applyCustomAge: document.querySelector("#apply-custom-age"),
   selectVisible: document.querySelector("#select-visible"),
+  ownerOverride: document.querySelector("#owner-override"),
   resultBody: document.querySelector("#result-body"),
   emptyState: document.querySelector("#empty-state"),
   notice: document.querySelector("#notice"),
@@ -173,6 +175,11 @@ function visibleItems() {
   return filteredItems().slice(0, state.visibleLimit);
 }
 
+function canSelectItem(item) {
+  return item.selectable
+    || (state.ownerOverrideEnabled && item.owner_override_allowed);
+}
+
 function createCell(text) {
   const cell = document.createElement("td");
   cell.textContent = text;
@@ -266,7 +273,7 @@ function renderRows() {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = state.selected.has(item.token);
-    checkbox.disabled = !item.selectable;
+    checkbox.disabled = !canSelectItem(item);
     checkbox.dataset.token = item.token;
     checkbox.setAttribute("aria-label", `Chọn ${item.display_name}`);
     checkbox.addEventListener("change", () => {
@@ -468,6 +475,8 @@ async function runScan() {
       payload.items.map((item) => [item.token, item]),
     );
     state.selected.clear();
+    state.ownerOverrideEnabled = false;
+    elements.ownerOverride.checked = false;
     state.ageSelectionDays = null;
     setAgeSelectionIndicator(null);
     state.preview = null;
@@ -638,7 +647,8 @@ function requestSafeAgeSelection(value) {
 function renderPreview(preview) {
   elements.previewSummary.textContent =
     `${preview.item_count} mục (${formatBytes(preview.total_bytes)}) sẽ được `
-    + "chuyển vào Windows Recycle Bin. Có thể khôi phục từ Recycle Bin.";
+    + "chuyển vào Windows Recycle Bin. Có thể khôi phục từ Recycle Bin."
+    + (preview.warning ? ` ${preview.warning}` : "");
   elements.previewList.replaceChildren();
   for (const item of preview.items) {
     const row = document.createElement("div");
@@ -682,7 +692,7 @@ function renderDetail(payload) {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = state.selected.has(item.token);
-    checkbox.disabled = !item.selectable;
+    checkbox.disabled = !canSelectItem(item);
     checkbox.dataset.token = item.token;
     checkbox.setAttribute("aria-label", `Chọn ${item.display_name}`);
     checkbox.addEventListener("change", () => {
@@ -763,6 +773,7 @@ async function openPreview() {
   try {
     const preview = await postJson("/api/recycle/preview", {
       tokens: Array.from(state.selected),
+      allow_protected: state.ownerOverrideEnabled,
     });
     state.preview = preview;
     renderPreview(preview);
@@ -875,6 +886,25 @@ elements.customAgeDays.addEventListener("keydown", (event) => {
 updateAgeSelectionControls();
 elements.previewButton.addEventListener("click", openPreview);
 elements.commitButton.addEventListener("click", commitRecycle);
+elements.ownerOverride.addEventListener("change", () => {
+  state.ownerOverrideEnabled = elements.ownerOverride.checked;
+  if (!state.ownerOverrideEnabled) {
+    for (const token of Array.from(state.selected)) {
+      const item = state.itemIndex.get(token);
+      if (item && !item.selectable) {
+        state.selected.delete(token);
+      }
+    }
+  }
+  renderRows();
+  syncSelectionControls();
+  updateSelectionSummary();
+  if (state.ownerOverrideEnabled) {
+    setNotice(
+      "Override đã bật. Mục được bảo vệ chỉ được chuyển khi nhập DELETE.",
+    );
+  }
+});
 elements.ageScopeClose.addEventListener("click", () => {
   elements.ageScopeDialog.close();
 });

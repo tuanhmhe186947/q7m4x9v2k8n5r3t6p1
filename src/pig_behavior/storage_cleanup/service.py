@@ -17,6 +17,7 @@ from pig_behavior.storage_cleanup.scanner import StorageScanner
 
 PREVIEW_TTL = timedelta(minutes=5)
 MAX_SELECTION = 500
+OWNER_OVERRIDE_PHRASE = "DELETE"
 
 
 class CleanupError(RuntimeError):
@@ -42,6 +43,12 @@ class CleanupPreview:
     created_at: datetime
     items: tuple[CleanupItem, ...]
 
+    @property
+    def owner_override_required(self) -> bool:
+        """Whether this preview includes an item outside normal selection."""
+
+        return any(not item.selectable for item in self.items)
+
     def to_public_dict(self) -> dict[str, object]:
         """Return confirmation details without exposing new authority."""
 
@@ -50,6 +57,14 @@ class CleanupPreview:
             "phrase": self.phrase,
             "expires_at": (self.created_at + PREVIEW_TTL).isoformat(),
             "item_count": len(self.items),
+            "owner_override_required": self.owner_override_required,
+            "warning": (
+                "CẢNH BÁO: có mục được bảo vệ hoặc cần xem xét kỹ. "
+                "Bạn chịu trách nhiệm cho việc chuyển các mục này vào "
+                "Recycle Bin."
+                if self.owner_override_required
+                else None
+            ),
             "total_bytes": sum(
                 item.fingerprint.size_bytes for item in self.items
             ),
@@ -84,7 +99,12 @@ class CleanupService:
             self._previews.clear()
         return result.to_public_dict()
 
-    def preview(self, tokens: list[str]) -> dict[str, object]:
+    def preview(
+        self,
+        tokens: list[str],
+        *,
+        allow_protected: bool = False,
+    ) -> dict[str, object]:
         """Validate an exact selection and create a short-lived confirmation."""
 
         unique_tokens = tuple(dict.fromkeys(tokens))
@@ -95,9 +115,19 @@ class CleanupService:
         with self._lock:
             if self._scan is None:
                 raise CleanupError("Run a scan before previewing cleanup.")
-            items = tuple(self._item_for_preview(token) for token in unique_tokens)
+            items = tuple(
+                self._item_for_preview(
+                    token,
+                    allow_protected=allow_protected,
+                )
+                for token in unique_tokens
+            )
             self._reject_overlapping_items(items)
-            phrase = f"CHUYEN {len(items)} MUC"
+            phrase = (
+                OWNER_OVERRIDE_PHRASE
+                if any(not item.selectable for item in items)
+                else f"CHUYEN {len(items)} MUC"
+            )
             preview = CleanupPreview(
                 confirmation_id=secrets.token_urlsafe(24),
                 phrase=phrase,
@@ -193,12 +223,26 @@ class CleanupService:
                 "results": results,
             }
 
-    def _item_for_preview(self, token: str) -> CleanupItem:
+    def _item_for_preview(
+        self,
+        token: str,
+        *,
+        allow_protected: bool,
+    ) -> CleanupItem:
         item = self._items.get(token)
         if item is None:
             raise CleanupError("A selected item is not part of the current scan.")
-        if not item.selectable:
-            raise CleanupError(f"Protected item cannot be recycled: {item.path}")
+        if not item.selectable and (
+            not allow_protected or not item.owner_override_allowed
+        ):
+            detail = (
+                " Bật override chủ sở hữu và nhập DELETE để xác nhận."
+                if item.owner_override_allowed
+                else ""
+            )
+            raise CleanupError(
+                f"Protected item cannot be recycled: {item.path}.{detail}"
+            )
         self._revalidate(item)
         return item
 

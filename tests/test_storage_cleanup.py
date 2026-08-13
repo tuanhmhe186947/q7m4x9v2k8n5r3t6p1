@@ -422,6 +422,47 @@ def test_protected_item_cannot_be_previewed(tmp_path: Path) -> None:
         service.preview([token])
 
 
+def test_owner_can_override_protected_item_with_delete_confirmation(
+    tmp_path: Path,
+) -> None:
+    now = datetime(2026, 7, 31, tzinfo=timezone.utc)
+    scanner = make_scanner(tmp_path, now)
+    session = add_session(
+        scanner,
+        "019fb4d4-520b-76b2-a800-3601ce78a914",
+        title="Recent session to remove",
+        modified_at=now - timedelta(minutes=5),
+    )
+    recycler = FakeRecycler()
+    service = CleanupService(scanner=scanner, recycler=recycler)
+    payload = service.scan()
+    token = next(
+        str(candidate["token"])
+        for candidate in payload["items"]
+        if candidate["display_name"] == "Recent session to remove"
+    )
+
+    preview = service.preview([token], allow_protected=True)
+    assert preview["owner_override_required"] is True
+    assert preview["phrase"] == "DELETE"
+    assert preview["warning"]
+
+    with pytest.raises(CleanupError, match="Confirmation phrase"):
+        service.commit(str(preview["confirmation_id"]), "delete")
+    assert session.exists()
+    assert recycler.paths == []
+
+    preview = service.preview([token], allow_protected=True)
+    result = service.commit(
+        str(preview["confirmation_id"]),
+        "DELETE",
+    )
+
+    assert result["recycled_count"] == 1
+    assert recycler.paths == [session.resolve()]
+    assert not session.exists()
+
+
 def test_local_api_exposes_only_storage_guard_routes(tmp_path: Path) -> None:
     now = datetime(2026, 7, 31, tzinfo=timezone.utc)
     scanner = make_scanner(tmp_path, now)
