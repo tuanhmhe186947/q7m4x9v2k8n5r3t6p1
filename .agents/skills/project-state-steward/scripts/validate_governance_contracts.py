@@ -33,6 +33,15 @@ assert MATURITY_MANAGER_SPEC is not None
 assert MATURITY_MANAGER_SPEC.loader is not None
 MATURITY_MANAGER = importlib.util.module_from_spec(MATURITY_MANAGER_SPEC)
 MATURITY_MANAGER_SPEC.loader.exec_module(MATURITY_MANAGER)
+AGENT_GOVERNANCE_PATH = Path(__file__).with_name("manage_agent_governance.py")
+AGENT_GOVERNANCE_SPEC = importlib.util.spec_from_file_location(
+    "project_agent_governance_manager",
+    AGENT_GOVERNANCE_PATH,
+)
+assert AGENT_GOVERNANCE_SPEC is not None
+assert AGENT_GOVERNANCE_SPEC.loader is not None
+AGENT_GOVERNANCE = importlib.util.module_from_spec(AGENT_GOVERNANCE_SPEC)
+AGENT_GOVERNANCE_SPEC.loader.exec_module(AGENT_GOVERNANCE)
 
 SHORT_RE = re.compile(
     r"Opened:\s*`(?P<opened>\d{4}-\d{2}-\d{2})`.*?"
@@ -107,6 +116,23 @@ REQUIRED_CLAIM_FIELDS = {
     "invalidation_condition",
     "authority",
     "reviewer",
+}
+
+V2_ACTIVATION_MARKERS = {
+    "bootstrap": ".agents/memory/00_AGENT_BOOTSTRAP.md",
+    "manager": ".agents/skills/project-state-steward/scripts/manage_agent_governance.py",
+    "inventory": ".agents/skills/skill_inventory.json",
+    "lifecycle": ".agents/memory/22_WORKTREE_LIFECYCLE.json",
+}
+V2_ACTIVATION_DOCUMENTS = {
+    "AGENTS.md": "AGENTS.md",
+    "00_README.md": ".agents/memory/00_README.md",
+    "03_PROJECT_RULES.md": ".agents/memory/03_PROJECT_RULES.md",
+    "08_WORKFLOW.md": ".agents/memory/08_WORKFLOW.md",
+}
+V2_AUTHORITY_SCOPES = {
+    "skill.portfolio": ".agents/skills/skill_inventory.json",
+    "agent.governance": "docs/governance/AGENT_GOVERNANCE_V2.md",
 }
 
 
@@ -649,6 +675,13 @@ def _check_authority_index(root: Path) -> list[str]:
         for ref in refs:
             if not (root / ref).is_file():
                 errors.append(f"authority_missing_file:{ref}")
+    for scope, expected in V2_AUTHORITY_SCOPES.items():
+        matching = [entry for entry in entries if entry.get("scope") == scope]
+        if not matching:
+            errors.append(f"authority_scope_missing:{scope}")
+            continue
+        if any(entry.get("current_authority") != expected for entry in matching):
+            errors.append(f"authority_current_not_canonical:{scope}:{expected}")
     return errors
 
 
@@ -817,6 +850,56 @@ def _check_halt_contract(root: Path) -> list[str]:
     return errors
 
 
+def _check_skill_inventory_views(root: Path) -> list[str]:
+    """Ensure declared skill-inventory views are generated and byte-identical."""
+    inventory_path = root / ".agents" / "skills" / "skill_inventory.json"
+    if not inventory_path.is_file():
+        return []
+    try:
+        inventory = _load_json(inventory_path)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        # The inventory validator reports the primary unreadable-JSON failure.
+        return []
+    if not isinstance(inventory, dict):
+        return []
+    skills = inventory.get("skills", [])
+    modern_inventory = isinstance(inventory.get("view_contract"), dict) or (
+        isinstance(skills, list)
+        and any(
+            isinstance(skill, dict)
+            and ("registry" in skill or "portfolio" in skill)
+            for skill in skills
+        )
+    )
+    if not modern_inventory:
+        # Preserve V1 fixture/legacy inventories until their view contract is adopted.
+        return []
+    declared = inventory.get("generated_views")
+    if declared == []:
+        return ["skill_inventory_views_declaration_empty"]
+    if declared is None:
+        return ["skill_inventory_views_declaration_missing"]
+    renderer_path = Path(__file__).with_name("render_skill_inventory_views.py")
+    if not renderer_path.is_file():
+        return ["skill_inventory_view_renderer_missing"]
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "skill_inventory_view_renderer",
+            renderer_path,
+        )
+        if spec is None or spec.loader is None:
+            return ["skill_inventory_view_renderer_unavailable"]
+        renderer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(renderer)
+        mismatches = renderer.check_views(root)
+    except Exception as exc:  # pragma: no cover - defensive validator boundary
+        return [
+            "skill_inventory_view_renderer_error:"
+            f"{type(exc).__name__}:{exc}"
+        ]
+    return [f"skill_inventory_view_{error}" for error in mismatches]
+
+
 def _check_skill_portfolio(root: Path) -> list[str]:
     portfolio = _load_json(root / ".agents" / "memory" / "11_SKILL_PORTFOLIO.json")
     errors: list[str] = []
@@ -914,6 +997,8 @@ def _check_skill_portfolio(root: Path) -> list[str]:
     for skill_id in ids:
         if ids.count(skill_id) > 1:
             errors.append(f"duplicate_skill:{skill_id}")
+    errors.extend(AGENT_GOVERNANCE.validate_skill_inventory(root))
+    errors.extend(_check_skill_inventory_views(root))
     return errors
 
 
@@ -1002,6 +1087,17 @@ def _check_governance_references(root: Path) -> list[str]:
     agents = _read(root / "AGENTS.md")
     workflow = _read(root / ".agents" / "memory" / "08_WORKFLOW.md")
     readme = _read(root / ".agents" / "memory" / "00_README.md")
+    activation_documents = {
+        name: _read(root / relative)
+        for name, relative in V2_ACTIVATION_DOCUMENTS.items()
+    }
+    for document, content in activation_documents.items():
+        normalized = " ".join(content.replace("\\", "/").split()).casefold()
+        for marker_name, marker in V2_ACTIVATION_MARKERS.items():
+            if marker.casefold() not in normalized:
+                errors.append(
+                    f"governance_missing_v2_{marker_name}:{document}"
+                )
     for name in (
         "18_AUTHORITY_INDEX",
         "19_REASONING_ROUTING",
@@ -1096,6 +1192,8 @@ def audit(
     errors.extend(_check_skill_portfolio(root))
     errors.extend(_check_eval_harness(root))
     errors.extend(_check_governance_references(root))
+    errors.extend(AGENT_GOVERNANCE.validate_runtime_records(root))
+    errors.extend(AGENT_GOVERNANCE.validate_worktree_lifecycle_ledger(root))
     checks["derived_claim_statuses"] = derived_claims
     status = "RESET_REQUIRED" if checks["short_ttl"]["status"] == "RESET_REQUIRED" else (
         "FAIL" if errors else "PASS"
