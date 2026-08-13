@@ -577,7 +577,7 @@
       },
       "portfolio": {
         "version_or_commit": "826416c",
-        "file_sha256": "aed8806dafd877c6ba4d20d8ce9795e213930845be4a05cd8f1c35eb2ff530a0",
+        "file_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc",
         "bundle_paths": [
           "SKILL.md",
           "agents/openai.yaml",
@@ -587,18 +587,18 @@
           "scripts/validate_memory_contract_v2.py",
           "templates/memory_maturity_candidate.json"
         ],
-        "bundle_sha256": "df1164dc8feee59cd4696cd0c7b646c70a4cebcb675847648ede75539d001a2a",
+        "bundle_sha256": "1aef2c5689c8cc5dad680c538242c3564e0240f81cd371d9c77af84ae50a80c4",
         "git_identity": {
           "schema_version": "pig.git-tracked-identity.v1",
           "relative_path": ".agents/skills/project-state-steward/SKILL.md",
           "git_reference": "HEAD",
-          "blob_oid": "cd27e7ba5efe745a67adeccc1156c5027452c523",
+          "blob_oid": "d62127c723e09a25a8226775d81d3122c33ad1b7",
           "bundle_blob_oids": {
-            "SKILL.md": "cd27e7ba5efe745a67adeccc1156c5027452c523",
-            "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
+            "SKILL.md": "d62127c723e09a25a8226775d81d3122c33ad1b7",
+            "agents/openai.yaml": "ad7e858415985989879cc0dacc05750ab887262c",
             "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
             "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
-            "scripts/validate_governance_contracts.py": "f6386bdb5af4418d269b62c65afcd101b1a98578",
+            "scripts/validate_governance_contracts.py": "c94cefabc9fc746cebe804681e8b811d6f990026",
             "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
             "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
           }
