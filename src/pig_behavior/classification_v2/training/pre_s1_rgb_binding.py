@@ -27,6 +27,10 @@ from pig_behavior.classification_v2.training.cvat_media_resolution import (
     CvatMediaResolutionError,
     attach_registered_cvat_media_paths,
 )
+from pig_behavior.classification_v2.training.legacy_media_resolution import (
+    LegacyMediaResolutionError,
+    attach_canonical_legacy_media_paths,
+)
 
 SCIENTIFIC_RGB_BINDING_SCHEMA = "classification_v2.pre_s1_calibration_rgb_binding.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.pre_s1_calibration_data_bindings.v2"
@@ -948,13 +952,26 @@ def _context_ids_from_windows(windows: pd.DataFrame) -> set[str]:
     return context_ids
 
 
-def _sanitize_frame_paths(frames: pd.DataFrame) -> pd.DataFrame:
+def _sanitize_frame_paths(
+    frames: pd.DataFrame,
+    *,
+    preserve_legacy_physical_paths: bool = False,
+) -> pd.DataFrame:
     sanitized = frames.copy()
+    if preserve_legacy_physical_paths:
+        try:
+            sanitized = attach_canonical_legacy_media_paths(sanitized)
+        except LegacyMediaResolutionError as error:
+            raise RgbBindingError(str(error)) from error
+    legacy_paths = sanitized["resolved_media_path"].copy()
     identity = sanitized["image_context_id"].astype(str).map(
         lambda value: f"reviewed_rgb_v1/{value}"
     )
     sanitized["media_logical_identity"] = identity
     sanitized["resolved_media_path"] = identity
+    if preserve_legacy_physical_paths:
+        legacy = sanitized["source_type"].astype(str).eq("legacy_recovered")
+        sanitized.loc[legacy, "resolved_media_path"] = legacy_paths.loc[legacy]
     try:
         sanitized = attach_registered_cvat_media_paths(sanitized)
     except CvatMediaResolutionError as error:

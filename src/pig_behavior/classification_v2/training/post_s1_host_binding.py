@@ -21,6 +21,9 @@ from pig_behavior.classification_v2.training.cvat_source_registration import (
     CvatSourceRegistrationError,
     load_cvat_source_registration,
 )
+from pig_behavior.classification_v2.training.legacy_media_resolution import (
+    LEGACY_SOURCE_RESOLUTION_VERSION,
+)
 from pig_behavior.classification_v2.training.remote_input_resolution import (
     RemoteInputAuthority,
 )
@@ -170,6 +173,7 @@ def _expected_identity(
                 else None
             ),
             "cvat_source_registration_sha256": registration_sha256,
+            "legacy_source_resolution": LEGACY_SOURCE_RESOLUTION_VERSION,
         },
         "requested_roles": roles["frame"],
     }
@@ -263,6 +267,7 @@ def _materialize(
                     )
                     else None
                 ),
+                preserve_legacy_physical_paths=True,
             )
         except Stage1RgbBindingError as error:
             raise PostS1HostBindingError(str(error)) from error

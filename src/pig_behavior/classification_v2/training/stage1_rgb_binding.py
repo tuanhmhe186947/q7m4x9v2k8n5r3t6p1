@@ -63,6 +63,7 @@ def materialize_stage1_rgb_binding(
     input_parity_evidence: Mapping[str, object] | None = None,
     source_integrity_evidence: Mapping[str, object] | None = None,
     cvat_source_registration_path: Path | None = None,
+    preserve_legacy_physical_paths: bool = False,
 ) -> dict[str, object]:
     """Create one immutable Stage-1 binding without rewriting RGB media."""
 
@@ -129,7 +130,10 @@ def materialize_stage1_rgb_binding(
                 before_registration,
                 source_frames,
             )
-        frames = _legacy._sanitize_frame_paths(source_frames)
+        frames = _legacy._sanitize_frame_paths(
+            source_frames,
+            preserve_legacy_physical_paths=preserve_legacy_physical_paths,
+        )
         frames = frames.sort_values("image_context_id", kind="stable").reset_index(
             drop=True
         )

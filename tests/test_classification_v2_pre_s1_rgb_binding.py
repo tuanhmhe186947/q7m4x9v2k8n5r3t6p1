@@ -232,6 +232,33 @@ def test_materialized_binding_is_inner_only_hash_bound_and_portable(tmp_path: Pa
     assert resolved.window_context_path == binding_root / "inner_window_context.csv"
 
 
+def test_explicit_legacy_host_resolution_preserves_canonical_jpeg_path() -> None:
+    canonical = (
+        "outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\"
+        "06_full_recovery\\crops\\dense_tracklet_0_to_12\\pigs031219\\"
+        "000064\\burst_color_35986623_733\\ID_1\\f000013.jpg"
+    )
+    frames = pd.DataFrame(
+        {
+            "source_type": ["legacy_recovered"],
+            "source_video_key": [""],
+            "source_video_path": [""],
+            "image_context_id": ["legacy-context"],
+            "resolved_media_path": [canonical],
+        }
+    )
+
+    sanitized = rgb_binding._sanitize_frame_paths(
+        frames,
+        preserve_legacy_physical_paths=True,
+    )
+
+    assert sanitized.loc[0, "media_logical_identity"] == (
+        "reviewed_rgb_v1/legacy-context"
+    )
+    assert sanitized.loc[0, "resolved_media_path"] == canonical.replace("\\", "/")
+
+
 def test_binding_audit_rejects_outer_bad_sequence_and_cross_video(tmp_path: Path) -> None:
     report, requested = _materialize(tmp_path)
     binding_root = Path(str(report["scientific_binding_path"])).parent

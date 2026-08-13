@@ -1,0 +1,57 @@
+{
+  "schema_version": "classification_v2.legacy_host_binding_correction_authorization.v1",
+  "status": "AUTHORIZED",
+  "managed_task": {
+    "task_id": "C2V2-CONT-20260813-02",
+    "step_id": "C2V2-CONT-20260813-02-03",
+    "revision_at_authorization": 11
+  },
+  "user_authorization": {
+    "reference": "attachments/3f46d67c-4880-4c4d-81ea-8bd9fff4c2c0/pasted-text.txt",
+    "scope": "LEGACY_SOURCE_CLOSURE_ONLY"
+  },
+  "correction": {
+    "source_type": "legacy_recovered",
+    "logical_identity_role": "reviewed_rgb_v1/<image_context_id>",
+    "logical_identity_preserved": true,
+    "physical_source_role": "canonical_recovered_legacy_jpeg",
+    "physical_path_source": "image_context_v2.resolved_media_path",
+    "physical_path_requirement": "canonical_relative_jpeg_below_registered_input_root",
+    "binding_layer_only": true
+  },
+  "canonical_runtime_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+  "canonical_runtime_source_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs/outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+  "known_frame": {
+    "image_context_id": "legacy_recovered|source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000064|track_id=tracklet_00001032|f000013",
+    "canonical_relative_path": "outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops/dense_tracklet_0_to_12/pigs031219/000064/burst_color_35986623_733/ID_1/f000013.jpg",
+    "sha256": "dc975dd0424739f5ea57abb887bfb763608e3b98b03f77203473df9a78bf6e49",
+    "size_bytes": 24891
+  },
+  "source_authority": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/source_media_authority_20260812.json",
+    "member_count": 58242,
+    "scientific_payload_bytes": 959953215,
+    "member_manifest_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+    "tar_sha256": "a4af7825e6ba474fca6a757a9272e20661df46bf13e9cc3841350dedbae57f9b"
+  },
+  "preserved_invariants": [
+    "image_context_id",
+    "native_unit_identity",
+    "labels",
+    "train_validation_roles",
+    "split_authority",
+    "source_type",
+    "video_track_frame_identity",
+    "temporal_semantics",
+    "canonical_cvat_registration",
+    "model_semantics"
+  ],
+  "forbidden": [
+    "dataset_manifest_rewrite",
+    "fake_reviewed_rgb_v1_physical_tree",
+    "frozen_stage1_executor_change",
+    "model_semantics_change",
+    "outer_data_access",
+    "gpu_use"
+  ]
+}

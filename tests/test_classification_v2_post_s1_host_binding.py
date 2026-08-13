@@ -50,6 +50,7 @@ def _roles() -> pd.DataFrame:
 @pytest.fixture
 def fake_stage1(monkeypatch: pytest.MonkeyPatch) -> None:
     def materialize(**kwargs: object) -> dict[str, object]:
+        assert kwargs["preserve_legacy_physical_paths"] is True
         output_dir = Path(str(kwargs["output_dir"]))
         output_dir.mkdir(parents=True)
         scientific = output_dir / "scientific_stage1_rgb_binding.json"
@@ -115,6 +116,9 @@ def test_valid_existing_binding_is_accepted(
     assert initial.regenerated is True
     assert existing.regenerated is False
     assert existing.binding_sha256 == initial.binding_sha256
+    assert existing.payload["runtime_realization"]["legacy_source_resolution"] == (
+        "canonical_relative_jpeg_v1"
+    )
 
 
 def test_absent_or_stale_code_binding_is_materialized_again(
