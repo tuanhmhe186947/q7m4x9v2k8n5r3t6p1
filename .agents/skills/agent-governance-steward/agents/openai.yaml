@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Governance Steward"
+  short_description: "Enforce memory, plan, learning and worktree closure"
+  default_prompt: >-
+    Use $agent-governance-steward to govern this material task from bounded
+    authority recall through verified integration or evidence extraction.

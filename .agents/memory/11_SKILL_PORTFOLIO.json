@@ -1,8 +1,34 @@
 {
-  "schema_version": "pig.skill-portfolio.v1",
+  "generated_view": {
+    "inventory_sha256": "f4778ce06e5fd6095e38807e08b1c9ffc796ddfd3f79aac919afdd98ff98ee48",
+    "source": ".agents/skills/skill_inventory.json"
+  },
+  "mandatory_reasoning_routes": {
+    "action_tool_observation": [
+      "agent-harness-construction"
+    ],
+    "agent_behavior_debugging": [
+      "agent-introspection-debugging"
+    ],
+    "agent_task_evaluation": [
+      "agent-eval",
+      "eval-harness"
+    ],
+    "architecture_or_goal_drift": [
+      "agent-architecture-audit",
+      "plan-orchestrate"
+    ],
+    "context_or_memory": [
+      "iterative-retrieval",
+      "knowledge-ops"
+    ],
+    "handoff_quality": [
+      "agent-self-evaluation"
+    ]
+  },
   "review_policy": {
-    "reasoning_review_days": 60,
     "code_skill_review_days": 30,
+    "reasoning_review_days": 60,
     "stale_signals": [
       "user_correction",
       "repeated_failure",
@@ -11,38 +37,236 @@
       "not_used_since_review"
     ]
   },
-  "mandatory_reasoning_routes": {
-    "architecture_or_goal_drift": [
-      "agent-architecture-audit",
-      "plan-orchestrate"
-    ],
-    "agent_behavior_debugging": [
-      "agent-introspection-debugging"
-    ],
-    "handoff_quality": [
-      "agent-self-evaluation"
-    ],
-    "agent_task_evaluation": [
-      "agent-eval",
-      "eval-harness"
-    ],
-    "context_or_memory": [
-      "iterative-retrieval",
-      "knowledge-ops"
-    ],
-    "action_tool_observation": [
-      "agent-harness-construction"
-    ]
-  },
+  "schema_version": "pig.skill-portfolio.v1",
   "skills": [
     {
-      "skill_id": "project-state-steward",
-      "category": "governance",
+      "category": "synthesis",
+      "file_sha256": "de08b5b4a681eb07f192b193bce9257beb2f5c101189d98f1e0067b7c1b6d9a9",
+      "last_real_use": "2026-08-02",
+      "last_reviewed": "2026-08-02",
+      "next_maintenance_action": "re-read before a full English chapter draft",
+      "proof_task": "thesis outline structure and academic-writing anti-pattern review",
+      "relative_path": "skills/academic-paper/SKILL.md",
+      "selected_date": "2026-08-02",
+      "skill_id": "academic-paper",
+      "source_root": "codex_home",
+      "stale_signal": "upstream_skill_version_or_template_change",
+      "tool_api_dependencies": [
+        "filesystem",
+        "structured-writing",
+        "citation-workflow"
+      ],
+      "version_or_commit": "3.2.0"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b",
+      "last_real_use": "2026-08-04",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "review after any authority, memory, or wrapper regression",
+      "proof_task": "crash identity evidence and takeover authority boundary",
+      "relative_path": "skills/agent-architecture-audit/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "agent-architecture-audit",
+      "source_root": "codex_home",
+      "stale_signal": "wrapper_or_memory_regression",
+      "tool_api_dependencies": [
+        "filesystem",
+        "search",
+        "structured-report"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "evaluation",
+      "file_sha256": "f304aa5f061109b0511acb6f2e18ad795a029dfc8e8159a56a97ef8a37820c3b",
+      "last_real_use": "2026-07-31",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "pin task and judge hashes before live runs",
+      "proof_task": "agent governance regression harness design",
+      "relative_path": "skills/agent-eval/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "agent-eval",
+      "source_root": "codex_home",
+      "stale_signal": "task-or-judge-version-change",
+      "tool_api_dependencies": [
+        "task-definitions",
+        "judge",
+        "repeat-runner"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "139f8fa249c74edebf117f03a258b23a228e9401fafc124a98059ebacec6deda",
+      "last_real_use": "2026-08-04",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "re-run observation schema tests after tool changes",
+      "proof_task": "typed same-thread recover and administrative takeover actions",
+      "relative_path": "skills/agent-harness-construction/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "agent-harness-construction",
+      "source_root": "codex_home",
+      "stale_signal": "tool-overlap_or_opaque_observation",
+      "tool_api_dependencies": [
+        "tool-schema",
+        "observation-envelope",
+        "retry-policy"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "b69b9dddc469279807f363cd61432edad0901db1b0393b0c41257f18a6b667d8",
+      "last_real_use": "2026-08-04",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "activate on recovery retry, conflict, or drift",
+      "proof_task": "lost-token active-lease blocking root-cause analysis",
+      "relative_path": "skills/agent-introspection-debugging/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "agent-introspection-debugging",
+      "source_root": "codex_home",
+      "stale_signal": "runtime_identity_or_recovery_failure",
+      "tool_api_dependencies": [
+        "filesystem",
+        "tool-trace"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "96bb21eb37760f596789f84ec0a5dad4ef92fc2255e35cd7b88dc4234062b8c1",
+      "last_real_use": "2026-08-02",
+      "last_reviewed": "2026-08-02",
+      "next_maintenance_action": "record a scorecard after the next English chapter conversion",
+      "proof_task": "final quality scorecard for consolidated thesis outline handoff",
+      "relative_path": "skills/agent-self-evaluation/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "agent-self-evaluation",
+      "source_root": "codex_home",
+      "stale_signal": "residual_risk_or_user_correction",
+      "tool_api_dependencies": [
+        "task-output",
+        "test-evidence"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "bundle_paths": [
+        "SKILL.md",
+        "references/CLAUDE.md",
+        "references/CURSOR.md",
+        "references/EXAMPLES.md",
+        "references/README.md",
+        "references/README.zh.md"
+      ],
+      "bundle_sha256": "0b7dbe215bae5de1db70ce932c3cc76fc05a3f7e9aa4d0d9ef961a9b4239397c",
+      "category": "reasoning",
+      "file_sha256": "015a7e3febb817b45c041b926e445a652ad41e904399cb9cc6c622c4c782993d",
+      "git_identity": {
+        "blob_oid": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
+        "bundle_blob_oids": {
+          "SKILL.md": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
+          "references/CLAUDE.md": "daced9bd64f25908ebedeb4701fb406985dc8366",
+          "references/CURSOR.md": "d1f69408b4f2428b8c9c72cef1eb751317e0f71d",
+          "references/EXAMPLES.md": "6c4283595e031f158870cd38e4e39d281332d621",
+          "references/README.md": "7cf07a786532bebe01c65179c8e2c3a98cc0a09b",
+          "references/README.zh.md": "1228d8ccbe8f2075948c5202410ffd0dc8b0b042"
+        },
+        "git_reference": "HEAD",
+        "relative_path": ".agents/skills/andrej-karpathy-skills/SKILL.md",
+        "schema_version": "pig.git-tracked-identity.v1"
+      },
+      "last_real_use": "2026-07-31",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "compare pinned upstream before harness upgrades",
+      "proof_task": "project-scoped Karpathy autoresearch adaptation",
+      "relative_path": ".agents/skills/andrej-karpathy-skills/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "andrej-karpathy-skills",
       "source_root": "project",
-      "relative_path": ".agents/skills/project-state-steward/SKILL.md",
- "version_or_commit": "826416c",
-      "file_sha256":
- "aed8806dafd877c6ba4d20d8ce9795e213930845be4a05cd8f1c35eb2ff530a0",
+      "stale_signal": "upstream_commit_or_experiment_contract_change",
+      "tool_api_dependencies": [
+        "git",
+        "python",
+        "experiment-ledger"
+      ],
+      "version_or_commit": "local-file-pinned"
+    },
+    {
+      "category": "evaluation",
+      "file_sha256": "2b0b5256a043ea57f9463cc29a572d9612312e0827ef75724e39283c8d23edb1",
+      "last_real_use": "2026-07-31",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "keep deterministic judges ahead of model judges",
+      "proof_task": "agent governance regression metrics contract",
+      "relative_path": "skills/eval-harness/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "eval-harness",
+      "source_root": "codex_home",
+      "stale_signal": "judge_flakiness_or_threshold_change",
+      "tool_api_dependencies": [
+        "deterministic-grader",
+        "metrics"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "ee0055a7728c33a47238364c0662485b839c74d27cba5ce0da592e9e5c72e501",
+      "last_real_use": "2026-07-31",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "review retrieval scope after index changes",
+      "proof_task": "progressive authority and memory retrieval",
+      "relative_path": "skills/iterative-retrieval/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "iterative-retrieval",
+      "source_root": "codex_home",
+      "stale_signal": "context_overflow_or_missing_authority",
+      "tool_api_dependencies": [
+        "filesystem",
+        "search"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "958529713af2ab29c7b31b3cb758953271174b8909c94f1238dd7c78671672c2",
+      "last_real_use": "2026-07-31",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "deduplicate new durable memory entries",
+      "proof_task": "memory/archive authority organization",
+      "relative_path": "skills/knowledge-ops/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "knowledge-ops",
+      "source_root": "codex_home",
+      "stale_signal": "duplicate_or_unbounded_memory",
+      "tool_api_dependencies": [
+        "filesystem",
+        "search",
+        "git"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
+      "category": "reasoning",
+      "file_sha256": "e9d9aa9eeff9800793cbf852e60c6829ffd79bf89b0eb16e39bdceac10a2eb5e",
+      "last_real_use": "2026-08-04",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "preserve generative-only use for orchestration prompts",
+      "proof_task": "crash recovery implementation and governance checkpoints",
+      "relative_path": "skills/plan-orchestrate/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "plan-orchestrate",
+      "source_root": "codex_home",
+      "stale_signal": "not_used_in_execution",
+      "tool_api_dependencies": [
+        "plan-document",
+        "agent-catalog"
+      ],
+      "version_or_commit": "unversioned-file-pinned"
+    },
+    {
       "bundle_paths": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -52,257 +276,116 @@
         "scripts/validate_memory_contract_v2.py",
         "templates/memory_maturity_candidate.json"
       ],
-      "bundle_sha256":
-      "df1164dc8feee59cd4696cd0c7b646c70a4cebcb675847648ede75539d001a2a",
+      "bundle_sha256": "df1164dc8feee59cd4696cd0c7b646c70a4cebcb675847648ede75539d001a2a",
+      "category": "governance",
+      "file_sha256": "aed8806dafd877c6ba4d20d8ce9795e213930845be4a05cd8f1c35eb2ff530a0",
       "git_identity": {
-        "schema_version": "pig.git-tracked-identity.v1",
-        "relative_path": ".agents/skills/project-state-steward/SKILL.md",
-        "git_reference": "HEAD",
- "blob_oid": "cd27e7ba5efe745a67adeccc1156c5027452c523",
+        "blob_oid": "cd27e7ba5efe745a67adeccc1156c5027452c523",
         "bundle_blob_oids": {
- "SKILL.md": "cd27e7ba5efe745a67adeccc1156c5027452c523",
+          "SKILL.md": "cd27e7ba5efe745a67adeccc1156c5027452c523",
           "agents/openai.yaml": "3162dc0a6fa35e9b0d1199fbf0f8952380b623d4",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
-        "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
+          "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
           "scripts/validate_governance_contracts.py": "f6386bdb5af4418d269b62c65afcd101b1a98578",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
-        }
+        },
+        "git_reference": "HEAD",
+        "relative_path": ".agents/skills/project-state-steward/SKILL.md",
+        "schema_version": "pig.git-tracked-identity.v1"
       },
-      "tool_api_dependencies": ["filesystem", "git", "python", "pytest"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-08-12",
       "last_real_use": "2026-08-12",
+      "last_reviewed": "2026-08-12",
+      "next_maintenance_action": "revalidate continuation IDs before manager storage changes",
       "proof_task": "C2V2-20260812-02 compacted-step collision repair",
+      "relative_path": ".agents/skills/project-state-steward/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "project-state-steward",
+      "source_root": "project",
       "stale_signal": "compacted-step collision or archive integrity failure",
-      "next_maintenance_action":
-        "revalidate task-scoped continuation IDs before manager storage changes"
+      "tool_api_dependencies": [
+        "filesystem",
+        "git",
+        "python",
+        "pytest"
+      ],
+      "version_or_commit": "826416c"
     },
     {
-      "skill_id": "thesis-evidence-writing",
-      "category": "synthesis",
-      "source_root": "project",
-      "relative_path": ".agents/skills/thesis-evidence-writing/SKILL.md",
-      "version_or_commit": "local-v1",
-      "file_sha256": "23714eb71ef07752e7b2ab50216730b1a8e855cb2ecbf5f0ac76e54dcfb59290",
-      "bundle_paths": ["SKILL.md", "agents/openai.yaml"],
-      "bundle_sha256": "11dac78847682b0bc7be500a43e801ba0d3f3a0081dce4a6019cb53bfd7f4c09",
+      "bundle_paths": [
+        "SKILL.md",
+        "agents/openai.yaml",
+        "checks/check_manifest.json",
+        "examples/scenario.md",
+        "templates/change_report.json"
+      ],
+      "bundle_sha256": "d44116429042ceb9f916fbb18a885983546e896353791780538d0df675527267",
+      "category": "verification",
+      "file_sha256": "00aa27194a0653ee0fa00ff4007f37e43b2bc955b5a89b327665ed0a10584818",
       "git_identity": {
-        "schema_version": "pig.git-tracked-identity.v1",
-        "relative_path": ".agents/skills/thesis-evidence-writing/SKILL.md",
+        "blob_oid": "27ac244a3dc8f5e6151bebf766371119019110ce",
+        "bundle_blob_oids": {
+          "SKILL.md": "27ac244a3dc8f5e6151bebf766371119019110ce",
+          "agents/openai.yaml": "d7157433e40e0a9b171329c41009088fc17fa95f",
+          "checks/check_manifest.json": "1fee28675adbebf378f43187f53c29a9ec20e502",
+          "examples/scenario.md": "d4fffdc961cc5270904f4e362384f5ba0f5cf2ae",
+          "templates/change_report.json": "ec15b195591c8f573964be6cec534d61399f07a0"
+        },
         "git_reference": "HEAD",
+        "relative_path": ".agents/skills/safe-refactor-test-guardian/SKILL.md",
+        "schema_version": "pig.git-tracked-identity.v1"
+      },
+      "last_real_use": "2026-08-04",
+      "last_reviewed": "2026-07-31",
+      "next_maintenance_action": "rerun focused suite after control-plane changes",
+      "proof_task": "crash recovery race, CAS, token, and governance regressions",
+      "relative_path": ".agents/skills/safe-refactor-test-guardian/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "safe-refactor-test-guardian",
+      "source_root": "project",
+      "stale_signal": "test_contract_or_project_cli_change",
+      "tool_api_dependencies": [
+        "pytest",
+        "ruff",
+        "git"
+      ],
+      "version_or_commit": "local-file-pinned"
+    },
+    {
+      "bundle_paths": [
+        "SKILL.md",
+        "agents/openai.yaml"
+      ],
+      "bundle_sha256": "11dac78847682b0bc7be500a43e801ba0d3f3a0081dce4a6019cb53bfd7f4c09",
+      "category": "synthesis",
+      "file_sha256": "23714eb71ef07752e7b2ab50216730b1a8e855cb2ecbf5f0ac76e54dcfb59290",
+      "git_identity": {
         "blob_oid": "6efb0da90ad27d908079c30ef8cd646b1be0af14",
         "bundle_blob_oids": {
           "SKILL.md": "6efb0da90ad27d908079c30ef8cd646b1be0af14",
           "agents/openai.yaml": "3c23e1d37788d2b21955ad661ebd8f0a2fb982c4"
-        }
-      },
-      "tool_api_dependencies": ["filesystem", "source-artifacts", "structured-writing"],
-      "selected_date": "2026-08-02",
-      "last_reviewed": "2026-08-02",
-      "last_real_use": "2026-08-02",
-      "proof_task": "Vietnamese-first thesis outline with evidence and cohort boundaries",
-      "stale_signal": "user_correction_or_authority_schema_change",
-      "next_maintenance_action": "re-read before the next thesis subsection or English conversion"
-    },
-    {
-      "skill_id": "academic-paper",
-      "category": "synthesis",
-      "source_root": "codex_home",
-      "relative_path": "skills/academic-paper/SKILL.md",
-      "version_or_commit": "3.2.0",
-      "file_sha256": "de08b5b4a681eb07f192b193bce9257beb2f5c101189d98f1e0067b7c1b6d9a9",
-      "tool_api_dependencies": ["filesystem", "structured-writing", "citation-workflow"],
-      "selected_date": "2026-08-02",
-      "last_reviewed": "2026-08-02",
-      "last_real_use": "2026-08-02",
-      "proof_task": "thesis outline structure and academic-writing anti-pattern review",
-      "stale_signal": "upstream_skill_version_or_template_change",
-      "next_maintenance_action": "re-read before a full English chapter draft"
-    },
-    {
-      "skill_id": "agent-architecture-audit",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/agent-architecture-audit/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b",
-      "tool_api_dependencies": ["filesystem", "search", "structured-report"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-08-04",
-      "proof_task": "crash identity evidence and takeover authority boundary",
-      "stale_signal": "wrapper_or_memory_regression",
-      "next_maintenance_action": "review after any authority, memory, or wrapper regression"
-    },
-    {
-      "skill_id": "plan-orchestrate",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/plan-orchestrate/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "e9d9aa9eeff9800793cbf852e60c6829ffd79bf89b0eb16e39bdceac10a2eb5e",
-      "tool_api_dependencies": ["plan-document", "agent-catalog"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-08-04",
-      "proof_task": "crash recovery implementation and governance checkpoints",
-      "stale_signal": "not_used_in_execution",
-      "next_maintenance_action": "preserve generative-only use for orchestration prompts"
-    },
-    {
-      "skill_id": "agent-introspection-debugging",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/agent-introspection-debugging/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "b69b9dddc469279807f363cd61432edad0901db1b0393b0c41257f18a6b667d8",
-      "tool_api_dependencies": ["filesystem", "tool-trace"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-08-04",
-      "proof_task": "lost-token active-lease blocking root-cause analysis",
-      "stale_signal": "runtime_identity_or_recovery_failure",
-      "next_maintenance_action": "activate on recovery retry, conflict, or drift"
-    },
-    {
-      "skill_id": "agent-self-evaluation",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/agent-self-evaluation/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "96bb21eb37760f596789f84ec0a5dad4ef92fc2255e35cd7b88dc4234062b8c1",
-      "tool_api_dependencies": ["task-output", "test-evidence"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-08-02",
-      "last_real_use": "2026-08-02",
-      "proof_task": "final quality scorecard for consolidated thesis outline handoff",
-      "stale_signal": "residual_risk_or_user_correction",
-      "next_maintenance_action": "record a scorecard after the next English chapter conversion"
-    },
-    {
-      "skill_id": "agent-eval",
-      "category": "evaluation",
-      "source_root": "codex_home",
-      "relative_path": "skills/agent-eval/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "f304aa5f061109b0511acb6f2e18ad795a029dfc8e8159a56a97ef8a37820c3b",
-      "tool_api_dependencies": ["task-definitions", "judge", "repeat-runner"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "agent governance regression harness design",
-      "stale_signal": "task-or-judge-version-change",
-      "next_maintenance_action": "pin task and judge hashes before live runs"
-    },
-    {
-      "skill_id": "eval-harness",
-      "category": "evaluation",
-      "source_root": "codex_home",
-      "relative_path": "skills/eval-harness/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "2b0b5256a043ea57f9463cc29a572d9612312e0827ef75724e39283c8d23edb1",
-      "tool_api_dependencies": ["deterministic-grader", "metrics"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "agent governance regression metrics contract",
-      "stale_signal": "judge_flakiness_or_threshold_change",
-      "next_maintenance_action": "keep deterministic judges ahead of model judges"
-    },
-    {
-      "skill_id": "iterative-retrieval",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/iterative-retrieval/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "ee0055a7728c33a47238364c0662485b839c74d27cba5ce0da592e9e5c72e501",
-      "tool_api_dependencies": ["filesystem", "search"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "progressive authority and memory retrieval",
-      "stale_signal": "context_overflow_or_missing_authority",
-      "next_maintenance_action": "review retrieval scope after index changes"
-    },
-    {
-      "skill_id": "knowledge-ops",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/knowledge-ops/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "958529713af2ab29c7b31b3cb758953271174b8909c94f1238dd7c78671672c2",
-      "tool_api_dependencies": ["filesystem", "search", "git"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "memory/archive authority organization",
-      "stale_signal": "duplicate_or_unbounded_memory",
-      "next_maintenance_action": "deduplicate new durable memory entries"
-    },
-    {
-      "skill_id": "agent-harness-construction",
-      "category": "reasoning",
-      "source_root": "codex_home",
-      "relative_path": "skills/agent-harness-construction/SKILL.md",
-      "version_or_commit": "unversioned-file-pinned",
-      "file_sha256": "139f8fa249c74edebf117f03a258b23a228e9401fafc124a98059ebacec6deda",
-      "tool_api_dependencies": ["tool-schema", "observation-envelope", "retry-policy"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-08-04",
-      "proof_task": "typed same-thread recover and administrative takeover actions",
-      "stale_signal": "tool-overlap_or_opaque_observation",
-      "next_maintenance_action": "re-run observation schema tests after tool changes"
-    },
-    {
-      "skill_id": "andrej-karpathy-skills",
-      "category": "reasoning",
-      "source_root": "project",
-      "relative_path": ".agents/skills/andrej-karpathy-skills/SKILL.md",
-      "version_or_commit": "local-file-pinned",
-      "file_sha256":
-        "015a7e3febb817b45c041b926e445a652ad41e904399cb9cc6c622c4c782993d",
-      "bundle_paths": [
-        "SKILL.md",
-        "references/CLAUDE.md",
-        "references/CURSOR.md",
-        "references/EXAMPLES.md",
-        "references/README.md",
-        "references/README.zh.md"
-      ],
-      "bundle_sha256":
-        "0b7dbe215bae5de1db70ce932c3cc76fc05a3f7e9aa4d0d9ef961a9b4239397c",
-      "git_identity": {
-        "schema_version": "pig.git-tracked-identity.v1",
-        "relative_path": ".agents/skills/andrej-karpathy-skills/SKILL.md",
+        },
         "git_reference": "HEAD",
-        "blob_oid": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
-        "bundle_blob_oids": {
-          "SKILL.md": "8a98186ad637e44ce67ab0d9a18637d1894e197c",
-          "references/CLAUDE.md": "daced9bd64f25908ebedeb4701fb406985dc8366",
-          "references/CURSOR.md": "d1f69408b4f2428b8c9c72cef1eb751317e0f71d",
-          "references/EXAMPLES.md": "6c4283595e031f158870cd38e4e39d281332d621",
-          "references/README.md": "7cf07a786532bebe01c65179c8e2c3a98cc0a09b",
-          "references/README.zh.md": "1228d8ccbe8f2075948c5202410ffd0dc8b0b042"
-        }
+        "relative_path": ".agents/skills/thesis-evidence-writing/SKILL.md",
+        "schema_version": "pig.git-tracked-identity.v1"
       },
-      "tool_api_dependencies": ["git", "python", "experiment-ledger"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "project-scoped Karpathy autoresearch adaptation",
-      "stale_signal": "upstream_commit_or_experiment_contract_change",
-      "next_maintenance_action": "compare pinned upstream before harness upgrades"
+      "last_real_use": "2026-08-02",
+      "last_reviewed": "2026-08-02",
+      "next_maintenance_action": "re-read before the next thesis subsection or English conversion",
+      "proof_task": "Vietnamese-first thesis outline with evidence and cohort boundaries",
+      "relative_path": ".agents/skills/thesis-evidence-writing/SKILL.md",
+      "selected_date": "2026-08-02",
+      "skill_id": "thesis-evidence-writing",
+      "source_root": "project",
+      "stale_signal": "user_correction_or_authority_schema_change",
+      "tool_api_dependencies": [
+        "filesystem",
+        "source-artifacts",
+        "structured-writing"
+      ],
+      "version_or_commit": "local-v1"
     },
     {
-      "skill_id": "tracking-experiment-guardian",
-      "category": "domain-guardrail",
-      "source_root": "project",
-      "relative_path": ".agents/skills/tracking-experiment-guardian/SKILL.md",
-      "version_or_commit": "local-file-pinned",
-      "file_sha256":
-        "2e56eeb35778608a9257c8939162be5a7047fc41b220d1f1bc45d476517c1419",
       "bundle_paths": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -313,12 +396,10 @@
         "scripts/replay_post_video_identity.py",
         "templates/promotion_decision.example.json"
       ],
-      "bundle_sha256":
-        "7b9d20fb35e23d7357bc0dca683b73bda1875dd5ae9a6cdb875fe19d65fb48cb",
+      "bundle_sha256": "7b9d20fb35e23d7357bc0dca683b73bda1875dd5ae9a6cdb875fe19d65fb48cb",
+      "category": "domain-guardrail",
+      "file_sha256": "2e56eeb35778608a9257c8939162be5a7047fc41b220d1f1bc45d476517c1419",
       "git_identity": {
-        "schema_version": "pig.git-tracked-identity.v1",
-        "relative_path": ".agents/skills/tracking-experiment-guardian/SKILL.md",
-        "git_reference": "HEAD",
         "blob_oid": "7c8c3bec9f4765747ff90ed98122b2dab1f22c3f",
         "bundle_blob_oids": {
           "SKILL.md": "7c8c3bec9f4765747ff90ed98122b2dab1f22c3f",
@@ -329,53 +410,74 @@
           "scripts/replay_post_video_geometry.py": "cd73e180b5c56b745e43f9a9a8ee5ccb397da278",
           "scripts/replay_post_video_identity.py": "9b4fbb3602f73042c069392fa4e9d415c13f2b2b",
           "templates/promotion_decision.example.json": "0f97c890a961d1caaaa2d51526a7323f92f3a6bc"
-        }
-      },
-      "tool_api_dependencies": ["filesystem", "git", "tracking-evaluator"],
-      "selected_date": "2026-07-31",
-      "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-07-31",
-      "proof_task": "tracking lineage, metric guardrail, and zero-MP4 gates",
-      "stale_signal": "tracking_authority_or_evaluator_contract_change",
-      "next_maintenance_action": "revalidate before an authorized campaign"
-    },
-    {
-      "skill_id": "safe-refactor-test-guardian",
-      "category": "verification",
-      "source_root": "project",
-      "relative_path": ".agents/skills/safe-refactor-test-guardian/SKILL.md",
-      "version_or_commit": "local-file-pinned",
-      "file_sha256":
-        "00aa27194a0653ee0fa00ff4007f37e43b2bc955b5a89b327665ed0a10584818",
-      "bundle_paths": [
-        "SKILL.md",
-        "agents/openai.yaml",
-        "checks/check_manifest.json",
-        "examples/scenario.md",
-        "templates/change_report.json"
-      ],
-      "bundle_sha256":
-        "d44116429042ceb9f916fbb18a885983546e896353791780538d0df675527267",
-      "git_identity": {
-        "schema_version": "pig.git-tracked-identity.v1",
-        "relative_path": ".agents/skills/safe-refactor-test-guardian/SKILL.md",
+        },
         "git_reference": "HEAD",
-        "blob_oid": "27ac244a3dc8f5e6151bebf766371119019110ce",
-        "bundle_blob_oids": {
-          "SKILL.md": "27ac244a3dc8f5e6151bebf766371119019110ce",
-          "agents/openai.yaml": "d7157433e40e0a9b171329c41009088fc17fa95f",
-          "checks/check_manifest.json": "1fee28675adbebf378f43187f53c29a9ec20e502",
-          "examples/scenario.md": "d4fffdc961cc5270904f4e362384f5ba0f5cf2ae",
-          "templates/change_report.json": "ec15b195591c8f573964be6cec534d61399f07a0"
-        }
+        "relative_path": ".agents/skills/tracking-experiment-guardian/SKILL.md",
+        "schema_version": "pig.git-tracked-identity.v1"
       },
-      "tool_api_dependencies": ["pytest", "ruff", "git"],
-      "selected_date": "2026-07-31",
+      "last_real_use": "2026-07-31",
       "last_reviewed": "2026-07-31",
-      "last_real_use": "2026-08-04",
-      "proof_task": "crash recovery race, CAS, token, and governance regressions",
-      "stale_signal": "test_contract_or_project_cli_change",
-      "next_maintenance_action": "rerun focused suite after control-plane changes"
+      "next_maintenance_action": "revalidate before an authorized campaign",
+      "proof_task": "tracking lineage, metric guardrail, and zero-MP4 gates",
+      "relative_path": ".agents/skills/tracking-experiment-guardian/SKILL.md",
+      "selected_date": "2026-07-31",
+      "skill_id": "tracking-experiment-guardian",
+      "source_root": "project",
+      "stale_signal": "tracking_authority_or_evaluator_contract_change",
+      "tool_api_dependencies": [
+        "filesystem",
+        "git",
+        "tracking-evaluator"
+      ],
+      "version_or_commit": "local-file-pinned"
     }
-  ]
+  ],
+  "task_routes": {
+    "action_tool_observation": {
+      "reasoning_required": true,
+      "required_all": [
+        "agent-harness-construction"
+      ]
+    },
+    "agent_behavior_debugging": {
+      "reasoning_required": true,
+      "required_all": [
+        "agent-introspection-debugging"
+      ]
+    },
+    "agent_task_evaluation": {
+      "reasoning_required": false,
+      "required_all": [
+        "agent-eval",
+        "eval-harness"
+      ]
+    },
+    "architecture_or_goal_drift": {
+      "reasoning_required": true,
+      "required_all": [
+        "agent-architecture-audit",
+        "plan-orchestrate"
+      ]
+    },
+    "context_or_memory": {
+      "reasoning_required": true,
+      "required_all": [
+        "iterative-retrieval",
+        "knowledge-ops"
+      ]
+    },
+    "governance_implementation": {
+      "reasoning_required": true,
+      "required_any": [
+        "agent-architecture-audit",
+        "agent-harness-construction"
+      ]
+    },
+    "handoff_quality": {
+      "reasoning_required": true,
+      "required_all": [
+        "agent-self-evaluation"
+      ]
+    }
+  }
 }

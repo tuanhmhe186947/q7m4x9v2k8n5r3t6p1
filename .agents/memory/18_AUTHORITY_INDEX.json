@@ -108,15 +108,32 @@
     {
       "scope": "skill.portfolio",
       "workstream": "governance",
-      "current_authority": ".agents/memory/11_SKILL_PORTFOLIO.json",
+  "current_authority": ".agents/skills/skill_inventory.json",
       "supporting_authorities": [
-        ".agents/memory/11_SKILL_PORTFOLIO.md",
-        ".agents/memory/19_REASONING_ROUTING.md"
+    ".agents/skills/skill_registry.json",
+    ".agents/memory/11_SKILL_PORTFOLIO.json",
+    ".agents/skills/README.md",
+    ".agents/memory/19_REASONING_ROUTING.md"
       ],
       "historical_authorities": [],
-      "valid_from": "2026-07-31",
+  "valid_from": "2026-08-13",
       "supersedes": "attention queue without executable routing",
-      "conflict_resolution": "halt_missing_reasoning_gate"
+  "conflict_resolution": "halt_missing_reasoning_gate"
+ },
+ {
+  "scope": "agent.governance",
+  "workstream": "governance",
+  "current_authority": "docs/governance/AGENT_GOVERNANCE_V2.md",
+  "supporting_authorities": [
+   ".agents/memory/00_AGENT_BOOTSTRAP.md",
+   ".agents/skills/agent-governance-steward/SKILL.md",
+   ".agents/skills/project-state-steward/scripts/manage_agent_governance.py",
+   ".agents/memory/22_WORKTREE_LIFECYCLE.json"
+  ],
+  "historical_authorities": [],
+  "valid_from": "2026-08-13",
+  "supersedes": "V1-only planned-prompt controls",
+  "conflict_resolution": "halt_fail_closed"
     },
     {
       "scope": "permission.halt",

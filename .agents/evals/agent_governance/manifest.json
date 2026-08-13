@@ -1,13 +1,25 @@
 {
-  "schema_version": "pig.agent-governance-manifest.v1",
+  "schema_version": "pig.agent-governance-manifest.v2",
   "suite_id": "agent_governance",
   "task_definition": "tasks.json",
   "judge": "judge.py",
   "runner": "run_regression.py",
-  "task_sha256": "ef1c2075e5e47818c0eaaabef9ef27602cf188460281753e6a6db1e414994329",
-  "judge_sha256": "c8e5b914a8885d17a322d58e64608c170417314c685bc7d750eb799e304047b6",
+  "task_sha256": "82d696eaf3bb0812d0059abae1fe2c5476c792c3d6fc417e56b13f39ec81d233",
+  "judge_sha256": "3ef4b59fce9a7a543821f403c27a1b9e5df447a4794f45a8de55237fb21c8935",
   "runner_sha256": "b8ca02a25bad68d1d3ef787ac9d1f6d497d11de2bf9f5c2eeb956ae83c5b0525",
   "validator_sha256": "712684edb98e4a30172a9e0e3acad01229b7cecd404e32dba1405465f4fab27d",
+  "live_agent_suite": {
+    "task_definition": "live_tasks.json",
+    "trace_schema": "live_trace_schema.json",
+    "evaluator": "live_trace.py",
+    "runner": "run_live_trace.py",
+    "task_sha256": "fcf2229d73452948268b7f66f6ff505b1077955ad083bea1e5bcf5f2dd68a813",
+    "trace_schema_sha256": "fff6a4090dcd79cc5c0f6d8e83f9676067fd300db51b8ec6735087ea3cc8a6d5",
+    "evaluator_sha256": "619d8e7c2ed245cb36bb351372dce79f26a3534cf1063ffd418b08332ffd1439",
+    "runner_sha256": "a6e577a7f689ac8dcc7933702835aaeedd9948275fc35817df315380e0940089",
+    "subject_type": "live_agent_trace_only",
+    "minimum_complete_campaigns": 1
+  },
   "tracked_git_identity": {
     "schema_version": "pig.git-tracked-identity-set.v1",
     "git_reference": "HEAD",
@@ -28,10 +40,13 @@
   },
   "interpretation": [
     "Fixture PASS proves judge and metric determinism.",
-    "Fixture PASS does not prove live Codex capability."
+    "Fixture PASS does not prove live Codex capability.",
+    "Only a complete live_agent_campaign report may support an agent-behavior claim."
   ],
   "live_agent_input_contract": [
-    "Provide one response JSON per task per run.",
-    "Do not change task or judge files between compared runs."
+    "Provide exactly one live_agent_trace per declared live task.",
+    "Each trace must include the prompt, bound tool calls and results, a valid hash-chained event stream, and artifact evidence.",
+    "Do not reuse __default__, response-only fixtures, or fixture_self_test_only reports as live evidence.",
+    "Do not change live task, schema, evaluator, or runner files inside a campaign."
   ]
 }

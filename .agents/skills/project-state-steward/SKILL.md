@@ -19,7 +19,19 @@ Keep the repository understandable to a fresh agent. Preserve only verified,
 reusable knowledge and classify cleanup candidates without risking project
 authority, user work, data, models, or scientific lineage.
 
+For new material tasks, use the V2 protocol in
+`../agent-governance-steward/SKILL.md`. Keep this V1 manager available only for
+existing managed capsules until they are deliberately migrated. Do not rewrite
+unrelated V1 blocks during migration.
+
 ## Required Outcome
+
+New material work follows the V2 governance steward lifecycle in
+`../agent-governance-steward/SKILL.md`: bounded bootstrap, typed create,
+visible plan confirmation, hash-bound skill-read receipts, effect permits,
+typed evidence advances, outcome review, integration or failure extraction,
+learning disposition, and worktree retirement eligibility. The V1 manager is
+used here only for existing V1 capsules and explicit compatibility migration.
 
 For a material planned task and its final handoff:
 

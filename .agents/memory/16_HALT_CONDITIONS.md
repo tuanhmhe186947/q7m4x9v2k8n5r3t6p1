@@ -5,6 +5,13 @@
 `16_HALT_CONDITIONS.json` is the executable contract for halt triggers, action
 permissions, observation envelopes, retry limits, and stop behavior.
 
+For new material tasks, V2 is the active governance protocol: start with
+`.agents/memory/00_AGENT_BOOTSTRAP.md`, resolve authority through
+`.agents/skills/project-state-steward/scripts/manage_agent_governance.py`, and
+validate selected skills against `.agents/skills/skill_inventory.json`. Existing
+V1 capsules remain on `manage_short_memory.py` until an explicit migration;
+never create a V2 record with the same task ID as a V1 capsule.
+
 ## Halt Before Effects
 
 Stop before edits, execution, deletion, publication, or external effects when:
@@ -33,6 +40,21 @@ Additional halt triggers:
   task CAS/worktree confirmation, or a hash-bound audit event.
 - Long-memory promotion relies on elapsed time, inactivity, or completion
   without an accepted maturity packet and satisfied revalidation triggers.
+- A remote storage mutation lacks a fresh authorization that binds target path,
+  source hash/bytes, operation, byte ceiling, replacement permission, expected
+  final hash/size, and unique-purpose proof.
+- A stopped Studio, CPU-only status, CLI/browser access, or reuse language is
+  being treated as authorization to write remotely or broaden resource scope.
+- `pig-gpu-l4-r2` is proposed for any access without a fresh user authorization
+  that names R2 and specifies the preservation or disposal outcome.
+- A V2 permit is requested with an invalid canonical inventory or generated
+  skill view drift.
+- A caller-supplied coordination root differs from the root resolved from the
+  registered worktree.
+- A V1 and V2 task share an ID, or a V2 record/event/plan/owner invariant is
+  malformed or hash-invalid.
+- Worktree retirement lacks independent removal, reference, process, and
+  preserved-evidence proof. Branch deletion is a separate disposition.
 
 ## Permission Boundaries
 
@@ -41,6 +63,9 @@ Additional halt triggers:
   require their specific authority.
 - Existing long-run permissions apply only to the exact declared lineage and gates.
 - A successful tool call never grants scientific or operational promotion.
+- A successful remote read, authentication, or control-plane observation never
+  grants permission to copy, extract, overwrite, delete, or otherwise mutate
+  remote storage.
 
 ## Observation Envelope
 

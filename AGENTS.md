@@ -1,5 +1,19 @@
 # Agent Instructions for PIG_Behavior_Project
 
+## V2 governance activation
+
+New material tasks start with `.agents/memory/00_AGENT_BOOTSTRAP.md` and the
+manager `.agents/skills/project-state-steward/scripts/manage_agent_governance.py`
+and follow
+`bootstrap -> create -> confirm-plan -> record-skill-read -> permit ->
+advance/amend -> review-outcome -> close`. V1 remains the compatibility path
+for existing V1 capsules, including this reform capsule until migration closes.
+The canonical skill authority is `.agents/skills/skill_inventory.json`; the
+worktree lifecycle ledger is `.agents/memory/22_WORKTREE_LIFECYCLE.json` and
+generated views are checked by the governance validator. Simple read-only questions do
+not create a task; fixture-only passes, apologies, clean worktrees, and
+unmerged branches are not completion evidence.
+
 Before working on this repository, always read these files first:
 
 1. `.agents/memory/01_PROJECT_MEMORY_SHORT.md`

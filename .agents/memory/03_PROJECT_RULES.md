@@ -38,10 +38,20 @@
     remain in a compact previous-day closeout for one day and are then purged.
 19. Simple read-only Q&A creates no task entry. Short memory must not contain
     superseded task history, raw logs, or duplicated project authority.
-20. Every new material task uses `manage_short_memory.py create`. Managed task
-    changes use owner-token, worktree, revision, and block-hash CAS through the
-    CLI only. Concurrent sessions halt on ID collision, stale CAS, active lease,
-    or non-owned block drift instead of resolving conflict by overwrite.
+20. Every new material task uses `.agents/memory/00_AGENT_BOOTSTRAP.md`,
+    `.agents/skills/project-state-steward/scripts/manage_agent_governance.py`,
+    and `.agents/skills/skill_inventory.json` through the V2 governance manager;
+    lifecycle evidence is recorded in `.agents/memory/22_WORKTREE_LIFECYCLE.json`.
+    after bounded bootstrap: create a typed packet, confirm its plan digest,
+    record hash-bound skill reads, obtain a permit before effects, advance with
+    typed evidence, and review/close only with integration proof or hash-bound
+    failure extraction, learning disposition, and worktree lifecycle evidence.
+    Existing V1 capsules (including the reform capsule during migration)
+    continue through `manage_short_memory.py` compatibility operations. All
+    managed changes use owner-token, worktree, revision, and block-hash CAS
+    through the applicable CLI. Concurrent sessions halt on ID collision, stale
+    CAS, active lease, or non-owned block drift instead of resolving conflict by
+    overwrite.
 21. Rollover refuses an open legacy/unmanaged task until its owning session
     adopts it. An expired lease permits explicit takeover. During an active
     lease, lost-token recovery is automatic only when the recorded runtime
@@ -176,11 +186,15 @@
 5. Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
    runtime materialization, host binding, resolver checks, and the six CPU
    preflights. L4/GPU is forbidden until all six CPU preflights pass.
-6. Agent browser/UI use is forbidden. Use PowerShell, `uvx` Lightning CLI/SDK,
+6. Lifecycle correction: when that existing Studio is `STOPPED` or `SLEEPING`,
+   start/wake it on CPU, wait until SSH/runtime is reachable, and continue the
+   current gate. Do not treat manual stop as task termination or replay prior
+   completed work. This does not authorize a new Studio or GPU.
+7. Agent browser/UI use is forbidden. Use PowerShell, `uvx` Lightning CLI/SDK,
    SSH, or shared filesystem. A human handles genuinely UI-only actions.
-7. Keep prompt and execution scope narrow: one objective at a time. Do not
+8. Keep prompt and execution scope narrow: one objective at a time. Do not
    expand a small blocker into a full infrastructure investigation.
-8. Do not repeat completed phases after context compaction. Recover from the
+9. Do not repeat completed phases after context compaction. Recover from the
    task manager and machine-readable checkpoint first.
 9. Do not reinterpret Teamspace Drive, Studio runtime, `/inputs`, or Data
    Connections without checking the existing storage authority.

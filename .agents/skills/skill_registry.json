@@ -1,66 +1,120 @@
 {
-  "schema_version": "project_skill_registry_v2",
+  "generated_view": {
+    "inventory_sha256": "f4778ce06e5fd6095e38807e08b1c9ffc796ddfd3f79aac919afdd98ff98ee48",
+    "source": ".agents/skills/skill_inventory.json"
+  },
   "native_root": ".agents/skills",
+  "schema_version": "project_skill_registry_v2",
   "skills": [
     {
+      "depends_on": [
+        "project-state-steward"
+      ],
+      "implicit": true,
+      "name": "agent-governance-steward",
+      "order": 0,
+      "status": "active",
+      "triggers": [
+        "agent governance",
+        "plan confirmation",
+        "action permit",
+        "worktree lifecycle",
+        "learning disposition"
+      ]
+    },
+    {
+      "depends_on": [],
+      "implicit": true,
       "name": "safe-refactor-test-guardian",
-      "status": "active",
-      "implicit": true,
       "order": 1,
-      "triggers": ["chuẩn bị thêm", "baseline", "refactor", "sửa code"],
-      "depends_on": []
+      "status": "active",
+      "triggers": [
+        "chuẩn bị thêm",
+        "baseline",
+        "refactor",
+        "sửa code"
+      ]
     },
     {
+      "depends_on": [],
+      "implicit": true,
       "name": "dataset-contract-leakage-guard",
-      "status": "active",
-      "implicit": true,
       "order": 2,
-      "triggers": ["train", "split", "feature", "prediction"],
-      "depends_on": []
+      "status": "active",
+      "triggers": [
+        "train",
+        "split",
+        "feature",
+        "prediction"
+      ]
     },
     {
+      "depends_on": [
+        "dataset-contract-leakage-guard"
+      ],
+      "implicit": true,
       "name": "experiment-lineage-reproducibility",
-      "status": "active",
-      "implicit": true,
       "order": 3,
-      "triggers": ["baseline", "run", "resume", "prediction"],
-      "depends_on": ["dataset-contract-leakage-guard"]
+      "status": "active",
+      "triggers": [
+        "baseline",
+        "run",
+        "resume",
+        "prediction"
+      ]
     },
     {
+      "depends_on": [
+        "experiment-lineage-reproducibility"
+      ],
+      "implicit": true,
       "name": "scientific-ablation-controller",
-      "status": "active",
-      "implicit": true,
       "order": 4,
-      "triggers": ["baseline", "ablation", "promotion", "finalist"],
-      "depends_on": ["experiment-lineage-reproducibility"]
+      "status": "active",
+      "triggers": [
+        "baseline",
+        "ablation",
+        "promotion",
+        "finalist"
+      ]
     },
     {
-      "name": "multimodal-sequence-model-builder",
-      "status": "active",
-      "implicit": true,
-      "order": 5,
-      "triggers": ["resnet18", "actor-temporal", "multimodal", "model"],
       "depends_on": [
         "dataset-contract-leakage-guard",
         "scientific-ablation-controller"
+      ],
+      "implicit": true,
+      "name": "multimodal-sequence-model-builder",
+      "order": 5,
+      "status": "active",
+      "triggers": [
+        "resnet18",
+        "actor-temporal",
+        "multimodal",
+        "model"
       ]
     },
     {
-      "name": "grouped-cv-evaluation",
-      "status": "active",
-      "implicit": true,
-      "order": 6,
-      "triggers": ["so sánh hai prediction", "prediction files", "oof"],
       "depends_on": [
         "dataset-contract-leakage-guard",
         "experiment-lineage-reproducibility"
+      ],
+      "implicit": true,
+      "name": "grouped-cv-evaluation",
+      "order": 6,
+      "status": "active",
+      "triggers": [
+        "so sánh hai prediction",
+        "prediction files",
+        "oof"
       ]
     },
     {
-      "name": "tracking-experiment-guardian",
-      "status": "active",
+      "depends_on": [],
       "implicit": true,
+      "name": "tracking-experiment-guardian",
       "order": 7,
+      "status": "active",
       "triggers": [
         "tracking",
         "realtime",
@@ -70,30 +124,42 @@
         "idf1",
         "idsw",
         "mode compare"
+      ]
+    },
+    {
+      "depends_on": [
+        "grouped-cv-evaluation"
       ],
-      "depends_on": []
-    },
-    {
+      "implicit": false,
       "name": "imbalanced-classification-evaluator",
-      "status": "future",
-      "implicit": false,
       "order": 8,
-      "triggers": ["event-balanced ce", "balanced softmax", "class imbalance"],
-      "depends_on": ["grouped-cv-evaluation"]
-    },
-    {
-      "name": "gpu-training-profiler",
       "status": "future",
-      "implicit": false,
-      "order": 9,
-      "triggers": ["gpu profile", "peak vram", "batch-size search"],
-      "depends_on": ["multimodal-sequence-model-builder"]
+      "triggers": [
+        "event-balanced ce",
+        "balanced softmax",
+        "class imbalance"
+      ]
     },
     {
-      "name": "andrej-karpathy-skills",
-      "status": "active",
+      "depends_on": [
+        "multimodal-sequence-model-builder"
+      ],
+      "implicit": false,
+      "name": "gpu-training-profiler",
+      "order": 9,
+      "status": "future",
+      "triggers": [
+        "gpu profile",
+        "peak vram",
+        "batch-size search"
+      ]
+    },
+    {
+      "depends_on": [],
       "implicit": true,
+      "name": "andrej-karpathy-skills",
       "order": 10,
+      "status": "active",
       "triggers": [
         "guidelines",
         "karpathy",
@@ -101,14 +167,14 @@
         "best practices",
         "coding style",
         "refactor"
-      ],
-      "depends_on": []
+      ]
     },
     {
-      "name": "thesis-evidence-writing",
-      "status": "active",
+      "depends_on": [],
       "implicit": false,
+      "name": "thesis-evidence-writing",
       "order": 11,
+      "status": "active",
       "triggers": [
         "thesis",
         "methodology writing",
@@ -116,8 +182,21 @@
         "viết thesis",
         "viết methodology",
         "chuyển sang tiếng Anh"
-      ],
-      "depends_on": []
+      ]
+    },
+    {
+      "depends_on": [],
+      "implicit": false,
+      "name": "project-state-steward",
+      "order": 12,
+      "status": "active",
+      "triggers": [
+        "memory",
+        "workflow",
+        "closeout",
+        "cleanup",
+        "skill maintenance"
+      ]
     }
   ]
 }

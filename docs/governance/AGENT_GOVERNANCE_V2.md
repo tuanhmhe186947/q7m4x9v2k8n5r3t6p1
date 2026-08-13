@@ -1,0 +1,172 @@
+# Agent Governance Protocol V2
+
+Status: implementation contract for `AGENT-REFORM-20260813-01`.
+
+## Problem statement
+
+The legacy controls protect task bytes with locks, leases, owner tokens, and
+compare-and-swap checks. They do not prove that an agent retrieved current
+authority, communicated a stable plan, used the selected skills, integrated an
+accepted result, extracted evidence from a failure, or retired its worktree.
+Passing the legacy validator therefore gives false assurance about behavior.
+
+V2 makes the execution loop machine-enforced:
+
+```text
+retrieve -> confirm plan -> permit effect -> verify -> review outcome
+         -> integrate or extract evidence -> learn -> regress -> retire
+```
+
+## Compatibility boundary
+
+- Preserve every managed V1 task block byte-for-byte unless its owner mutates it
+  through `manage_short_memory.py`.
+- Keep the V1 manager and reader available for existing tasks.
+- Store V2 active records and append-only events below the canonical ignored
+  `.agents/runtime/agent_governance_v2/` directory. Never create a worktree-local
+  shadow ledger.
+- Replace mandatory full reads of `01_PROJECT_MEMORY_SHORT.md` with a bounded
+  bootstrap query. Retrieve one relevant V1 or V2 task on demand.
+- Promote only validated, reusable corrections into tracked project memory.
+
+## Task record invariants
+
+A V2 task record must contain:
+
+- a typed task class and risk class;
+- authority receipts with scope, locator, status, read time, and exact hash;
+- acceptance IDs, explicit risks, and explicit non-actions;
+- structured skill selections with role, purpose, source, and pinned hash;
+- a versioned plan whose digest covers every step and allowed effect;
+- one owner, one live runtime, one lease, one worktree binding, revision, and
+  record hash;
+- an append-only, hash-chained event stream.
+
+Unknown authority, an unconfirmed plan, stale hashes, a wrong skill route, or a
+worktree collision fails closed before an action permit is issued.
+
+## Plan and action protocol
+
+1. `create` validates the packet but leaves the task `PLANNED`.
+2. `confirm-plan` binds a visible confirmation reference to the plan digest.
+   High-risk, destructive, paid, protected-authority, publication, or remote
+   effects require an explicit user confirmation reference.
+3. `admit-worktree` permits one active worktree per task. A second worktree needs
+   a declared parent/child purpose and separate lifecycle record.
+4. `permit` binds one active step, its allowed effects, current authority and
+   skill digests, the worktree fingerprint, and an expiry.
+5. `advance` consumes the permit, binds typed evidence to acceptance IDs, closes
+   the old step, and opens the next step in one CAS mutation.
+6. `amend-plan` revokes any live permit, increments the plan version, changes the
+   digest, and requires confirmation again. A terminal step cannot be followed
+   by a hidden new effect.
+
+## Evidence contract
+
+Evidence is not free-form `done` text. Each item contains:
+
+- `evidence_id` and `kind`;
+- an existing path, immutable URI, command result, or decision reference;
+- SHA-256 when the evidence is a file;
+- the acceptance IDs it supports;
+- status `PASS`, `FAIL`, `OBSERVED`, or `NOT_AVAILABLE`.
+
+The manager verifies local paths and hashes when provided. A `DONE` step must
+cover every acceptance ID assigned to that step with `PASS` or an explicitly
+allowed observation status.
+
+## Worktree lifecycle
+
+Every admitted worktree follows:
+
+```text
+ADMITTED -> ACTIVE -> RESULT_CAPTURED -> OUTCOME_REVIEWED
+```
+
+The reviewed outcome is exactly one of `ACCEPTED`, `PARTIAL`, `REJECTED`,
+`BLOCKED`, or `UNKNOWN`.
+
+- `ACCEPTED` requires integration proof, revalidation on the target branch, and
+  a retirement disposition.
+- `PARTIAL` requires the accepted subset to be integrated, rejected material to
+  be excluded, and unique evidence to be extracted.
+- `REJECTED` requires failure evidence extraction before retirement.
+- `BLOCKED` and `UNKNOWN` remain protected and cannot be retired.
+
+Every dirty path has exactly one disposition: `INTEGRATE`, `EXTRACT_EVIDENCE`,
+`PRESERVE_USER_OWNED`, `DISCARD_VERIFIED_SCRATCH`, or `UNKNOWN_HALT`.
+Worktree removal and branch deletion remain separate decisions.
+
+## Learning disposition
+
+Closeout requires exactly one disposition:
+
+- `VALIDATED_CORRECTION`: root cause, correction, validation evidence, reuse
+  conditions, and non-reuse boundaries are complete.
+- `UNVERIFIED_FAILURE`: observations, evidence, hypotheses, preserved location,
+  and the next validation are complete. It is not promoted as learned truth.
+- `NO_DURABLE_LESSON`: evidence-backed rationale explains why no reusable
+  correction exists.
+
+An apology is not a disposition. A user correction or validator failure emits a
+skill-maintenance event. `MAINTENANCE_DUE` clears only after the affected skill
+is updated or deliberately reviewed and validated.
+
+## Skill authority
+
+`.agents/skills/skill_inventory.json` is the canonical inventory. Registry,
+portfolio, and README files are views and must match it. Selection validation
+rejects:
+
+- unknown or disabled skills;
+- implicit selection of a future skill;
+- missing dependencies;
+- missing purpose or role;
+- a task-class route without its required reasoning coverage;
+- a claimed skill use whose pinned `SKILL.md` hash has drifted.
+
+## Closeout gate
+
+A task cannot become `CLOSED` until:
+
+- plan steps have valid terminal evidence;
+- the outcome and every dirty-path disposition are recorded;
+- accepted code is integrated and revalidated on the target branch, or failure
+  evidence is extracted and hash-bound;
+- one learning disposition is complete;
+- skill-maintenance impacts are resolved or explicitly left `MAINTENANCE_DUE`;
+- every worktree has a protected or retirement disposition;
+- the regression manifest distinguishes fixture judge tests from live-agent
+  trials.
+
+## Required negative controls
+
+The implementation must reject all of the following:
+
+1. a permit without authority receipts or plan confirmation;
+2. a stale authority, skill, plan, worktree, revision, or record hash;
+3. an unknown skill, wrong reasoning route, empty purpose, future implicit
+   skill, or broken dependency;
+4. a second active worktree without a declared relationship;
+5. `DONE` evidence that is missing, non-existent, hash-mismatched, or unrelated
+   to the step's acceptance IDs;
+6. a new effect after a terminal step without `amend-plan` and reconfirmation;
+7. accepted work that is not integrated and revalidated on the target;
+8. failed or partial work with unique evidence not extracted;
+9. an apology or incomplete correction tuple presented as learning;
+10. retirement based only on age, cleanliness, lease expiry, ancestry, or patch
+    equivalence;
+11. retirement while dirty paths, active references, processes, or unknown
+    ownership remain;
+12. fixture-only regression results presented as live-agent reliability.
+
+## Migration order
+
+1. Add the V2 manager, schema validation, canonical skill inventory, and tests.
+2. Add the bounded bootstrap and make new material tasks V2 by default.
+3. Register the current reform task as the first compatibility migration; do
+   not rewrite unrelated V1 capsules.
+4. Integrate and revalidate the reform on `main`.
+5. Retire the reform worktree only after the closeout gate records eligibility.
+6. Audit old worktrees into a deferred ledger; do not bulk-delete candidates.
+

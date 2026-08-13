@@ -1,5 +1,17 @@
 # Codex Project Memory
 
+## V2 bootstrap and authority
+
+For new material work, read `.agents/memory/00_AGENT_BOOTSTRAP.md` and run the
+manager `.agents/skills/project-state-steward/scripts/manage_agent_governance.py`
+with the
+V2 manager lifecycle (`bootstrap`, `create`, `confirm-plan`, skill-read receipt,
+`permit`, `advance`/`amend`, `review-outcome`, `close`). The canonical skill
+authority is `.agents/skills/skill_inventory.json`; lifecycle is tracked in
+`.agents/memory/22_WORKTREE_LIFECYCLE.json`; registry, portfolio, and
+README files are generated/supporting views. Existing V1 capsules use the V1
+manager compatibility path until explicitly migrated.
+
 ## Memory lifecycle
 
 - `01_PROJECT_MEMORY_SHORT.md`: daily state, active managed resume capsules,

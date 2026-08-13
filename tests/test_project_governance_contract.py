@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -430,16 +431,25 @@ def test_governance_references_require_crash_recovery_contract(
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    v2_activation = (
+        ".agents/memory/00_AGENT_BOOTSTRAP.md "
+        ".agents/skills/project-state-steward/scripts/manage_agent_governance.py "
+        ".agents/skills/skill_inventory.json "
+        ".agents/memory/22_WORKTREE_LIFECYCLE.json"
+    )
     documents = {
         "AGENTS.md": (
-            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY"
+            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY "
+            + v2_activation
         ),
         ".agents/memory/00_README.md": (
-            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY"
+            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY "
+            + v2_activation
         ),
-        ".agents/memory/03_PROJECT_RULES.md": "rules",
+        ".agents/memory/03_PROJECT_RULES.md": "rules " + v2_activation,
         ".agents/memory/08_WORKFLOW.md": (
-            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY"
+            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY "
+            + v2_activation
         ),
         ".agents/skills/project-state-steward/SKILL.md": "skill",
     }
@@ -447,7 +457,6 @@ def test_governance_references_require_crash_recovery_contract(
         path = tmp_path / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-
     errors = module._check_governance_references(tmp_path)
 
     assert "governance_missing_done_checkpoint:AGENTS.md" in errors
@@ -465,6 +474,106 @@ def test_governance_references_require_crash_recovery_contract(
         (tmp_path / relative).write_text(content + contract, encoding="utf-8")
 
     assert module._check_governance_references(tmp_path) == []
+
+
+def test_v2_activation_markers_are_required_in_all_entrypoints(
+    tmp_path: Path,
+) -> None:
+    module = _load_module("governance_v2_activation", GOVERNANCE_VALIDATOR)
+    documents = {
+        relative: (
+            "18_AUTHORITY_INDEX 19_REASONING_ROUTING 21_MEMORY_MATURITY "
+            "checkpoint `DONE` before the next step's first effect; "
+            "interrupted `IN_PROGRESS` CODEX_THREAD_ID admin-takeover "
+            "hash-bound audit"
+        )
+        for relative in module.V2_ACTIVATION_DOCUMENTS.values()
+    }
+    for relative, content in documents.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    skill_path = tmp_path / ".agents" / "skills" / "project-state-steward" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True, exist_ok=True)
+    skill_path.write_text(
+        "checkpoint `DONE` before the next step's first effect; "
+        "interrupted `IN_PROGRESS` CODEX_THREAD_ID admin-takeover "
+        "hash-bound audit",
+        encoding="utf-8",
+    )
+
+    errors = module._check_governance_references(tmp_path)
+    assert "governance_missing_v2_bootstrap:AGENTS.md" in errors
+    assert "governance_missing_v2_manager:08_WORKFLOW.md" in errors
+
+    marker_text = " ".join(module.V2_ACTIVATION_MARKERS.values())
+    for relative in documents:
+        (tmp_path / relative).write_text(
+            documents[relative] + " " + marker_text,
+            encoding="utf-8",
+        )
+    assert module._check_governance_references(tmp_path) == []
+
+
+def test_authority_index_requires_canonical_v2_scopes(tmp_path: Path) -> None:
+    module = _load_module("governance_v2_authority", GOVERNANCE_VALIDATOR)
+    skill_authority = tmp_path / ".agents" / "memory" / "11_SKILL_PORTFOLIO.json"
+    governance_authority = tmp_path / "docs" / "governance" / "AGENT_GOVERNANCE_V2.md"
+    skill_authority.parent.mkdir(parents=True, exist_ok=True)
+    governance_authority.parent.mkdir(parents=True, exist_ok=True)
+    skill_authority.write_text("{}\n", encoding="utf-8")
+    governance_authority.write_text("# V2\n", encoding="utf-8")
+
+    def entry(scope: str, current: str) -> dict[str, object]:
+        return {
+            "scope": scope,
+            "workstream": "governance",
+            "current_authority": current,
+            "supporting_authorities": [],
+            "historical_authorities": [],
+            "valid_from": "2026-08-13",
+            "supersedes": "legacy distributed contract",
+            "conflict_resolution": "halt_needs_authority",
+        }
+
+    index_path = tmp_path / ".agents" / "memory" / "18_AUTHORITY_INDEX.json"
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "pig.authority-index.v1",
+                "entries": [
+                    entry("skill.portfolio", skill_authority.relative_to(tmp_path).as_posix()),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    errors = module._check_authority_index(tmp_path)
+    assert (
+        "authority_current_not_canonical:skill.portfolio:"
+        ".agents/skills/skill_inventory.json"
+    ) in errors
+    assert "authority_scope_missing:agent.governance" in errors
+
+    canonical_skill = tmp_path / ".agents" / "skills" / "skill_inventory.json"
+    canonical_skill.parent.mkdir(parents=True, exist_ok=True)
+    canonical_skill.write_text("{}\n", encoding="utf-8")
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "pig.authority-index.v1",
+                "entries": [
+                    entry("skill.portfolio", ".agents/skills/skill_inventory.json"),
+                    entry(
+                        "agent.governance",
+                        "docs/governance/AGENT_GOVERNANCE_V2.md",
+                    ),
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert module._check_authority_index(tmp_path) == []
 
 
 def test_short_checklist_rejects_stale_closeout(tmp_path: Path) -> None:

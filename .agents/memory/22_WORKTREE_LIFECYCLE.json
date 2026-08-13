@@ -1,0 +1,233 @@
+{
+  "schema_version": "pig.worktree-lifecycle-ledger.v1",
+  "snapshot_at": "2026-08-13T10:20:00+07:00",
+  "snapshot_head": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+  "policy": {
+    "candidate_is_not_authorization": true,
+    "worktree_retirement_separate_from_branch_deletion": true,
+    "revalidate_live_state_before_mutation": true,
+    "unknown_is_protected": true
+  },
+  "worktrees": [
+    {
+      "worktree_id": "main",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project",
+      "head_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+      "state": "PROTECTED",
+      "outcome": "UNKNOWN",
+      "classification": "ACTIVE_PROTECTED",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Coordinate all active owners before any integration."
+    },
+    {
+      "worktree_id": "agent_governance_reform_20260813",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/agent_governance_reform_20260813",
+      "head_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+      "state": "ACTIVE",
+      "outcome": null,
+      "classification": "TASK_BOUND_ACTIVE",
+      "task_id": "AGENT-REFORM-20260813-01",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Integrate and revalidate on main or extract failure evidence."
+    },
+    {
+      "worktree_id": "c2v2_s1_temporal_semantic_closure_20260809",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/c2v2_s1_temporal_semantic_closure_20260809",
+      "head_sha": "32d5b53c",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "governance_coordination_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/governance_coordination_20260810",
+      "head_sha": "891e144c",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "governance_coordination_freshproof_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/governance_coordination_freshproof_20260810",
+      "head_sha": "891e144c",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "DUPLICATE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Verify duplicate proof has no live references before review."
+    },
+    {
+      "worktree_id": "governance_portability_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/governance_portability_20260810",
+      "head_sha": "48d22549",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "governance_portability_freshproof_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/governance_portability_freshproof_20260810",
+      "head_sha": "48d22549",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "DUPLICATE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Verify duplicate proof has no live references before review."
+    },
+    {
+      "worktree_id": "post_e0_s1_permit_reconciliation_20260809",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/post_e0_s1_permit_reconciliation_20260809",
+      "head_sha": "034aec32",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "post_s1_resolution_20260811",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/post_s1_resolution_20260811",
+      "head_sha": "85876db6",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "PATCH_EQUIVALENT_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Revalidate patch-equivalent behavior on current main."
+    },
+    {
+      "worktree_id": "post_s1_resolution_execution_20260811",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/post_s1_resolution_execution_20260811",
+      "head_sha": "7d4bd1c9",
+      "state": "PROTECTED",
+      "outcome": "BLOCKED",
+      "classification": "EVIDENCE_ONLY_PROTECTED",
+      "dirty_paths": [
+        {
+          "path": "UNINVENTORIED_UNTRACKED_SET",
+          "disposition": "UNKNOWN_HALT"
+        }
+      ],
+      "retirement_authorized": false,
+      "next_action": "Inventory and hash-bind each untracked evidence file."
+    },
+    {
+      "worktree_id": "s1_b3_canonical_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_b3_canonical_20260810",
+      "head_sha": "52d62718",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "s1_b3_pre_s1_calibration_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_b3_pre_s1_calibration_20260810",
+      "head_sha": "58da633c",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "s1_b_pre_s1_calibration_20260809",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_b_pre_s1_calibration_20260809",
+      "head_sha": "58da633c",
+      "state": "PROTECTED",
+      "outcome": "UNKNOWN",
+      "classification": "UNKNOWN_DELTA_PROTECTED",
+      "dirty_paths": [
+        {
+          "path": "THREE_UNTRACKED_SOURCE_TEST_FILES",
+          "disposition": "UNKNOWN_HALT"
+        }
+      ],
+      "retirement_authorized": false,
+      "next_action": "Perform semantic and patch-equivalence audit for each file."
+    },
+    {
+      "worktree_id": "s1_stage1_execution_permit_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_stage1_execution_permit_20260810",
+      "head_sha": "ee9b8757",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "s1_stage1_remote_readiness_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_stage1_remote_readiness_20260810",
+      "head_sha": "14ecc8da",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "s1_stage1_temporal_screening_20260810",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/s1_stage1_temporal_screening_20260810",
+      "head_sha": "247ecb42",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "tracking_four_mode_fresh_20260812_01",
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/tracking_four_mode_fresh_20260812_01",
+      "head_sha": "31d98392",
+      "state": "PROTECTED",
+      "outcome": "ACCEPTED",
+      "classification": "COMPLETE_INTEGRATED_CANDIDATE",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Check active task, process, reference, and authority bindings."
+    },
+    {
+      "worktree_id": "PIG_task_tracking",
+      "path": "C:/Users/ironh/Downloads/PIG_task_tracking",
+      "head_sha": "411e596b",
+      "state": "PROTECTED",
+      "outcome": "BLOCKED",
+      "classification": "ACTIVE_BLOCKED_PROTECTED",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Preserve until the assigned tracking task is resolved."
+    },
+    {
+      "worktree_id": "external_c2v2_permit",
+      "path": "E:/PigProjectStorage/PIG_Behavior_Project/.codex_tmp/c2v2_permit",
+      "head_sha": "31d98392",
+      "state": "PROTECTED",
+      "outcome": "UNKNOWN",
+      "classification": "UNKNOWN_OWNER_PROTECTED",
+      "dirty_paths": [],
+      "retirement_authorized": false,
+      "next_action": "Resolve owner and authority before any retirement review."
+    }
+  ]
+}

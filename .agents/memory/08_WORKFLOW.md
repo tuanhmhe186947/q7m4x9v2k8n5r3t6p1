@@ -1,5 +1,10 @@
 # Workflow
 
+V2 governance activation uses `.agents/memory/00_AGENT_BOOTSTRAP.md`,
+`.agents/skills/project-state-steward/scripts/manage_agent_governance.py`,
+`.agents/skills/skill_inventory.json`, and
+`.agents/memory/22_WORKTREE_LIFECYCLE.json`.
+
 ## 2026-08-13 Lightning resume and execution gate
 
 Before any Lightning, GPU, or execution command, resolve the existing storage
@@ -17,10 +22,12 @@ If `pig-gpu-l4-gcp` is missing or mismatched, stop and report it. Never create
 another Studio automatically. Starting the existing `pig-gpu-l4-gcp` on CPU is
 authorized for `/inputs` runtime materialization, host binding, resolver checks,
 and the six CPU preflights. Do not switch to L4/GPU until all six CPU
-preflights pass. Use PowerShell, `uvx` Lightning CLI/SDK, SSH, or shared
-filesystem; humans handle genuinely UI-only actions. Keep one objective per
-prompt/execution scope and do not turn a small blocker into an infrastructure
-investigation.
+preflights pass. If it is `STOPPED`/`SLEEPING`, start/wake this same Studio on
+CPU, wait for SSH/runtime reachability, and resume the current gate. Manual
+stop is a lifecycle pause, not task termination; do not replay completed work.
+Use PowerShell, `uvx` Lightning CLI/SDK, SSH, or shared filesystem; humans
+handle genuinely UI-only actions. Keep one objective per prompt/execution
+scope and do not turn a small blocker into an infrastructure investigation.
 
 On context compaction, recover from the task manager and machine-readable
 checkpoint before repeating a phase. Check backend, process, and checkpoint
@@ -164,7 +171,17 @@ videos, baseline metrics hash, and per-video/aggregate acceptance gates.
 - Queue skill maintenance after user correction, repeated failure, dependency or
   CLI change, validator failure, or the relevant review-age threshold.
 
-### Planned-prompt task ledger
+### Planned-prompt task ledger (V2 default; V1 compatibility fallback)
+
+For a new material task, run the bounded V2 bootstrap and create a typed
+record, then communicate and confirm the plan digest, record hash-bound skill
+reads, issue a permit before each effect, advance with typed evidence, and use
+`amend-plan` when scope changes. Review the outcome with exact dirty-path
+dispositions; accepted work needs target integration/revalidation, while
+partial or failed work needs unique hash-bound evidence extraction. Close only
+with a typed learning disposition and a lifecycle retirement decision. Use the
+V1 short-memory manager only to resume existing V1 capsules, including the
+governance reform migration capsule.
 
 1. Trigger when a prompt uses a multi-step plan or requires edits, execution,
    deletion, publication, permission, or another external effect.
