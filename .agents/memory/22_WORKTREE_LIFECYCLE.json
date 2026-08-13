@@ -1,7 +1,7 @@
 {
   "schema_version": "pig.worktree-lifecycle-ledger.v1",
-  "snapshot_at": "2026-08-13T10:20:00+07:00",
-  "snapshot_head": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+  "snapshot_at": "2026-08-13T15:18:21+07:00",
+  "snapshot_head": "88dbc90e62e3a9917190c0ea1e34351f4cbdb845",
   "policy": {
     "candidate_is_not_authorization": true,
     "worktree_retirement_separate_from_branch_deletion": true,
@@ -12,7 +12,7 @@
     {
       "worktree_id": "main",
       "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project",
-      "head_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+      "head_sha": "88dbc90e62e3a9917190c0ea1e34351f4cbdb845",
       "state": "PROTECTED",
       "outcome": "UNKNOWN",
       "classification": "ACTIVE_PROTECTED",
@@ -23,14 +23,41 @@
     {
       "worktree_id": "agent_governance_reform_20260813",
       "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/agent_governance_reform_20260813",
-      "head_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
-      "state": "ACTIVE",
-      "outcome": null,
-      "classification": "TASK_BOUND_ACTIVE",
+      "head_sha": "c8e0c90b6900bf95cb5a47a59b707ef27e84f26a",
+      "state": "OUTCOME_REVIEWED",
+      "outcome": "ACCEPTED",
+      "classification": "INTEGRATED_RETAINED",
       "task_id": "AGENT-REFORM-20260813-01",
       "dirty_paths": [],
       "retirement_authorized": false,
-      "next_action": "Integrate and revalidate on main or extract failure evidence."
+      "integration_proof": {
+        "target_branch": "main",
+        "target_head": "88dbc90e62e3a9917190c0ea1e34351f4cbdb845",
+        "integration_commits": ["e396b039", "ecaaefa7", "88dbc90e"],
+        "revalidation": "104 focused tests, governance validator PASS, and compile PASS"
+      },
+      "dirty_main_overlap": {
+        "status": "NO_GOVERNANCE_OVERLAP",
+        "disposition": "PRESERVE_USER_OWNED",
+        "protected_surfaces": [
+          ".agents/memory/01_PROJECT_MEMORY_SHORT.md",
+          ".agents/memory/02_CURRENT_DECISION.md",
+          ".agents/memory/11_SKILL_PORTFOLIO.md",
+          "data/",
+          "docs/classification_v2/",
+          "src/pig_behavior/storage_cleanup/",
+          "tests/test_storage_cleanup.py"
+        ]
+      },
+      "learning_disposition": {
+        "kind": "VALIDATED_CORRECTION",
+        "root_cause": "Candidate-bound Git identities were stale after safe target integration.",
+        "validated_correction": "Repin canonical identity records, render generated views, commit separately, and revalidate on target.",
+        "reuse_when": "A candidate is safely integrated into a dirty target with changed Git object identities.",
+        "do_not_reuse_when": "Source or generated views have changed again; recompute identities and rerun validation."
+      },
+      "live_agent_reliability": "NOT_RUN",
+      "next_action": "Retain candidate worktree; do not remove or delete its branch until independent removal, reference, and process proof exists."
     },
     {
       "worktree_id": "c2v2_s1_temporal_semantic_closure_20260809",
