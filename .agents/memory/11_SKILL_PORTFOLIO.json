@@ -1,6 +1,6 @@
 {
   "generated_view": {
-    "inventory_sha256": "aa6cddebc1cba385a0091cb2e721e469ec21679c948fbd57d0e0ea594306325d",
+    "inventory_sha256": "57ca24c751e96e55fb6cc0973c7b81de415e4227daf5705f8005d83a0a3eeb70",
     "source": ".agents/skills/skill_inventory.json"
   },
   "mandatory_reasoning_routes": {
@@ -17,6 +17,12 @@
     "architecture_or_goal_drift": [
       "agent-architecture-audit",
       "plan-orchestrate"
+    ],
+    "classification_v2_scientific_experiment": [
+      "scientific-ablation-controller",
+      "dataset-contract-leakage-guard",
+      "experiment-lineage-reproducibility",
+      "grouped-cv-evaluation"
     ],
     "context_or_memory": [
       "iterative-retrieval",
@@ -457,6 +463,18 @@
       "required_all": [
         "agent-architecture-audit",
         "plan-orchestrate"
+      ]
+    },
+    "classification_v2_scientific_experiment": {
+      "reasoning_required": true,
+      "required_all": [
+        "scientific-ablation-controller",
+        "dataset-contract-leakage-guard",
+        "experiment-lineage-reproducibility",
+        "grouped-cv-evaluation"
+      ],
+      "required_any": [
+        "agent-harness-construction"
       ]
     },
     "context_or_memory": {

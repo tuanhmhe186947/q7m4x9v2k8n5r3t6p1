@@ -411,6 +411,13 @@ def test_create_rejects_missing_skill_dependency(manager: ModuleType, project: P
         create(manager, project, value)
 
 
+def test_create_rejects_unknown_task_class(manager: ModuleType, project: Path) -> None:
+    value = packet(project)
+    value["task_class"] = "unknown_task_class"
+    with pytest.raises(manager.GovernanceError, match="task_class_unrouted"):
+        create(manager, project, value)
+
+
 def test_inventory_accepts_typed_non_reasoning_evaluation_route(
     manager: ModuleType,
     project: Path,

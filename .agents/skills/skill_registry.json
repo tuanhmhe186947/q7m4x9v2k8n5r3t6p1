@@ -1,6 +1,6 @@
 {
   "generated_view": {
-    "inventory_sha256": "aa6cddebc1cba385a0091cb2e721e469ec21679c948fbd57d0e0ea594306325d",
+    "inventory_sha256": "57ca24c751e96e55fb6cc0973c7b81de415e4227daf5705f8005d83a0a3eeb70",
     "source": ".agents/skills/skill_inventory.json"
   },
   "native_root": ".agents/skills",

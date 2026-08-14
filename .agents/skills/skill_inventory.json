@@ -87,6 +87,18 @@
         "agent-harness-construction"
       ],
       "reasoning_required": true
+    },
+    "classification_v2_scientific_experiment": {
+      "required_all": [
+        "scientific-ablation-controller",
+        "dataset-contract-leakage-guard",
+        "experiment-lineage-reproducibility",
+        "grouped-cv-evaluation"
+      ],
+      "required_any": [
+        "agent-harness-construction"
+      ],
+      "reasoning_required": true
     }
   },
   "skills": [
