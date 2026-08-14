@@ -34,6 +34,8 @@ HIGH_RISK_EFFECTS = {
     "publish",
     "remote_mutation",
 }
+PREPERMIT_FILE_CLASS = "TASK_PLAN_METADATA"
+PREPERMIT_CONFIRMATION = "USER_AUTHORIZED_PREPERMIT_TASK_FILE_ADOPTION"
 STEP_COMPLETION_STATES = {"DONE", "BLOCKED", "CANCELLED"}
 WORKTREE_MODES = {"shared_main", "exclusive"}
 SKILL_IMPACT_DISPOSITIONS = {
@@ -1486,6 +1488,138 @@ class AgentGovernanceLedger:
             _atomic_json(self._path(task_id), record)
             return record
 
+    def reconcile_prepermit_task_file(
+        self,
+        task_id: str,
+        confirm_task_id: str,
+        confirmation: str,
+        authorization_ref: str,
+        file_class: str,
+        relative_path: str,
+        observed_sha256: str,
+        original_write_lacked_proven_authority: bool,
+        prior_write_event_sha256: str,
+        expected_revision: int,
+        expected_record_sha256: str,
+        expected_worktree: Path,
+        expected_accepted_fingerprint: str,
+        expected_actual_fingerprint: str,
+        owner_only_delta: int,
+        external_or_unknown_delta: int,
+        mixed_delta: int,
+        delta_classification: str,
+        enumerated_delta_paths: list[str],
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Adopt one exact pre-permit task-plan file without retroactive authority."""
+        if confirm_task_id != task_id:
+            raise GovernanceError("prepermit_task_confirmation_mismatch", confirm_task_id)
+        if confirmation != PREPERMIT_CONFIRMATION:
+            raise GovernanceError("prepermit_confirmation_missing", confirmation)
+        if file_class != PREPERMIT_FILE_CLASS:
+            raise GovernanceError("prepermit_file_class_forbidden", file_class)
+        path = Path(relative_path.replace("\\", "/"))
+        normalized_path = path.as_posix().strip("/")
+        if (
+            path.is_absolute()
+            or ".." in path.parts
+            or not normalized_path.startswith("docs/")
+            or path.suffix != ".json"
+            or "plan" not in path.name.lower()
+            or {"data", "dataset", "manifest", "temporal_v2"}.intersection(path.parts)
+        ):
+            raise GovernanceError("prepermit_metadata_path_forbidden", relative_path)
+        values = {
+            "observed": observed_sha256.lower(),
+            "accepted": expected_accepted_fingerprint.lower(),
+            "actual": expected_actual_fingerprint.lower(),
+            "prior_event": prior_write_event_sha256.lower(),
+        }
+        if not all(HEX_SHA256_RE.fullmatch(value) for value in values.values()):
+            raise GovernanceError("prepermit_hash_invalid", normalized_path)
+        if not original_write_lacked_proven_authority:
+            raise GovernanceError("prepermit_retroactive_authorization_forbidden", task_id)
+        if any(value != 0 for value in (owner_only_delta, external_or_unknown_delta, mixed_delta)):
+            raise GovernanceError("prepermit_delta_classification_forbidden", task_id)
+        if delta_classification != "TASK_OWNED_METADATA_ONLY":
+            raise GovernanceError("prepermit_delta_classification_invalid", delta_classification)
+        supplied_paths = {
+            Path(value.replace("\\", "/")).as_posix().strip("/")
+            for value in enumerated_delta_paths
+        }
+        if supplied_paths != {normalized_path}:
+            raise GovernanceError("prepermit_blanket_or_extra_adoption_forbidden", task_id)
+        current = _now(now)
+        with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
+            record = self._read(task_id)
+            self._check_cas(record, expected_revision, expected_record_sha256)
+            if record.get("active_permit"):
+                raise GovernanceError("prepermit_active_permit", task_id)
+            worktree = record.get("worktree")
+            if not isinstance(worktree, dict):
+                raise GovernanceError("prepermit_worktree_metadata_missing", task_id)
+            if Path(worktree.get("path", "")).resolve() != expected_worktree.resolve():
+                raise GovernanceError("prepermit_worktree_mismatch", str(expected_worktree))
+            if worktree.get("accepted_task_fingerprint") != values["accepted"]:
+                raise GovernanceError("prepermit_accepted_fingerprint_mismatch", task_id)
+            if not _path_within_scope(normalized_path, worktree.get("path_scope", [])):
+                raise GovernanceError("prepermit_path_outside_task_scope", normalized_path)
+            identity = _worktree_identity(expected_worktree)
+            _validate_worktree_binding(self.root, identity)
+            if identity["fingerprint"] != values["actual"]:
+                raise GovernanceError("prepermit_actual_fingerprint_mismatch", task_id)
+            if identity["head_sha"] != worktree.get("accepted_task_head"):
+                raise GovernanceError("prepermit_head_transition_forbidden", identity["head_sha"])
+            target = (expected_worktree / normalized_path).resolve()
+            if not target.is_file() or _file_sha256(target) != values["observed"]:
+                raise GovernanceError("prepermit_observed_hash_mismatch", normalized_path)
+            if set(identity["dirty_paths"]) != supplied_paths:
+                raise GovernanceError("prepermit_unenumerated_delta_forbidden", task_id)
+            if values["prior_event"] not in {
+                event.get("event_sha256")
+                for event in record.get("events", [])
+                if isinstance(event, dict)
+            }:
+                raise GovernanceError("prepermit_prior_write_event_missing", values["prior_event"])
+            previous_fingerprint = worktree["accepted_task_fingerprint"]
+            worktree["dirty_paths"] = identity["dirty_paths"]
+            worktree["fingerprint"] = identity["fingerprint"]
+            worktree["accepted_task_fingerprint"] = identity["fingerprint"]
+            worktree["actual_worktree_head"] = identity["head_sha"]
+            worktree["actual_worktree_fingerprint"] = identity["fingerprint"]
+            payload = {
+                "operation": "reconcile-prepermit-task-file",
+                "file_class": file_class,
+                "relative_path": normalized_path,
+                "observed_sha256": values["observed"],
+                "prior_write_event_sha256": values["prior_event"],
+                "prior_write_classification": "TASK_OWNED_BUT_WRITE_AUTHORITY_NOT_PROVEN",
+                "original_write_lacked_proven_authority": True,
+                "original_write_retroactively_marked_authorized": False,
+                "post_hoc_adoption": True,
+                "manual_rebaseline_used": False,
+                "authorized_progress_false_claimed": False,
+                "previous_accepted_fingerprint": previous_fingerprint,
+                "accepted_fingerprint": identity["fingerprint"],
+                "actual_fingerprint": identity["fingerprint"],
+                "accepted_head_preserved": worktree["accepted_task_head"],
+                "owner_only_delta": 0,
+                "external_or_unknown_delta": 0,
+                "mixed_delta": 0,
+                "enumerated_delta_paths": [normalized_path],
+                "administrator_confirmation": confirmation,
+                "authorization_ref": _clean(authorization_ref, "prepermit_authorization_ref", 300),
+                "prior_revision": expected_revision,
+            }
+            record = self._finish_mutation(
+                record,
+                "PREPERMIT_TASK_FILE_RECONCILED",
+                payload,
+                current,
+            )
+            _atomic_json(self._path(task_id), record)
+            return record
+
     def rebind_worktree_head(
         self,
         task_id: str,
@@ -2681,6 +2815,29 @@ def build_parser() -> argparse.ArgumentParser:
     rebaseline.add_argument("--expected-current-fingerprint", required=True)
     rebaseline.add_argument("--expected-revision", required=True, type=int)
     rebaseline.add_argument("--expected-record-sha256", required=True)
+    prepermit = commands.add_parser("reconcile-prepermit-task-file")
+    prepermit.add_argument("--task-id", required=True)
+    prepermit.add_argument("--confirm-task-id", required=True)
+    prepermit.add_argument("--confirmation", required=True)
+    prepermit.add_argument("--authorization-ref", required=True)
+    prepermit.add_argument("--file-class", required=True)
+    prepermit.add_argument("--relative-path", required=True)
+    prepermit.add_argument("--observed-sha256", required=True)
+    prepermit.add_argument(
+        "--original-write-lacked-proven-authority",
+        action="store_true",
+    )
+    prepermit.add_argument("--prior-write-event-sha256", required=True)
+    prepermit.add_argument("--expected-worktree", type=Path, required=True)
+    prepermit.add_argument("--expected-accepted-fingerprint", required=True)
+    prepermit.add_argument("--expected-actual-fingerprint", required=True)
+    prepermit.add_argument("--owner-only-delta", required=True, type=int)
+    prepermit.add_argument("--external-or-unknown-delta", required=True, type=int)
+    prepermit.add_argument("--mixed-delta", required=True, type=int)
+    prepermit.add_argument("--delta-classification", required=True)
+    prepermit.add_argument("--enumerated-delta-path", action="append", required=True)
+    prepermit.add_argument("--expected-revision", required=True, type=int)
+    prepermit.add_argument("--expected-record-sha256", required=True)
     head_rebind = commands.add_parser("rebind-worktree-head")
     head_rebind.add_argument("--task-id", required=True)
     head_rebind.add_argument("--confirm-task-id", required=True)
@@ -2805,6 +2962,28 @@ def main(argv: list[str] | None = None) -> int:
                 args.expected_worktree,
                 args.expected_stored_fingerprint,
                 args.expected_current_fingerprint,
+            )
+        elif args.command == "reconcile-prepermit-task-file":
+            result = ledger.reconcile_prepermit_task_file(
+                args.task_id,
+                args.confirm_task_id,
+                args.confirmation,
+                args.authorization_ref,
+                args.file_class,
+                args.relative_path,
+                args.observed_sha256,
+                args.original_write_lacked_proven_authority,
+                args.prior_write_event_sha256,
+                args.expected_revision,
+                args.expected_record_sha256,
+                args.expected_worktree,
+                args.expected_accepted_fingerprint,
+                args.expected_actual_fingerprint,
+                args.owner_only_delta,
+                args.external_or_unknown_delta,
+                args.mixed_delta,
+                args.delta_classification,
+                args.enumerated_delta_path,
             )
         elif args.command == "rebind-worktree-head":
             result = ledger.rebind_worktree_head(

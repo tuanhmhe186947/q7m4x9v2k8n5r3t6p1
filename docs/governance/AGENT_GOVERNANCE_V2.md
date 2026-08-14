@@ -89,6 +89,23 @@ provenance, worktree, append-only history, and current logical checkpoint.
 Release-candidate and canonical-integration validation remain separate gates,
 including destination owner-work checks.
 
+## Pre-permit task-file reconciliation
+
+`reconcile-prepermit-task-file` is a narrow post-hoc adoption operation, never
+retroactive write authorization. It accepts only one explicitly enumerated
+`TASK_PLAN_METADATA` JSON file under `docs/`, whose name identifies it as a
+plan, hash, in-scope path, prior-write event, expected accepted fingerprint,
+and current actual fingerprint all match fresh observations.
+
+The caller must provide explicit administrator authority, state that the
+original write lacked proven authority, and prove zero owner-only,
+external/unknown, and mixed delta. The one permitted dirty path must be the
+exact supplied path; extra paths, source, scripts, data, manifests, model
+artifacts, checkpoints, binaries, and blanket worktree adoption are rejected.
+The event preserves the unproven-write classification and advances only the
+accepted fingerprint. It does not manufacture a HEAD transition or alter normal
+permit semantics: a later ordinary permit is still required for new effects.
+
 ## Progressive delivery
 
 `main` is the delivery spine, not an end-of-task destination. In `shared_main`

@@ -106,6 +106,8 @@ def project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (root / "README.md").write_text("fixture\n", encoding="utf-8")
+    (root / "docs").mkdir()
+    (root / "docs" / "README.md").write_text("fixture docs\n", encoding="utf-8")
     (root / ".gitignore").write_text(".agents/runtime/\n", encoding="utf-8")
     subprocess.run(["git", "-C", str(root), "add", "."], check=True)
     subprocess.run(
@@ -693,6 +695,139 @@ def test_rebaseline_rejects_active_valid_permit(
             now=NOW,
             **rebaseline_arguments(manager, record, project),
         )
+
+
+def prepermit_arguments(
+    manager: ModuleType,
+    record: dict[str, object],
+    project: Path,
+    path: str = "docs/s1_plan_amendment.json",
+) -> dict[str, object]:
+    identity = manager._worktree_identity(project)
+    return {
+        "task_id": "REFORM-20260813-01",
+        "confirm_task_id": "REFORM-20260813-01",
+        "confirmation": "USER_AUTHORIZED_PREPERMIT_TASK_FILE_ADOPTION",
+        "authorization_ref": "user-request:fixture-prepermit-adoption",
+        "file_class": "TASK_PLAN_METADATA",
+        "relative_path": path,
+        "observed_sha256": sha256(project / path),
+        "original_write_lacked_proven_authority": True,
+        "prior_write_event_sha256": record["events"][0]["event_sha256"],
+        "expected_revision": record["revision"],
+        "expected_record_sha256": record["record_sha256"],
+        "expected_worktree": project,
+        "expected_accepted_fingerprint": record["worktree"]["accepted_task_fingerprint"],
+        "expected_actual_fingerprint": identity["fingerprint"],
+        "owner_only_delta": 0,
+        "external_or_unknown_delta": 0,
+        "mixed_delta": 0,
+        "delta_classification": "TASK_OWNED_METADATA_ONLY",
+        "enumerated_delta_paths": [path],
+    }
+
+
+def prepermit_record(
+    manager: ModuleType,
+    project: Path,
+) -> tuple[object, dict[str, object]]:
+    value = packet(project)
+    value["path_scope"] = ["docs"]
+    ledger, record = create(manager, project, value)
+    target = project / "docs" / "s1_plan_amendment.json"
+    target.parent.mkdir(exist_ok=True)
+    target.write_text('{"approved": true}\n', encoding="utf-8")
+    return ledger, record
+
+
+def test_prepermit_reconciliation_preserves_unproven_write_and_allows_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = prepermit_record(manager, project)
+    before = record["worktree"]["accepted_task_fingerprint"]
+    reconciled = ledger.reconcile_prepermit_task_file(
+        now=NOW,
+        **prepermit_arguments(manager, record, project),
+    )
+    event = reconciled["events"][-1]
+    assert event["event_type"] == "PREPERMIT_TASK_FILE_RECONCILED"
+    assert event["payload"]["prior_write_classification"] == (
+        "TASK_OWNED_BUT_WRITE_AUTHORITY_NOT_PROVEN"
+    )
+    assert not event["payload"]["original_write_retroactively_marked_authorized"]
+    assert event["payload"]["post_hoc_adoption"]
+    assert not event["payload"]["manual_rebaseline_used"]
+    assert reconciled["worktree"]["accepted_task_fingerprint"] != before
+    assert reconciled["worktree"]["accepted_task_head"] == record["worktree"]["accepted_task_head"]
+    confirmed = confirm(ledger, reconciled, project)
+    permitted = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(confirmed, project),
+    )
+    assert permitted["active_permit"]["effects"] == ["test"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("observed_sha256", "0" * 64, "prepermit_observed_hash_mismatch"),
+        ("relative_path", "src/plan.py", "prepermit_metadata_path_forbidden"),
+        ("owner_only_delta", 1, "prepermit_delta_classification_forbidden"),
+        ("external_or_unknown_delta", 1, "prepermit_delta_classification_forbidden"),
+        ("mixed_delta", 1, "prepermit_delta_classification_forbidden"),
+        ("expected_revision", 0, "revision_conflict"),
+        ("expected_accepted_fingerprint", "0" * 64, "prepermit_accepted_fingerprint_mismatch"),
+        ("expected_actual_fingerprint", "0" * 64, "prepermit_actual_fingerprint_mismatch"),
+        (
+            "original_write_lacked_proven_authority",
+            False,
+            "prepermit_retroactive_authorization_forbidden",
+        ),
+        ("enumerated_delta_paths", [], "prepermit_blanket_or_extra_adoption_forbidden"),
+    ],
+)
+def test_prepermit_reconciliation_rejects_invalid_adoption(
+    manager: ModuleType,
+    project: Path,
+    field: str,
+    value: object,
+    error: str,
+) -> None:
+    ledger, record = prepermit_record(manager, project)
+    arguments = prepermit_arguments(manager, record, project)
+    arguments[field] = value
+    with pytest.raises(manager.GovernanceError, match=error):
+        ledger.reconcile_prepermit_task_file(now=NOW, **arguments)
+
+
+def test_prepermit_reconciliation_rejects_extra_and_scientific_data_files(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = prepermit_record(manager, project)
+    (project / "extra.txt").write_text("unexpected\n", encoding="utf-8")
+    with pytest.raises(manager.GovernanceError, match="prepermit_unenumerated_delta_forbidden"):
+        ledger.reconcile_prepermit_task_file(
+            now=NOW,
+            **prepermit_arguments(manager, record, project),
+        )
+
+
+def test_prepermit_reconciliation_rejects_scientific_data_path(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = prepermit_record(manager, project)
+    target = project / "docs" / "data" / "plan.json"
+    target.parent.mkdir()
+    target.write_text("{}\n", encoding="utf-8")
+    arguments = prepermit_arguments(manager, record, project, "docs/data/plan.json")
+    with pytest.raises(manager.GovernanceError, match="prepermit_metadata_path_forbidden"):
+        ledger.reconcile_prepermit_task_file(now=NOW, **arguments)
 
 
 def test_permit_renewal_preserves_scope_and_rejects_expiry(
