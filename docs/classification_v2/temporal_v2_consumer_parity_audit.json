@@ -1,0 +1,27 @@
+{
+  "schema_version": "classification_v2.temporal_v2_consumer_parity_audit.v1",
+  "status": "PASS",
+  "focused_tests": {"passed": 44, "status": "PASS"},
+  "cpu_preflight": {
+    "status": "PASS",
+    "cases": [
+      "full_legacy_t6.json",
+      "full_cvat_t12.json",
+      "matched_legacy_t12.json",
+      "matched_cvat_t6.json"
+    ],
+    "s1": "PASS",
+    "r64_r128_r160_target_id_parity": "PASS",
+    "r64_r128_r160_physical_frame_parity": "PASS",
+    "r64_r128_r160_label_parity": "PASS",
+    "r64_r128_r160_split_parity": "PASS",
+    "r64_r128_r160_mask_parity": "PASS",
+    "r64_r128_r160_order_parity": "PASS",
+    "boundary_reset_parity": "PASS"
+  },
+  "negative_contract_tests": {
+    "old_r128_failure_class_regression": "PASS",
+    "matched_full_pool_separation": "PASS",
+    "authority_hash_version_fail_closed": "PASS"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I4-CONSUMER-INTEGRATION-AUTHORITY",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/temporal_v2_consumer_integration_20260814/docs/classification_v2/temporal_v2_consumer_integration_authority.json",
+      "sha256": "c72cc965e30f3b14e3158f521d88e952e71cb893fc9628b2539178d0c8350088",
+      "status": "PASS",
+      "supports": ["AC-5"]
+    },
+    {
+      "evidence_id": "I4-CONSUMER-PARITY-AUDIT",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/temporal_v2_consumer_integration_20260814/docs/classification_v2/temporal_v2_consumer_parity_audit.json",
+      "sha256": "fbd209428b2d88e1d194d1ea0f4fe708e1090b7c92e1dbc29501102ed07ab465",
+      "status": "PASS",
+      "supports": ["AC-4", "AC-5"]
+    }
+  ]
+}

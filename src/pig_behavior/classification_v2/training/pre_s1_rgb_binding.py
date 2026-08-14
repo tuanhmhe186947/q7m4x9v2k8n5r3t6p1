@@ -31,6 +31,10 @@ from pig_behavior.classification_v2.training.legacy_media_resolution import (
     LegacyMediaResolutionError,
     attach_canonical_legacy_media_paths,
 )
+from pig_behavior.classification_v2.training.temporal_v2_consumer import (
+    TemporalV2ConsumerInput,
+    build_s1_temporal_v2_input,
+)
 
 SCIENTIFIC_RGB_BINDING_SCHEMA = "classification_v2.pre_s1_calibration_rgb_binding.v1"
 DATA_BINDINGS_SCHEMA = "classification_v2.pre_s1_calibration_data_bindings.v2"
@@ -42,6 +46,12 @@ SOURCE_INTEGRITY_SCHEMA = (
 )
 INNER_ROLES = frozenset({"train", "validation"})
 SEQUENCE_LENGTH = 6
+
+
+def load_canonical_s1_temporal_target(**kwargs: Any) -> TemporalV2ConsumerInput:
+    """Build the S1 model-input temporal contract from emitted membership only."""
+
+    return build_s1_temporal_v2_input(**kwargs)
 
 WINDOW_SOURCE_COLUMNS = [
     "window_id",

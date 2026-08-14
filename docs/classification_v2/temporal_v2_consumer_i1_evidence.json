@@ -1,0 +1,47 @@
+{
+  "schema_version": "classification_v2.temporal_v2_consumer_integration_i1.v1",
+  "task_id": "TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01",
+  "source_task_id": "TEMPORAL-SEMANTICS-20260813-01",
+  "source_task_status": "CLOSED",
+  "source_publication_reverify": "PASS",
+  "source_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\temporal_semantics_rebuild_20260813\\outputs\\classification_v2\\temporal_semantics_rebuild_v2_full_chunk1024",
+  "source_authority": {
+    "path": "temporal_semantics_authority_v2.json",
+    "sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681"
+  },
+  "artifact_hash_manifest": {
+    "path": "temporal_v2_artifact_hash_manifest.json",
+    "sha256": "fa4dfd10f891d8e69e5a2f96d5ca2bce1a4e816fecb4fc3b94eabd99ce3ace73"
+  },
+  "frozen_release_counts": {
+    "TOTAL_RELEASE_TARGETS": 150897,
+    "MATCHED_TEMPORAL_ABLATION": {"T6": 14706, "T8": 14706, "T12": 14706, "T16": 14706},
+    "FULL_NONOVERLAP_VIEW_POOL": {"T6": 33287, "T8": 25538, "T12": 18542, "T16": 14706}
+  },
+  "consumer_inventory": {
+    "historical_window_builder": "src/pig_behavior/classification_v2/features/sequence_windows.py",
+    "historical_stride": 3,
+    "historical_view_builder": "src/pig_behavior/classification_v2/features/temporal_views.py",
+    "s1_rgb_binding": "src/pig_behavior/classification_v2/training/pre_s1_rgb_binding.py",
+    "resolution_consumer": "src/pig_behavior/classification_v2/training/post_s1_resolution_screening.py",
+    "resolution_launcher": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_post_s1_resolution_screen.py"
+  },
+  "scope": {
+    "canonical_membership_rule": "Consumers must read emitted physical-frame membership from the Temporal-v2 release; they must not reconstruct membership from legacy windows, stride, or resolution.",
+    "historical_selectors_preserved_but_not_canonical": true,
+    "source_artifacts_mutated": false,
+    "temporal_v2_rematerialized": false,
+    "gpu_used": false,
+    "training_run": false
+  },
+  "evidence": [
+    {
+      "evidence_id": "I1-SOURCE-PUBLICATION-REVERIFY",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/temporal_semantics_rebuild_20260813/outputs/classification_v2/temporal_semantics_rebuild_v2_full_chunk1024/temporal_v2_publication_receipt.json",
+      "sha256": "931195ca2c27edd5bed1899126ee2ee2a4d705dcc41a31cc52936b7c1ce8aa15",
+      "supports": ["AC-1"],
+      "status": "PASS"
+    }
+  ]
+}

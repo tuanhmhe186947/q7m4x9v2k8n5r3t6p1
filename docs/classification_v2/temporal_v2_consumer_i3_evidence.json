@@ -1,0 +1,48 @@
+{
+  "schema_version": "classification_v2.temporal_v2_consumer_i3.v1",
+  "task_id": "TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01",
+  "status": "PASS",
+  "canonical_consumer_contract": {
+    "s1_authority_bound": true,
+    "r64_authority_bound": true,
+    "r128_authority_bound": true,
+    "r160_authority_bound": true,
+    "membership_source": "emitted:selected_frame_indices",
+    "old_stride3_reachable_from_canonical_path": false,
+    "resolution_specific_selector_reachable": false,
+    "s128_canonical_config_reachable": false
+  },
+  "focused_tests": {
+    "command": "pytest temporal consumer plus adjacent S1/resolution bindings",
+    "passed": 44,
+    "status": "PASS"
+  },
+  "release_count_audit": {
+    "MATCHED_TEMPORAL_ABLATION": {
+      "T6": 14706,
+      "T8": 14706,
+      "T12": 14706,
+      "T16": 14706
+    },
+    "FULL_NONOVERLAP_VIEW_POOL": {
+      "T6": 33287,
+      "T8": 25538,
+      "T12": 18542,
+      "T16": 14706
+    },
+    "status": "PASS"
+  },
+  "frame_offset_index": {
+    "path": "outputs/classification_v2/temporal_v2_consumer_indices_v1/frame_offset_index.json",
+    "target_count": 150932,
+    "status": "PASS",
+    "reuses_existing_frame_rows": true,
+    "feature_reextraction": false
+  },
+  "non_actions": {
+    "temporal_v2_rematerialized": false,
+    "upstream_authorities_mutated": false,
+    "gpu_used": false,
+    "training_run": false
+  }
+}

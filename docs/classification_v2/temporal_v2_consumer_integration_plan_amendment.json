@@ -1,0 +1,9 @@
+{
+  "steps": [
+    {"step_id":"I-1","summary":"Verify source publication and inventory current consumers.","acceptance_ids":["AC-1"],"allowed_effects":["inspect","audit","write"]},
+    {"step_id":"I-2","summary":"Register exact canonical authority copies and mapping.","acceptance_ids":["AC-2"],"allowed_effects":["copy","write","audit"]},
+    {"step_id":"I-3","summary":"Bind canonical consumers and add focused contract tests.","acceptance_ids":["AC-3","AC-4"],"allowed_effects":["write","test","audit"]},
+    {"step_id":"I-4","summary":"Run CPU-only canonical preflight and publish integration authorities.","acceptance_ids":["AC-4","AC-5"],"allowed_effects":["test","audit","write"]},
+    {"step_id":"I-5","summary":"Commit, safely integrate, review outcome, and close.","acceptance_ids":["AC-5"],"allowed_effects":["commit","integrate","audit"]}
+  ]
+}

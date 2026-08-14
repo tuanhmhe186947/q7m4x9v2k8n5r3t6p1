@@ -1,0 +1,41 @@
+{
+  "task_id": "TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01",
+  "title": "Integrate published Temporal-v2 authority into classification consumers",
+  "task_class": "architecture_or_goal_drift",
+  "risk_class": "high",
+  "worktree_mode": "exclusive",
+  "authorities": [
+    {"scope":"agent.governance","locator":"docs/governance/AGENT_GOVERNANCE_V2.md","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"8256effcdb02dc26754668e35001ca4b3bf233bee4f3006c19a5a1b6cf9a287d","section_sha256":"8256effcdb02dc26754668e35001ca4b3bf233bee4f3006c19a5a1b6cf9a287d"},
+    {"scope":"classification_v2.current_state","locator":"docs/CLASSIFICATION_V2_CURRENT_STATE.md","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e","section_sha256":"ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"},
+    {"scope":"governance.current_state","locator":".agents/memory/02_CURRENT_DECISION.md","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e","section_sha256":"53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e"},
+    {"scope":"method.state","locator":".agents/memory/13_METHOD_STATE.json","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"185a5dec7e2eaaf71e020ecd78bbd23431acb747c78f336d5080aaf8b0ad7969","section_sha256":"185a5dec7e2eaaf71e020ecd78bbd23431acb747c78f336d5080aaf8b0ad7969"},
+    {"scope":"permission.halt","locator":".agents/memory/16_HALT_CONDITIONS.json","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34","section_sha256":"1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34"},
+    {"scope":"project.direction","locator":".agents/memory/12_PROJECT_CHARTER.md","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"c00ed0a390945cf76fd5f442575306b26e36fb2443f3378495e240a0716764e3","section_sha256":"c00ed0a390945cf76fd5f442575306b26e36fb2443f3378495e240a0716764e3"},
+    {"scope":"scientific.claims","locator":".agents/memory/14_CLAIM_REGISTRY.json","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"09101d5972653d5e44bc77861e16755356679c84aae3b0cf8da7003f19bb1602","section_sha256":"09101d5972653d5e44bc77861e16755356679c84aae3b0cf8da7003f19bb1602"},
+    {"scope":"skill.portfolio","locator":".agents/skills/skill_inventory.json","selector":"FULL_FILE","status":"CURRENT","read_at":"2026-08-14T00:00:00+07:00","sha256":"62c2652dcbac83ac6c8bad65c6c11d17463b1da773bec79b2afd1c6521163c7e","section_sha256":"62c2652dcbac83ac6c8bad65c6c11d17463b1da773bec79b2afd1c6521163c7e"}
+  ],
+  "skills": [
+    {"skill_id":"agent-architecture-audit","role":"reasoning","purpose":"Map canonical and historical temporal consumer boundaries.","selection_mode":"explicit","skill_sha256":"9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b"},
+    {"skill_id":"plan-orchestrate","role":"reasoning","purpose":"Sequence the bounded governed integration plan.","selection_mode":"explicit","skill_sha256":"e9d9aa9eeff9800793cbf852e60c6829ffd79bf89b0eb16e39bdceac10a2eb5e"},
+    {"skill_id":"agent-governance-steward","role":"governance","purpose":"Bind permits, evidence, closeout, and protected worktree handling.","selection_mode":"explicit","skill_sha256":"774fa3fc0b6069a06278d687766d6824d72c77559319f956d0114de1882adf2c"},
+    {"skill_id":"project-state-steward","role":"governance","purpose":"Preserve task state, memory routing, and integration hygiene.","selection_mode":"explicit","skill_sha256":"d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc"},
+    {"skill_id":"dataset-contract-leakage-guard","role":"domain_guardrail","purpose":"Protect corpus, split, label, mask, and temporal-unit contracts.","selection_mode":"explicit","skill_sha256":"038f87efa803cd316e6b037b2e4daf0cad7a6c7c4f4a127dd09388774f1eab40"},
+    {"skill_id":"safe-refactor-test-guardian","role":"verification","purpose":"Keep consumer changes small, schema-safe, and test-backed.","selection_mode":"explicit","skill_sha256":"00aa27194a0653ee0fa00ff4007f37e43b2bc955b5a89b327665ed0a10584818"}
+  ],
+  "acceptance": [
+    {"acceptance_id":"AC-1","text":"Published source authority, frozen counts, hashes, lineage, and protected source worktree are verified without rematerialization."},
+    {"acceptance_id":"AC-2","text":"Canonical immutable authority copies and source-to-canonical mapping are created with exact hash parity."},
+    {"acceptance_id":"AC-3","text":"S1 and resolution consumers use only canonical emitted target membership with matched/full separation and no reachable old selectors."},
+    {"acceptance_id":"AC-4","text":"Focused tests and CPU-only consumer preflight prove split, label, mask, ordering, boundary, and R64/R128/R160 parity without training."},
+    {"acceptance_id":"AC-5","text":"Integration and parity authorities are published and safely integrated into the canonical branch or a genuine owner conflict is preserved."}
+  ],
+  "risks": ["source-authority drift", "unrelated main worktree changes", "historical selector accidentally reachable", "corpus mixing", "unsafe destination merge"],
+  "non_actions": ["no temporal-v2 rematerialization", "no authority-semantic change", "no upstream review/split/label mutation", "no video/detection/tracking/crop/spatial recomputation", "no GPU or model training"],
+  "plan": {"steps": [
+    {"step_id":"I-1","summary":"Verify source publication and inventory current consumers.","acceptance_ids":["AC-1"],"allowed_effects":["inspect","audit"]},
+    {"step_id":"I-2","summary":"Register exact canonical authority copies and mapping.","acceptance_ids":["AC-2"],"allowed_effects":["copy","write","audit"]},
+    {"step_id":"I-3","summary":"Bind canonical consumers and add focused contract tests.","acceptance_ids":["AC-3","AC-4"],"allowed_effects":["write","test","audit"]},
+    {"step_id":"I-4","summary":"Run CPU-only canonical preflight and publish integration authorities.","acceptance_ids":["AC-4","AC-5"],"allowed_effects":["test","audit","write"]},
+    {"step_id":"I-5","summary":"Commit, safely integrate, review outcome, and close.","acceptance_ids":["AC-5"],"allowed_effects":["commit","integrate","audit"]}
+  ]}
+}

@@ -43,6 +43,10 @@ from pig_behavior.classification_v2.training.remote_input_resolution import (
     RemoteInputResolutionError,
     load_remote_input_authority,
 )
+from pig_behavior.classification_v2.training.temporal_v2_consumer import (
+    TemporalV2ConsumerInput,
+    build_resolution_temporal_v2_input,
+)
 
 AUTHORITY_SCHEMA = "classification_v2.post_s1_resolution_screen.v1"
 RUN_KIND = "POST_S1_T6_PURE_RESOLUTION_SCREEN"
@@ -51,6 +55,17 @@ SEED = 20260804
 MAX_STEPS = 4164
 BATCH_SIZE = 16
 RESOLUTION_ARMS = frozenset({64, 128, 160})
+
+
+def load_canonical_resolution_temporal_target(
+    *, input_resolution: int, **kwargs: Any
+) -> TemporalV2ConsumerInput:
+    """Build an R64/R128/R160 temporal input from emitted membership only."""
+
+    return build_resolution_temporal_v2_input(
+        input_resolution=input_resolution,
+        **kwargs,
+    )
 
 
 class PostS1ResolutionError(ValueError):

@@ -1,0 +1,12 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I2-CANONICAL-HARDLINK-HASH-AUDIT",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/temporal_v2_consumer_integration_20260814/docs/classification_v2/temporal_v2_canonical_authority_mapping.json",
+      "sha256": "e88bff3f895f53d2efc295f39cf97b27fb9d086363f873d8cdb846307f155077",
+      "supports": ["AC-2"],
+      "status": "PASS"
+    }
+  ]
+}

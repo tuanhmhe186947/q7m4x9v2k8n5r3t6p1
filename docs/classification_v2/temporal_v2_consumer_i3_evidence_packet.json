@@ -1,0 +1,12 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I3-CANONICAL-CONSUMER-CONTRACT",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/temporal_v2_consumer_integration_20260814/docs/classification_v2/temporal_v2_consumer_i3_evidence.json",
+      "sha256": "d76ebe2ce812f6015d9659f50bab81943bb3a8f6365079aab279ebf25aed3af3",
+      "status": "PASS",
+      "supports": ["AC-3", "AC-4"]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "classification_v2.temporal_v2_canonical_authority_mapping.v1",
+  "task_id": "TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01",
+  "canonical_root": "outputs/classification_v2/temporal_v2_canonical_authority_v1",
+  "materialization": {
+    "method": "NTFS_HARDLINK",
+    "published_atomically": true,
+    "source_files_modified": false,
+    "payload_reextracted": false
+  },
+  "source": {
+    "task_id": "TEMPORAL-SEMANTICS-20260813-01",
+    "root": ".codex_worktrees/temporal_semantics_rebuild_20260813/outputs/classification_v2/temporal_semantics_rebuild_v2_full_chunk1024",
+    "authority_sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681",
+    "artifact_manifest_sha256": "fa4dfd10f891d8e69e5a2f96d5ca2bce1a4e816fecb4fc3b94eabd99ce3ace73"
+  },
+  "verification": {
+    "status": "PASS",
+    "verified_artifact_count": 14,
+    "source_publication_reverify": "PASS",
+    "canonical_hardlink_hash_audit": "PASS"
+  },
+  "consumer_contract": {
+    "membership_authority": "matched_temporal_window_manifest_release.csv or full_temporal_window_manifest_release.csv selected_frame_indices",
+    "frame_authority": "sequence_frame_features.csv keyed by target_id and emitted physical frame_index",
+    "temporal_feature_authority": "window_temporal_feature_summary.csv keyed by target_id",
+    "forbidden_membership_reconstruction": ["window_start_frame", "window_length", "legacy stride", "resolution"]
+  }
+}

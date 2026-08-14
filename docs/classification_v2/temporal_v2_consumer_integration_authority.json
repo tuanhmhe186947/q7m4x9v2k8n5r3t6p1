@@ -1,0 +1,28 @@
+{
+  "schema_version": "classification_v2.temporal_v2_consumer_integration_authority.v1",
+  "status": "PASS",
+  "source_temporal_authority_sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681",
+  "artifact_manifest_sha256": "fa4dfd10f891d8e69e5a2f96d5ca2bce1a4e816fecb4fc3b94eabd99ce3ace73",
+  "integration_code_digest": "ce6f972bea4984b8f2a6e22a556de2ebc1a7096b13ee99510f4f55e6fee2742a",
+  "consumer_entrypoints": {
+    "S1": "pre_s1_rgb_binding.load_canonical_s1_temporal_target",
+    "R64": "post_s1_resolution_screening.load_canonical_resolution_temporal_target",
+    "R128": "post_s1_resolution_screening.load_canonical_resolution_temporal_target",
+    "R160": "post_s1_resolution_screening.load_canonical_resolution_temporal_target"
+  },
+  "contract": {
+    "corpora": ["MATCHED_TEMPORAL_ABLATION", "FULL_NONOVERLAP_VIEW_POOL"],
+    "views": ["T6", "T8", "T12", "T16"],
+    "membership": "emitted:selected_frame_indices",
+    "historical_membership_fallback": false,
+    "old_stride3_reachable": false,
+    "resolution_specific_selector_reachable": false,
+    "training_run": false,
+    "gpu_used": false
+  },
+  "frame_offset_index": {
+    "path": "outputs/classification_v2/temporal_v2_consumer_indices_v1/frame_offset_index.json",
+    "sha256": "df295adfb6320c71334c6f1ae89f7d51eeaa9f3450b39f4d2bf8dd2f717d45c9",
+    "reuses_existing_frame_rows": true
+  }
+}
