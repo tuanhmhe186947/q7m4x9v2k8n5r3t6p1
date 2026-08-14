@@ -1,6 +1,6 @@
 {
   "generated_view": {
-    "inventory_sha256": "f8d2a6ab4c9bbc4ace1ee9fb66f01bf221bcebb00058e7f3607924e8f49fafc8",
+    "inventory_sha256": "aa6cddebc1cba385a0091cb2e721e469ec21679c948fbd57d0e0ea594306325d",
     "source": ".agents/skills/skill_inventory.json"
   },
   "mandatory_reasoning_routes": {
@@ -276,7 +276,7 @@
         "scripts/validate_memory_contract_v2.py",
         "templates/memory_maturity_candidate.json"
       ],
-      "bundle_sha256": "1aef2c5689c8cc5dad680c538242c3564e0240f81cd371d9c77af84ae50a80c4",
+      "bundle_sha256": "f8fc2f8f0a3517ab4a29b8d8ab1a537196961a6fda514d4e519d6cffd8433530",
       "category": "governance",
       "file_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc",
       "git_identity": {
@@ -286,7 +286,7 @@
           "agents/openai.yaml": "ad7e858415985989879cc0dacc05750ab887262c",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
           "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
-          "scripts/validate_governance_contracts.py": "c94cefabc9fc746cebe804681e8b811d6f990026",
+          "scripts/validate_governance_contracts.py": "85b209a193c0d84b168c702d069c711a81f891f4",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
         },
