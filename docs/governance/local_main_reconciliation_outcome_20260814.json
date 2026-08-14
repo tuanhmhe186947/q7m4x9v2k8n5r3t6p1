@@ -1,0 +1,45 @@
+{
+  "outcome": "ACCEPTED",
+  "integration": {
+    "target_ref": "2b0eef7efd898ecc197f0b3ec6a616a7c9c8420b",
+    "target_sha": "2b0eef7efd898ecc197f0b3ec6a616a7c9c8420b",
+    "integrated_sha": "2b0eef7efd898ecc197f0b3ec6a616a7c9c8420b",
+    "proof_kind": "ANCESTOR",
+    "revalidation_evidence": [
+      {
+        "evidence_id": "FINAL-LOCAL-MAIN-STATUS",
+        "locator": "git status --short and git log --oneline -5 after 2b0eef7e",
+        "target_sha": "2b0eef7efd898ecc197f0b3ec6a616a7c9c8420b",
+        "status": "PASS"
+      },
+      {
+        "evidence_id": "FOCUSED-REGRESSION",
+        "locator": "pytest governance and project contract suite: 100 passed",
+        "target_sha": "2b0eef7efd898ecc197f0b3ec6a616a7c9c8420b",
+        "status": "PASS"
+      }
+    ]
+  },
+  "path_dispositions": [
+    {
+      "path": ".codex_cpu_preflight_runner.py",
+      "disposition": "PRESERVE_USER_OWNED",
+      "rationale": "Remote-bound temporary runner with no repository consumer."
+    },
+    {
+      "path": ".codex_gpu_gate.py",
+      "disposition": "PRESERVE_USER_OWNED",
+      "rationale": "Session GPU inspection helper; not a durable repository deliverable."
+    },
+    {
+      "path": ".codex_host_binding_runner.py",
+      "disposition": "PRESERVE_USER_OWNED",
+      "rationale": "Remote-bound host-binding helper with no repository consumer."
+    },
+    {
+      "path": ".codex_tmp_legacy_r128_runtime_audit.py",
+      "disposition": "PRESERVE_USER_OWNED",
+      "rationale": "Temporary remote audit helper retained for the owner."
+    }
+  ]
+}
