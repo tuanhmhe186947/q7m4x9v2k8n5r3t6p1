@@ -6,7 +6,7 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
 
@@ -1455,3 +1455,225 @@ def test_close_requires_explicit_skill_impact_disposition(
             now=NOW,
             **owner(record, project),
         )
+
+
+def scoped_packet(project: Path) -> dict[str, object]:
+    value = packet(project)
+    value["task_id"] = "SCOPED-PROGRESS-20260814-01"
+    value["path_scope"] = ["README.md", "artifacts", "task-owned.txt"]
+    return value
+
+
+def create_scoped(
+    manager: ModuleType,
+    project: Path,
+) -> tuple[object, dict[str, object]]:
+    ledger = manager.AgentGovernanceLedger(project)
+    record = ledger.create(
+        scoped_packet(project),
+        owner_session=RUNTIME,
+        owner_token=TOKEN,
+        worktree=project,
+        lease_seconds=7200,
+        now=NOW,
+    )
+    return ledger, confirm(ledger, record, project)
+
+
+def expire_and_repermit(
+    ledger: object,
+    record: dict[str, object],
+    project: Path,
+) -> dict[str, object]:
+    return ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW + timedelta(minutes=31),
+        **owner(record, project),
+    )
+
+
+def test_authorized_edit_progress_is_accepted_after_expired_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "task-owned.txt").write_text("authorized\n", encoding="utf-8")
+    fresh = expire_and_repermit(ledger, record, project)
+    assert fresh["worktree"]["accepted_task_fingerprint"] != record["worktree"]["fingerprint"]
+    assert fresh["worktree"]["base_fingerprint"] == record["worktree"]["fingerprint"]
+
+
+def test_generated_evidence_progress_is_accepted_after_expired_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    evidence = project / "artifacts" / "evidence.json"
+    evidence.parent.mkdir()
+    evidence.write_text("{}\n", encoding="utf-8")
+    assert expire_and_repermit(ledger, record, project)["active_permit"]
+
+
+def test_authorized_descendant_commit_is_accepted_after_expired_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "task-owned.txt").write_text("committed\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(project), "add", "task-owned.txt"], check=True)
+    subprocess.run(
+        ["git", "-C", str(project), "commit", "-q", "-m", "task progress"],
+        check=True,
+    )
+    fresh = expire_and_repermit(ledger, record, project)
+    assert fresh["worktree"]["accepted_task_head"] != record["worktree"]["head_sha"]
+    assert fresh["worktree"]["base_head"] == record["worktree"]["head_sha"]
+
+
+def test_external_dirty_path_still_fails_closed_after_expired_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "external.txt").write_text("owner change\n", encoding="utf-8")
+    with pytest.raises(manager.GovernanceError, match="external_or_owner_change"):
+        expire_and_repermit(ledger, record, project)
+
+
+def test_mixed_authorized_and_unknown_paths_fail_closed(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "task-owned.txt").write_text("task change\n", encoding="utf-8")
+    (project / "external.txt").write_text("unknown change\n", encoding="utf-8")
+    with pytest.raises(manager.GovernanceError, match="unknown_or_mixed_change"):
+        expire_and_repermit(ledger, record, project)
+
+
+def test_out_of_scope_descendant_commit_is_not_accepted(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01",
+        "S-1",
+        ["edit"],
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "external.txt").write_text("bad commit\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(project), "add", "external.txt"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-q", "-m", "bad"], check=True)
+    with pytest.raises(manager.GovernanceError, match="external_or_owner_change"):
+        expire_and_repermit(ledger, record, project)
+
+
+def test_completed_history_keeps_the_next_logical_step_active(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        "REFORM-20260813-01", "S-1", ["test"], now=NOW, **owner(record, project)
+    )
+    record = ledger.advance(
+        "REFORM-20260813-01",
+        record["active_permit"]["permit_id"],
+        pass_evidence("AC-1"),
+        "S-2",
+        now=NOW,
+        **owner(record, project),
+    )
+    assert [step["status"] for step in record["plan"]["steps"]] == ["DONE", "IN_PROGRESS"]
+    assert record["events"][-1]["payload"]["next_step_id"] == "S-2"
+
+
+def test_same_session_recovery_preserves_accepted_progress(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01", "S-1", ["edit"], now=NOW, **owner(record, project)
+    )
+    (project / "task-owned.txt").write_text("progress\n", encoding="utf-8")
+    record = expire_and_repermit(ledger, record, project)
+    accepted = dict(record["worktree"])
+    recovered = ledger.recover_same_session(
+        "SCOPED-PROGRESS-20260814-01",
+        RUNTIME,
+        record["revision"],
+        record["record_sha256"],
+        project,
+        "Recover the same task without replaying accepted progress.",
+        new_owner_token="recovered-scoped-owner-token-012345",
+        now=NOW + timedelta(minutes=32),
+    )
+    for key in ("base_head", "accepted_task_head", "accepted_task_fingerprint", "path_scope"):
+        assert recovered["worktree"][key] == accepted[key]
+    assert recovered["plan"]["steps"][0]["status"] == "IN_PROGRESS"
+
+
+def test_synthetic_multi_commit_progress_needs_no_manual_rebaseline(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create_scoped(manager, project)
+    record = ledger.permit(
+        "SCOPED-PROGRESS-20260814-01", "S-1", ["edit"], now=NOW, **owner(record, project)
+    )
+    (project / "task-owned.txt").write_text("B\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(project), "add", "task-owned.txt"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-q", "-m", "B"], check=True)
+    record = expire_and_repermit(ledger, record, project)
+    (project / "artifacts").mkdir(exist_ok=True)
+    (project / "artifacts" / "release.json").write_text("{}\n", encoding="utf-8")
+    record = ledger.advance(
+        "SCOPED-PROGRESS-20260814-01",
+        record["active_permit"]["permit_id"],
+        pass_evidence("AC-1"),
+        "S-2",
+        now=NOW + timedelta(minutes=31),
+        **owner(record, project),
+    )
+    assert record["worktree"]["base_head"] != record["worktree"]["accepted_task_head"]

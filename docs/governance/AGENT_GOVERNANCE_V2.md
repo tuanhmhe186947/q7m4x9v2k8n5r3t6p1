@@ -61,6 +61,34 @@ worktree collision fails closed before an action permit is issued.
    digest, and requires confirmation again. A terminal step cannot be followed
    by a hidden new effect.
 
+## Execution progression model
+
+Task-start provenance is immutable: `BASE_HEAD` and `BASE_FINGERPRINT` record
+the admitted worktree. `ACCEPTED_TASK_HEAD` and `ACCEPTED_TASK_FINGERPRINT`
+advance only after a governance-validated task transition. `ACTUAL_WORKTREE_HEAD`
+and `ACTUAL_WORKTREE_FINGERPRINT` are fresh observations; they never overwrite
+base provenance merely because a task continued.
+
+An expired permit is closed before a fresh one can be issued. A transition is
+`TASK_OWNED_AUTHORIZED` only when its registered worktree, CAS state, permit,
+Git lineage, and declared task scope all agree. `EXTERNAL_OR_OWNER` and
+`UNKNOWN_OR_MIXED` changes fail closed. A legacy task without an explicit scope
+can still advance through an evidence-bearing checkpoint, but changed state is
+not automatically accepted after permit expiry.
+
+Good: a scoped task edits `docs/governance/`, records evidence, commits a
+descendant, and requests a new permit after expiry. The manager preserves its
+base while accepting the scoped, lineal transition.
+
+Bad: the same task contains a scoped edit plus an unexplained `src/` change.
+The mixed transition is rejected and requires owner reconciliation; it is never
+accepted merely because the task has a lease.
+
+Session recovery rotates ownership only. It retains the base and accepted
+provenance, worktree, append-only history, and current logical checkpoint.
+Release-candidate and canonical-integration validation remain separate gates,
+including destination owner-work checks.
+
 ## Evidence contract
 
 Evidence is not free-form `done` text. Each item contains:
@@ -169,4 +197,3 @@ The implementation must reject all of the following:
 4. Integrate and revalidate the reform on `main`.
 5. Retire the reform worktree only after the closeout gate records eligibility.
 6. Audit old worktrees into a deferred ledger; do not bulk-delete candidates.
-

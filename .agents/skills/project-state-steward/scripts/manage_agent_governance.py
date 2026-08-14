@@ -228,6 +228,24 @@ def _worktree_identity(worktree: Path) -> dict[str, Any]:
     }
 
 
+def _path_within_scope(path: str, scopes: list[str]) -> bool:
+    normalized = path.replace("\\", "/").strip("/")
+    return any(normalized == scope or normalized.startswith(f"{scope}/") for scope in scopes)
+
+
+def _is_ancestor(worktree: Path, ancestor: str, descendant: str) -> bool:
+    return _git(worktree, "merge-base", "--is-ancestor", ancestor, descendant).returncode == 0
+
+
+def _changed_paths_since(worktree: Path, accepted_head: str, actual_head: str) -> list[str]:
+    if accepted_head == actual_head:
+        return []
+    result = _git(worktree, "diff", "--name-only", accepted_head, actual_head)
+    if result.returncode:
+        raise GovernanceError("worktree_lineage_unreadable", actual_head)
+    return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+
+
 def _canonical_common_dir(root: Path) -> Path:
     resolved_root = root.resolve()
     top = _git(resolved_root, "rev-parse", "--show-toplevel")
@@ -946,10 +964,15 @@ class AgentGovernanceLedger:
                 "shared_main binds only the canonical main worktree.",
             )
         path_scope = (
-            _normalized_path_scope(packet.get("path_scope"))
-            if worktree_mode == "shared_main"
+            _normalized_path_scope(packet["path_scope"])
+            if packet.get("path_scope") is not None
             else []
         )
+        if worktree_mode == "shared_main" and not path_scope:
+            raise GovernanceError(
+                "shared_main_scope_missing",
+                "Declare bounded repository-relative path prefixes.",
+            )
         token = owner_token or secrets.token_urlsafe(32)
         if len(token) < 16:
             raise GovernanceError("owner_token_weak", "Use a generated private token.")
@@ -986,6 +1009,12 @@ class AgentGovernanceLedger:
                 "mode": worktree_mode,
                 "path_scope": path_scope,
                 "base_sha": identity["head_sha"],
+                "base_head": identity["head_sha"],
+                "accepted_task_head": identity["head_sha"],
+                "actual_worktree_head": identity["head_sha"],
+                "base_fingerprint": identity["fingerprint"],
+                "accepted_task_fingerprint": identity["fingerprint"],
+                "actual_worktree_fingerprint": identity["fingerprint"],
                 "state": "ADMITTED",
                 "outcome": None,
                 "path_dispositions": [],
@@ -1369,6 +1398,63 @@ class AgentGovernanceLedger:
 
         return self._mutate(task_id, event_type="PLAN_CONFIRMED", mutation=mutate, **owner)
 
+    @staticmethod
+    def _record_accepted_progress(
+        record: dict[str, Any],
+        identity: dict[str, Any],
+    ) -> None:
+        worktree = record["worktree"]
+        for key in ("head_sha", "dirty_paths", "fingerprint"):
+            worktree[key] = identity[key]
+        worktree["accepted_task_head"] = identity["head_sha"]
+        worktree["accepted_task_fingerprint"] = identity["fingerprint"]
+        worktree["actual_worktree_head"] = identity["head_sha"]
+        worktree["actual_worktree_fingerprint"] = identity["fingerprint"]
+
+    def _classify_expired_permit_progress(
+        self,
+        record: dict[str, Any],
+        permit: dict[str, Any],
+    ) -> dict[str, Any]:
+        worktree = record["worktree"]
+        actual = _worktree_identity(Path(worktree["path"]))
+        _validate_worktree_binding(self.root, actual)
+        accepted_head = worktree.get("accepted_task_head", worktree["head_sha"])
+        accepted_fingerprint = worktree.get(
+            "accepted_task_fingerprint", worktree["fingerprint"]
+        )
+        if actual["head_sha"] != accepted_head and not _is_ancestor(
+            Path(worktree["path"]), accepted_head, actual["head_sha"]
+        ):
+            raise GovernanceError("external_or_owner_change", actual["head_sha"])
+        changed = set(
+            _changed_paths_since(
+                Path(worktree["path"]),
+                accepted_head,
+                actual["head_sha"],
+            )
+        )
+        changed.update(actual["dirty_paths"])
+        scope = worktree.get("path_scope", [])
+        in_scope = sorted(path for path in changed if _path_within_scope(path, scope))
+        out_of_scope = sorted(changed.difference(in_scope))
+        if changed and not scope:
+            raise GovernanceError("unknown_or_mixed_change", "task scope is required")
+        if in_scope and out_of_scope:
+            raise GovernanceError("unknown_or_mixed_change", ",".join(out_of_scope))
+        if out_of_scope:
+            raise GovernanceError("external_or_owner_change", ",".join(out_of_scope))
+        self._record_accepted_progress(record, actual)
+        return {
+            "classification": "TASK_OWNED_AUTHORIZED",
+            "permit_id": permit["permit_id"],
+            "previous_accepted_head": accepted_head,
+            "previous_accepted_fingerprint": accepted_fingerprint,
+            "actual_head": actual["head_sha"],
+            "actual_fingerprint": actual["fingerprint"],
+            "changed_paths": sorted(changed),
+        }
+
     def permit(
         self,
         task_id: str,
@@ -1386,8 +1472,14 @@ class AgentGovernanceLedger:
             confirmation = record.get("plan_confirmation") or {}
             if confirmation.get("plan_digest") != record["plan"]["digest"]:
                 raise GovernanceError("plan_confirmation_stale", "Confirm the current digest.")
-            if record.get("active_permit"):
-                raise GovernanceError("permit_already_active", "Consume or revoke it first.")
+            expired_progress = None
+            active = record.get("active_permit")
+            if active:
+                if current < datetime.fromisoformat(active["expires_at"]):
+                    raise GovernanceError("permit_already_active", "Consume or revoke it first.")
+                expired_progress = self._classify_expired_permit_progress(record, active)
+                record["active_permit"] = None
+                record["state"] = "CONFIRMED"
             _require_valid_skill_inventory(self.root)
             steps = {step["step_id"]: step for step in record["plan"]["steps"]}
             step = steps.get(step_id)
@@ -1442,7 +1534,7 @@ class AgentGovernanceLedger:
             record["active_permit"] = permit
             record["state"] = "ACTIVE"
             record["worktree"]["state"] = "ACTIVE"
-            return record, permit
+            return record, {**permit, "expired_permit_progress": expired_progress}
 
         return self._mutate(
             task_id,
@@ -1512,16 +1604,9 @@ class AgentGovernanceLedger:
                 target["status"] = "IN_PROGRESS"
             identity = _worktree_identity(Path(record["worktree"]["path"]))
             _validate_worktree_binding(self.root, identity)
-            for key in (
-                "path",
-                "common_dir",
-                "head_sha",
-                "branch",
-                "detached",
-                "dirty_paths",
-                "fingerprint",
-            ):
+            for key in ("path", "common_dir", "branch", "detached"):
                 record["worktree"][key] = identity[key]
+            self._record_accepted_progress(record, identity)
             record["active_permit"] = None
             return record, {
                 "step_id": step["step_id"],

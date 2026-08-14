@@ -1,0 +1,24 @@
+{
+  "task_id": "GOVERNANCE-EXECUTION-MODEL-REPAIR-20260814-01",
+  "title": "Repair task-owned governance progression validation",
+  "task_class": "governance_implementation",
+  "risk_class": "high",
+  "acceptance": [
+    {"acceptance_id": "AC-1", "text": "A compact audit identifies each self-deadlocking rule and its safe replacement."},
+    {"acceptance_id": "AC-2", "text": "Regression tests cover authorized progress and all required fail-closed controls."},
+    {"acceptance_id": "AC-3", "text": "The manager separates immutable base provenance from accepted task progress."},
+    {"acceptance_id": "AC-4", "text": "Synthetic multi-commit acceptance proves authorized progression and rejects invalid drift."},
+    {"acceptance_id": "AC-5", "text": "The execution model documentation and focused governance suite pass."},
+    {"acceptance_id": "AC-6", "text": "Integration is attempted only after fresh destination owner-work checks."}
+  ],
+  "risks": ["Do not weaken owner-drift, scope, CAS, or merge safeguards.", "Do not modify closed scientific task records."],
+  "non_actions": ["No scientific data, temporal semantics, model code, training, GPU, or historical-task mutation.", "Do not overwrite owner changes in the canonical main worktree."],
+  "plan": {
+    "steps": [
+      {"step_id": "G-1", "summary": "Persist the design audit and write regression tests before the behavioral fix.", "acceptance_ids": ["AC-1", "AC-2"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "G-2", "summary": "Implement explicit task-owned progression and permit lifecycle validation.", "acceptance_ids": ["AC-3"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "G-3", "summary": "Run synthetic multi-commit acceptance, update documentation, and validate the release candidate.", "acceptance_ids": ["AC-4", "AC-5"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "G-4", "summary": "Safely integrate only after destination owner-work checks and close the governed task.", "acceptance_ids": ["AC-6"], "allowed_effects": ["integrate"]}
+    ]
+  }
+}

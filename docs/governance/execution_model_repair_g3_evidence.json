@@ -1,0 +1,18 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-G3-REGRESSION-SUITE",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_agent_governance_v2.py:59-passed",
+      "supports": ["AC-4", "AC-5"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "EV-G3-HISTORICAL-READONLY",
+      "kind": "command_result",
+      "locator": "inspect:TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01:revision-48-read-only",
+      "supports": ["AC-4"],
+      "status": "PASS"
+    }
+  ]
+}

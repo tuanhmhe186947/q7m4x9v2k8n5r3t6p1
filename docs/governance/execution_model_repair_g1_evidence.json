@@ -1,0 +1,18 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-G1-AUDIT",
+      "kind": "file",
+      "locator": "docs/governance/EXECUTION_MODEL_REPAIR_AUDIT_20260814.md",
+      "supports": ["AC-1"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "EV-G1-TESTS",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_agent_governance_v2.py:56-passed",
+      "supports": ["AC-2"],
+      "status": "PASS"
+    }
+  ]
+}

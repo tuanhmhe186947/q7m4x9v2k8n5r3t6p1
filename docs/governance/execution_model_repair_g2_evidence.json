@@ -1,0 +1,11 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-G2-MANAGER",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_agent_governance_v2.py:56-passed",
+      "supports": ["AC-3"],
+      "status": "PASS"
+    }
+  ]
+}
