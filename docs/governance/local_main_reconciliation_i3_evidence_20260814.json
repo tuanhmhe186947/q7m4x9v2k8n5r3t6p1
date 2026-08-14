@@ -1,0 +1,25 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I3-LOCAL-MAIN-COMMITS",
+      "kind": "command",
+      "locator": "local main commits: 5b50f7b8, 9ff11be7, 223bf248",
+      "supports": ["AC-4"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I3-PRESERVED-TEMPORARY-RUNNERS",
+      "kind": "command",
+      "locator": "git status shows only four protected .codex remote-bound temporary runners",
+      "supports": ["AC-4"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I3-NO-REMOTE-PUSH",
+      "kind": "command",
+      "locator": "main remains local-only and is ahead of origin/main; no push command was issued",
+      "supports": ["AC-4"],
+      "status": "PASS"
+    }
+  ]
+}

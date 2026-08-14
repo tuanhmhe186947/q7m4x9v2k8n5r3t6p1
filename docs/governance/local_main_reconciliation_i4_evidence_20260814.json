@@ -1,0 +1,18 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I4-FINAL-LOCAL-STATUS",
+      "kind": "command",
+      "locator": "after reconciliation commits, git status retains only the four protected .codex temporary runners",
+      "supports": ["AC-1", "AC-4"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I4-VALIDATION-BOUNDARY",
+      "kind": "command",
+      "locator": "memory validator PASS; focused governance and contract suite: 100 passed; no push, training, GPU, or data pipeline execution",
+      "supports": ["AC-1", "AC-4"],
+      "status": "PASS"
+    }
+  ]
+}
