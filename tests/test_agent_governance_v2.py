@@ -225,6 +225,29 @@ def rebaseline_arguments(
     }
 
 
+def scope_amendment_arguments(
+    manager: ModuleType,
+    record: dict[str, object],
+    project: Path,
+    exact_path: str = "docs/README.md",
+) -> dict[str, object]:
+    identity = manager._worktree_identity(project)
+    return {
+        "task_id": "REFORM-20260813-01",
+        "confirm_task_id": "REFORM-20260813-01",
+        "confirmation": "USER_AUTHORIZED_EXACT_TASK_PATH_SCOPE_AMENDMENT",
+        "authorization_ref": "user-request:fixture-scope-amendment",
+        "exact_path": exact_path,
+        "expected_revision": record["revision"],
+        "expected_record_sha256": record["record_sha256"],
+        "expected_worktree": project,
+        "expected_accepted_fingerprint": record["worktree"][
+            "accepted_task_fingerprint"
+        ],
+        "expected_actual_fingerprint": identity["fingerprint"],
+    }
+
+
 def confirm(
     ledger: object,
     record: dict[str, object],
@@ -692,8 +715,160 @@ def test_rebaseline_rejects_active_valid_permit(
     )
     with pytest.raises(manager.GovernanceError, match="rebaseline_active_permit"):
         ledger.rebaseline_worktree_fingerprint(
+        now=NOW,
+        **rebaseline_arguments(manager, record, project),
+    )
+
+
+def test_scope_amendment_appends_exact_path_without_rebaseline(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    before_scope = list(record["worktree"]["path_scope"])
+    before_fingerprint = record["worktree"]["accepted_task_fingerprint"]
+    amended = ledger.amend_task_path_scope(
+        now=NOW,
+        **scope_amendment_arguments(manager, record, project),
+    )
+    assert before_scope == []
+    assert amended["worktree"]["path_scope"] == ["docs/README.md"]
+    assert amended["worktree"]["accepted_task_fingerprint"] == before_fingerprint
+    event = amended["events"][-1]
+    assert event["event_type"] == "TASK_PATH_SCOPE_AMENDED"
+    assert event["payload"]["append_only"] is True
+    assert event["payload"]["previous_path_scope"] == []
+    assert event["payload"]["new_path_scope"] == ["docs/README.md"]
+    assert event["payload"]["empty_scope_bypass"] is False
+
+
+def test_scope_amendment_preserves_existing_scope_entries(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    value = packet(project)
+    value["path_scope"] = ["README.md"]
+    ledger, record = create(manager, project, value)
+    amended = ledger.amend_task_path_scope(
+        now=NOW,
+        **scope_amendment_arguments(manager, record, project),
+    )
+    assert amended["worktree"]["path_scope"] == ["README.md", "docs/README.md"]
+
+
+@pytest.mark.parametrize(
+    ("exact_path", "error"),
+    [
+        ("docs/*.md", "scope_amendment_wildcard_forbidden"),
+        ("docs", "scope_amendment_directory_forbidden"),
+        ("docs/", "scope_amendment_prefix_forbidden"),
+        ("../outside.txt", "scope_amendment_path_invalid"),
+        ("C:/outside.txt", "scope_amendment_path_invalid"),
+    ],
+)
+def test_scope_amendment_rejects_non_exact_paths(
+    manager: ModuleType,
+    project: Path,
+    exact_path: str,
+    error: str,
+) -> None:
+    value = packet(project)
+    ledger, record = create(manager, project, value)
+    with pytest.raises(manager.GovernanceError, match=error):
+        ledger.amend_task_path_scope(
             now=NOW,
-            **rebaseline_arguments(manager, record, project),
+            **scope_amendment_arguments(manager, record, project, exact_path),
+        )
+
+
+def test_scope_amendment_rejects_duplicate_path_and_stale_revision(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    value = packet(project)
+    value["path_scope"] = ["docs/README.md"]
+    ledger, record = create(manager, project, value)
+    with pytest.raises(manager.GovernanceError, match="scope_amendment_duplicate"):
+        ledger.amend_task_path_scope(
+            now=NOW,
+            **scope_amendment_arguments(manager, record, project),
+        )
+    stale = scope_amendment_arguments(manager, record, project)
+    stale["expected_revision"] = record["revision"] - 1
+    with pytest.raises(manager.GovernanceError, match="revision_conflict"):
+        ledger.amend_task_path_scope(now=NOW, **stale)
+
+
+def test_scope_amendment_rejects_unknown_dirty_delta(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    arguments = scope_amendment_arguments(manager, record, project)
+    (project / "unknown-delta.txt").write_text("unknown\n", encoding="utf-8")
+    arguments["expected_actual_fingerprint"] = manager._worktree_identity(project)[
+        "fingerprint"
+    ]
+    with pytest.raises(
+        manager.GovernanceError,
+        match="scope_amendment_unknown_delta",
+    ):
+        ledger.amend_task_path_scope(now=NOW, **arguments)
+
+
+def test_scope_amendment_rejects_active_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    with pytest.raises(manager.GovernanceError, match="scope_amendment_active_permit"):
+        ledger.amend_task_path_scope(
+            now=NOW,
+            **scope_amendment_arguments(manager, record, project),
+        )
+
+
+def test_scope_amendment_rejects_closed_task(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = finish_steps(ledger, record, project)
+    record = ledger.review_outcome(
+        "REFORM-20260813-01",
+        {
+            "outcome": "ACCEPTED",
+            "path_dispositions": [],
+            "integration": integration_packet(project),
+        },
+        now=NOW,
+        **owner(record, project),
+    )
+    record = ledger.close(
+        "REFORM-20260813-01",
+        {
+            "disposition": "NO_DURABLE_LESSON",
+            "rationale": "No durable lesson in fixture.",
+            "evidence": ["pytest:scope-amendment-closed"],
+        },
+        "RETIRE_ELIGIBLE",
+        skill_maintenance=no_skill_impact(),
+        now=NOW,
+        **owner(record, project),
+    )
+    with pytest.raises(manager.GovernanceError, match="scope_amendment_closed_task"):
+        ledger.amend_task_path_scope(
+            now=NOW,
+            **scope_amendment_arguments(manager, record, project),
         )
 
 

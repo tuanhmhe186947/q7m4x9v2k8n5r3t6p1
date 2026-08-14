@@ -36,6 +36,7 @@ HIGH_RISK_EFFECTS = {
 }
 PREPERMIT_FILE_CLASS = "TASK_PLAN_METADATA"
 PREPERMIT_CONFIRMATION = "USER_AUTHORIZED_PREPERMIT_TASK_FILE_ADOPTION"
+SCOPE_AMENDMENT_CONFIRMATION = "USER_AUTHORIZED_EXACT_TASK_PATH_SCOPE_AMENDMENT"
 STEP_COMPLETION_STATES = {"DONE", "BLOCKED", "CANCELLED"}
 WORKTREE_MODES = {"shared_main", "exclusive"}
 SKILL_IMPACT_DISPOSITIONS = {
@@ -233,6 +234,33 @@ def _worktree_identity(worktree: Path) -> dict[str, Any]:
 def _path_within_scope(path: str, scopes: list[str]) -> bool:
     normalized = path.replace("\\", "/").strip("/")
     return any(normalized == scope or normalized.startswith(f"{scope}/") for scope in scopes)
+
+
+def _normalized_exact_task_path(relative_path: str, worktree: Path) -> str:
+    raw = _clean(relative_path, "scope_amendment_path", 500).replace("\\", "/")
+    if any(character in raw for character in "*?[]{}"):
+        raise GovernanceError("scope_amendment_wildcard_forbidden", relative_path)
+    if raw.endswith("/"):
+        raise GovernanceError("scope_amendment_prefix_forbidden", relative_path)
+    path = Path(raw)
+    if (
+        path.is_absolute()
+        or raw.startswith("/")
+        or re.match(r"^[A-Za-z]:($|/)", raw)
+        or ".." in path.parts
+    ):
+        raise GovernanceError("scope_amendment_path_invalid", relative_path)
+    normalized = path.as_posix().strip("/")
+    if not normalized or normalized == "." or normalized != raw:
+        raise GovernanceError("scope_amendment_path_invalid", relative_path)
+    target = (worktree.resolve() / normalized).resolve()
+    try:
+        target.relative_to(worktree.resolve())
+    except ValueError as exc:
+        raise GovernanceError("scope_amendment_path_escape", relative_path) from exc
+    if target.is_dir():
+        raise GovernanceError("scope_amendment_directory_forbidden", relative_path)
+    return normalized
 
 
 def _is_ancestor(worktree: Path, ancestor: str, descendant: str) -> bool:
@@ -1620,6 +1648,115 @@ class AgentGovernanceLedger:
             _atomic_json(self._path(task_id), record)
             return record
 
+    def amend_task_path_scope(
+        self,
+        task_id: str,
+        confirm_task_id: str,
+        confirmation: str,
+        authorization_ref: str,
+        exact_path: str,
+        expected_revision: int,
+        expected_record_sha256: str,
+        expected_worktree: Path,
+        expected_accepted_fingerprint: str,
+        expected_actual_fingerprint: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Append one explicitly authorized exact path to an active task."""
+        if confirm_task_id != task_id:
+            raise GovernanceError("scope_amendment_task_confirmation_mismatch", confirm_task_id)
+        if confirmation != SCOPE_AMENDMENT_CONFIRMATION:
+            raise GovernanceError("scope_amendment_confirmation_missing", confirmation)
+        expected_accepted = expected_accepted_fingerprint.lower()
+        expected_actual = expected_actual_fingerprint.lower()
+        if not HEX_SHA256_RE.fullmatch(expected_accepted) or not HEX_SHA256_RE.fullmatch(
+            expected_actual
+        ):
+            raise GovernanceError("scope_amendment_fingerprint_invalid", task_id)
+        normalized_path = _normalized_exact_task_path(exact_path, expected_worktree)
+        current = _now(now)
+        with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
+            record = self._read(task_id)
+            self._check_cas(record, expected_revision, expected_record_sha256)
+            if record.get("state") == "CLOSED":
+                raise GovernanceError("scope_amendment_closed_task", task_id)
+            if record.get("state") not in {"PLANNED", "CONFIRMED", "ACTIVE"}:
+                raise GovernanceError("scope_amendment_task_not_active", record.get("state"))
+            if record.get("active_permit"):
+                raise GovernanceError("scope_amendment_active_permit", task_id)
+            worktree = record.get("worktree")
+            if not isinstance(worktree, dict):
+                raise GovernanceError("scope_amendment_worktree_metadata_missing", task_id)
+            if Path(worktree.get("path", "")).resolve() != expected_worktree.resolve():
+                raise GovernanceError(
+                    "scope_amendment_worktree_mismatch",
+                    str(expected_worktree),
+                )
+            if worktree.get("accepted_task_fingerprint") != expected_accepted:
+                raise GovernanceError("scope_amendment_accepted_fingerprint_mismatch", task_id)
+            identity = _worktree_identity(expected_worktree)
+            _validate_worktree_binding(self.root, identity)
+            for key in ("path", "common_dir", "branch", "detached"):
+                if worktree.get(key) != identity[key]:
+                    raise GovernanceError("scope_amendment_worktree_identity_mismatch", key)
+            if identity["head_sha"] != worktree.get("accepted_task_head"):
+                raise GovernanceError(
+                    "scope_amendment_head_transition_forbidden",
+                    identity["head_sha"],
+                )
+            if identity["fingerprint"] != expected_actual:
+                raise GovernanceError("scope_amendment_actual_fingerprint_mismatch", task_id)
+            dirty_paths = {
+                Path(value.replace("\\", "/")).as_posix().strip("/")
+                for value in identity["dirty_paths"]
+            }
+            if not dirty_paths.issubset({normalized_path}):
+                raise GovernanceError(
+                    "scope_amendment_unknown_delta",
+                    ",".join(sorted(dirty_paths - {normalized_path})),
+                )
+            existing_scope = worktree.get("path_scope")
+            if not isinstance(existing_scope, list):
+                raise GovernanceError("scope_amendment_scope_invalid", task_id)
+            existing_normalized = {
+                Path(str(value).replace("\\", "/")).as_posix().strip("/")
+                for value in existing_scope
+            }
+            if normalized_path in existing_normalized:
+                raise GovernanceError("scope_amendment_duplicate", normalized_path)
+            before_scope = list(existing_scope)
+            after_scope = [*before_scope, normalized_path]
+            worktree["path_scope"] = after_scope
+            payload = {
+                "operation": "amend-task-path-scope",
+                "exact_path": normalized_path,
+                "previous_path_scope": before_scope,
+                "new_path_scope": after_scope,
+                "append_only": True,
+                "scope_wildcard_added": False,
+                "scope_prefix_expansion_added": False,
+                "empty_scope_bypass": False,
+                "path_scope_enforcement_preserved": True,
+                "accepted_fingerprint": expected_accepted,
+                "actual_fingerprint": expected_actual,
+                "observed_dirty_paths": sorted(dirty_paths),
+                "administrator_confirmation": confirmation,
+                "authorization_ref": _clean(
+                    authorization_ref,
+                    "scope_amendment_authorization_ref",
+                    300,
+                ),
+                "prior_revision": expected_revision,
+            }
+            record = self._finish_mutation(
+                record,
+                "TASK_PATH_SCOPE_AMENDED",
+                payload,
+                current,
+            )
+            _atomic_json(self._path(task_id), record)
+            return record
+
     def rebind_worktree_head(
         self,
         task_id: str,
@@ -2815,6 +2952,17 @@ def build_parser() -> argparse.ArgumentParser:
     rebaseline.add_argument("--expected-current-fingerprint", required=True)
     rebaseline.add_argument("--expected-revision", required=True, type=int)
     rebaseline.add_argument("--expected-record-sha256", required=True)
+    scope_amendment = commands.add_parser("amend-task-path-scope")
+    scope_amendment.add_argument("--task-id", required=True)
+    scope_amendment.add_argument("--confirm-task-id", required=True)
+    scope_amendment.add_argument("--confirmation", required=True)
+    scope_amendment.add_argument("--authorization-ref", required=True)
+    scope_amendment.add_argument("--exact-path", required=True)
+    scope_amendment.add_argument("--expected-worktree", type=Path, required=True)
+    scope_amendment.add_argument("--expected-accepted-fingerprint", required=True)
+    scope_amendment.add_argument("--expected-actual-fingerprint", required=True)
+    scope_amendment.add_argument("--expected-revision", required=True, type=int)
+    scope_amendment.add_argument("--expected-record-sha256", required=True)
     prepermit = commands.add_parser("reconcile-prepermit-task-file")
     prepermit.add_argument("--task-id", required=True)
     prepermit.add_argument("--confirm-task-id", required=True)
@@ -2962,6 +3110,19 @@ def main(argv: list[str] | None = None) -> int:
                 args.expected_worktree,
                 args.expected_stored_fingerprint,
                 args.expected_current_fingerprint,
+            )
+        elif args.command == "amend-task-path-scope":
+            result = ledger.amend_task_path_scope(
+                args.task_id,
+                args.confirm_task_id,
+                args.confirmation,
+                args.authorization_ref,
+                args.exact_path,
+                args.expected_revision,
+                args.expected_record_sha256,
+                args.expected_worktree,
+                args.expected_accepted_fingerprint,
+                args.expected_actual_fingerprint,
             )
         elif args.command == "reconcile-prepermit-task-file":
             result = ledger.reconcile_prepermit_task_file(
