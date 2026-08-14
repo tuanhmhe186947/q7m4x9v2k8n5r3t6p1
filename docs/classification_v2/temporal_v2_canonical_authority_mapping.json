@@ -3,10 +3,11 @@
   "task_id": "TEMPORAL-V2-CONSUMER-INTEGRATION-20260814-01",
   "canonical_root": "outputs/classification_v2/temporal_v2_canonical_authority_v1",
   "materialization": {
-    "method": "NTFS_HARDLINK",
-    "published_atomically": true,
+    "method": "CROSS_VOLUME_BYTE_COPY",
+    "published_atomically": false,
     "source_files_modified": false,
-    "payload_reextracted": false
+    "payload_reextracted": false,
+    "integrity_verification": "full_source_target_sha256_parity"
   },
   "source": {
     "task_id": "TEMPORAL-SEMANTICS-20260813-01",
@@ -16,9 +17,10 @@
   },
   "verification": {
     "status": "PASS",
-    "verified_artifact_count": 14,
+    "verified_artifact_count": 28,
     "source_publication_reverify": "PASS",
-    "canonical_hardlink_hash_audit": "PASS"
+    "canonical_source_target_hash_parity": "PASS",
+    "consumer_frame_offset_index_hash_parity": "PASS"
   },
   "consumer_contract": {
     "membership_authority": "matched_temporal_window_manifest_release.csv or full_temporal_window_manifest_release.csv selected_frame_indices",

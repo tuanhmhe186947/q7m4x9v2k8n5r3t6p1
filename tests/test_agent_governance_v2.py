@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -1087,6 +1088,74 @@ def test_close_accepts_complete_validated_correction(
     )
     assert record["state"] == "CLOSED"
     assert record["worktree"]["retirement"] == "RETIRE_ELIGIBLE"
+
+
+def test_required_target_artifact_requires_hardlink_parity(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    source = project / "source.bin"
+    target = project / "target.bin"
+    source.write_bytes(b"canonical-payload")
+    value = packet(project)
+    value["required_target_artifacts"] = [
+        {
+            "path": target.name,
+            "source_path": source.name,
+            "sha256": sha256(source),
+            "size_bytes": source.stat().st_size,
+            "hardlink_required": True,
+        }
+    ]
+    ledger, record = create(manager, project, value)
+    with pytest.raises(manager.GovernanceError, match="target_artifact_missing"):
+        ledger._validate_required_target_artifacts(record)
+    os.link(source, target)
+    ledger._validate_required_target_artifacts(record)
+
+
+def test_close_rejects_missing_outcome_declared_target_artifact(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    source = project / "source.bin"
+    source.write_bytes(b"canonical-payload")
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = finish_steps(ledger, record, project)
+    record = ledger.review_outcome(
+        "REFORM-20260813-01",
+        {
+            "outcome": "ACCEPTED",
+            "path_dispositions": [
+                {"path": source.name, "disposition": "PRESERVE_USER_OWNED"}
+            ],
+            "integration": integration_packet(project),
+            "required_target_artifacts": [
+                {
+                    "path": "missing-target.bin",
+                    "source_path": source.name,
+                    "sha256": sha256(source),
+                    "size_bytes": source.stat().st_size,
+                    "hardlink_required": True,
+                }
+            ],
+        },
+        now=NOW,
+        **owner(record, project),
+    )
+    with pytest.raises(manager.GovernanceError, match="target_artifact_missing"):
+        ledger.close(
+            "REFORM-20260813-01",
+            {
+                "disposition": "NO_DURABLE_LESSON",
+                "rationale": "The outcome target must exist before acceptance.",
+                "evidence": ["target-artifact-negative-control"],
+            },
+            "RETIRE_ELIGIBLE",
+            now=NOW,
+            **owner(record, project),
+        )
 
 
 def test_unknown_outcome_cannot_be_retired(manager: ModuleType, project: Path) -> None:

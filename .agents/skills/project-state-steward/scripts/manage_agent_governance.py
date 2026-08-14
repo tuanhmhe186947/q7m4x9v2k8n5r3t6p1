@@ -706,6 +706,36 @@ def _authority_section(path: Path, selector: str) -> bytes:
     return "".join(lines[start:end]).encode("utf-8")
 
 
+def _target_artifacts(packet: Any) -> list[dict[str, Any]]:
+    if not isinstance(packet, list):
+        raise GovernanceError("target_artifacts_invalid", "Expected a list.")
+    normalized: list[dict[str, Any]] = []
+    for item in packet:
+        if not isinstance(item, dict):
+            raise GovernanceError("target_artifact_invalid", str(item))
+        supplied_hash = str(item.get("sha256", "")).lower()
+        if not HEX_SHA256_RE.fullmatch(supplied_hash):
+            raise GovernanceError("target_artifact_hash_invalid", supplied_hash)
+        size = item.get("size_bytes")
+        if not isinstance(size, int) or size < 0:
+            raise GovernanceError("target_artifact_size_invalid", str(size))
+        hardlink_required = item.get("hardlink_required")
+        if not isinstance(hardlink_required, bool):
+            raise GovernanceError("target_artifact_link_invalid", str(hardlink_required))
+        normalized.append(
+            {
+                "path": _clean(item.get("path"), "target_artifact_path", 500),
+                "source_path": _clean(
+                    item.get("source_path"), "target_artifact_source_path", 500
+                ),
+                "sha256": supplied_hash,
+                "size_bytes": size,
+                "hardlink_required": hardlink_required,
+            }
+        )
+    return normalized
+
+
 def _steps(packet: dict[str, Any]) -> list[dict[str, Any]]:
     acceptance_ids = {
         _clean(item.get("acceptance_id"), "acceptance_id", 80)
@@ -1000,6 +1030,9 @@ class AgentGovernanceLedger:
             "acceptance": acceptance,
             "risks": packet.get("risks", []),
             "non_actions": packet.get("non_actions", []),
+            "required_target_artifacts": _target_artifacts(
+                packet.get("required_target_artifacts", [])
+            ),
             "skills": skills,
             "skill_digest": _digest(skills),
             "plan": plan,
@@ -2123,7 +2156,13 @@ class AgentGovernanceLedger:
             record["worktree"]["state"] = "OUTCOME_REVIEWED"
             record["worktree"]["outcome"] = outcome
             record["worktree"]["path_dispositions"] = dispositions
-            record["worktree"]["integration"] = outcome_packet.get("integration")
+            integration = dict(outcome_packet.get("integration") or {})
+            runtime_artifacts = outcome_packet.get("required_target_artifacts", [])
+            if runtime_artifacts:
+                integration["required_target_artifacts"] = _target_artifacts(
+                    runtime_artifacts
+                )
+            record["worktree"]["integration"] = integration
             record["state"] = "REVIEWED"
             return record, outcome_packet
 
@@ -2147,6 +2186,7 @@ class AgentGovernanceLedger:
             outcome = record["worktree"]["outcome"]
             integration = record["worktree"].get("integration") or {}
             if outcome in {"ACCEPTED", "PARTIAL"}:
+                self._validate_required_target_artifacts(record, integration)
                 self._validate_integration(integration)
             if outcome in {"REJECTED", "PARTIAL"}:
                 self._validate_failure_extraction(record)
@@ -2278,6 +2318,39 @@ class AgentGovernanceLedger:
             mutation=mutate,
             **owner,
         )
+
+    def _validate_required_target_artifacts(
+        self,
+        record: dict[str, Any],
+        integration: dict[str, Any] | None = None,
+    ) -> None:
+        artifacts = record.get("required_target_artifacts", [])
+        if not artifacts and integration:
+            artifacts = integration.get("required_target_artifacts", [])
+        for artifact in artifacts:
+            paths: list[tuple[Path, str]] = []
+            for value, label in (
+                (artifact["path"], "target"),
+                (artifact["source_path"], "source"),
+            ):
+                relative = Path(value)
+                if relative.is_absolute() or ".." in relative.parts:
+                    raise GovernanceError("target_artifact_path_escape", f"{label}:{value}")
+                paths.append((self.root / relative, label))
+            target, _ = paths[0]
+            source, _ = paths[1]
+            if not target.is_file():
+                raise GovernanceError("target_artifact_missing", artifact["path"])
+            if target.stat().st_size != artifact["size_bytes"]:
+                raise GovernanceError("target_artifact_size_mismatch", artifact["path"])
+            if _file_sha256(target) != artifact["sha256"]:
+                raise GovernanceError("target_artifact_hash_mismatch", artifact["path"])
+            if not source.is_file():
+                raise GovernanceError("target_artifact_source_missing", artifact["source_path"])
+            if artifact["hardlink_required"] and (
+                target.stat().st_nlink < 2 or not os.path.samefile(target, source)
+            ):
+                raise GovernanceError("target_artifact_hardlink_mismatch", artifact["path"])
 
     def _validate_integration(self, integration: dict[str, Any]) -> None:
         required = {
