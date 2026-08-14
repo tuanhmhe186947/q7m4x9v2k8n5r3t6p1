@@ -1,0 +1,47 @@
+{
+  "schema_version": "classification_v2.legacy_runtime_materialization_verification.v1",
+  "status": "PASS",
+  "managed_task_reference": {
+    "task_id": "C2V2-CONT-20260813-02",
+    "active_step": "C2V2-CONT-20260813-02-03",
+    "step_completed": false
+  },
+  "authorization": {
+    "path": "legacy_runtime_materialization_authorization_20260813.json",
+    "status": "AUTHORIZED_NOT_EXECUTED",
+    "operation_executed_once": "materialize_existing_verified_tar_once"
+  },
+  "source": {
+    "uri": "lit://ironheart211224/pig-project/uploads/classification_v2_source_media/legacy_crops/5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a/legacy_crops.tar",
+    "tar_sha256": "a4af7825e6ba474fca6a757a9272e20661df46bf13e9cc3841350dedbae57f9b",
+    "member_manifest_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a"
+  },
+  "runtime_materialization": {
+    "target": "/teamspace/studios/this_studio/pig_e0_r3/inputs/outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    "jpeg_file_count": 58242,
+    "total_jpeg_bytes": 959953215,
+    "registered_member_hash_match_count": 58242,
+    "all_registered_member_hashes_match": true,
+    "missing_registered_members": 0,
+    "unexpected_runtime_members": 0
+  },
+  "known_frame": {
+    "image_context_id": "legacy_recovered|source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000064|track_id=tracklet_00001032|f000013",
+    "path": "/teamspace/studios/this_studio/pig_e0_r3/inputs/outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops/dense_tracklet_0_to_12/pigs031219/000064/burst_color_35986623_733/ID_1/f000013.jpg",
+    "exists": true,
+    "registered_sha256_match": true,
+    "official_legacy_crop_loader": "pig_behavior.classification_v2.datasets.image_sequence_dataset._load_legacy_crop",
+    "loader_read": "PASS",
+    "loader_output_shape": [3, 64, 64]
+  },
+  "host_binding": {
+    "remains_pass": true,
+    "deployed_correction_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1"
+  },
+  "stop_boundary": {
+    "legacy_preflights_executed": false,
+    "cvat_preflights_executed": false,
+    "l4_or_gpu_used": false,
+    "training_executed": false
+  }
+}

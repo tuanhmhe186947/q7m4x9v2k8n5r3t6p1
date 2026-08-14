@@ -1,0 +1,49 @@
+{
+  "schema_version": "classification_v2.legacy_runtime_materialization_authorization.v1",
+  "status": "AUTHORIZED_NOT_EXECUTED",
+  "authorization_scope": "one_existing_verified_legacy_crops_materialization",
+  "managed_task_reference": {
+    "task_id": "C2V2-CONT-20260813-02",
+    "authorization_revision": 23,
+    "active_step": "C2V2-CONT-20260813-02-03",
+    "checkpoint_status": "PENDING_OPEN_STEP_CHECKPOINT"
+  },
+  "source_authority": {
+    "path": "source_media_authority_20260812.json",
+    "source_uri": "lit://ironheart211224/pig-project/uploads/classification_v2_source_media/legacy_crops/5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a/legacy_crops.tar",
+    "member_manifest_sha256": "5946b371c0e377b18d419af22acc7aef921cbb1c099eb646c4cf4d3872ca4d7a",
+    "tar_sha256": "a4af7825e6ba474fca6a757a9272e20661df46bf13e9cc3841350dedbae57f9b"
+  },
+  "host_binding_prerequisite": {
+    "status": "PASS",
+    "runtime_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+    "canonical_registration_sha256": "891a7bbe28ca33fc6fb1f264d9ea3bc90476376d8d7f4735b9eeedb5a7752526",
+    "deployed_correction_sha": "87b32d04fe5d1f605fdd6b8dfe95f28a11666ff1",
+    "known_frame_binding_check": "PASS",
+    "uses_reviewed_rgb_v1": false
+  },
+  "single_allowed_operation": {
+    "operation": "materialize_existing_verified_tar_once",
+    "expected_jpeg_file_count": 58242,
+    "expected_jpeg_total_bytes": 959953215,
+    "target_physical_source_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs/outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    "post_operation_verification": [
+      "jpeg_file_count_equals_58242",
+      "jpeg_total_bytes_equals_959953215",
+      "every_registered_member_sha256_matches",
+      "known_frame_exists_at_bound_canonical_path"
+    ]
+  },
+  "forbidden": {
+    "reupload": true,
+    "tar_regeneration": true,
+    "jpeg_regeneration": true,
+    "image_context_id_mapping_change": true,
+    "host_binding_change_or_rerun": true,
+    "manifest_or_registration_change": true,
+    "scientific_authority_change": true,
+    "legacy_preflight": true,
+    "l4_or_gpu": true,
+    "training": true
+  }
+}

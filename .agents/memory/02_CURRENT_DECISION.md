@@ -11,6 +11,11 @@
 - Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
   runtime materialization, host binding, resolver checks, and the six CPU
   preflights. L4/GPU is forbidden until all six CPU preflights pass.
+- Lifecycle correction: `STOPPED`/`SLEEPING` is a resumable Studio state, not a
+  scientific blocker. Start/wake this same authorized Studio on CPU, wait for
+  SSH/runtime reachability, then resume the current gate without replaying work.
+- This correction was validated after a repeated manual-stop resume failure on
+  2026-08-13; it does not authorize a new Studio, browser/UI, or L4/GPU.
 - Agent browser/UI use is forbidden. Use PowerShell, `uvx` Lightning CLI/SDK,
   SSH, or shared filesystem; a human handles genuinely UI-only actions.
 - Keep execution scope narrow: one objective at a time. Do not expand a small
@@ -33,6 +38,47 @@
   same class of error is not repeated.
 - This decision is reachable through the canonical authority index and is
   supported by `03_PROJECT_RULES.md` and `08_WORKFLOW.md`.
+
+## 2026-08-13 Overnight continuation execution anchor
+
+- Active task: `C2V2-CONT-20260813-01`; immutable parent:
+  `C2V2-20260812-02@revision-75`.
+- Inherited completed facts: base post-S1 materialization `PASS` with
+  `9151758436` bytes; official resolver `PASS`; host binding `PASS`; total
+  observations `201792` (`CVAT=143550`, `Legacy=58242`).
+- Canonical CVAT registration SHA256:
+  `891a7bbe28ca33fc6fb1f264d9ea3bc90476376d8d7f4735b9eeedb5a7752526`.
+- CVAT runtime media root:
+  `/teamspace/studios/this_studio/pig_e0_r3/inputs/data/videos`; materialization
+  `PASS`; `12` files; `3428817239` bytes; SHA256 `12/12`.
+- Scientific scope is inner-development-only, T6, resolution sequence
+  `R64 -> R128 -> R160`; outer feedback and R224 remain forbidden. Frozen
+  controls are B1, seed `20260804`, `4164` steps, AdamW, lr `0.003`, wd `0`,
+  batch `16`, FP32, no scheduler, no early stopping.
+- Previous CVAT R64 failure was absent runtime media; post-materialization R64
+  is not complete. Exact next gate: CVAT R64 CPU preflight, then remaining
+  five CPU preflights only if it passes.
+
+## 2026-08-13 Overnight continuation CVAT R64 stop
+
+- One bounded CVAT R64 CPU preflight ran on `pig-gpu-l4-gcp`; no duplicate
+  process was observed and no other preflight ran.
+- Result: `BLOCKED`. The first sampled window was CVAT video
+  `Pigs291119_000216_30fps`, frames `0-5`; the official loader returned
+  `image_load_failed@0..5` and `observed_frames=0`. Sixteen sampled CVAT
+  windows showed the same error.
+- The registered logical path was
+  `data/videos/Pigs291119_000216_30fps.mp4`, resolved under
+  `/teamspace/studios/this_studio/pig_e0_r3/inputs`; the file existed at
+  `255698503` bytes. No deeper cause is asserted.
+- The required failure checkpoint could not be recorded because the managed
+  continuation had only its anchor step, already checkpointed `DONE`; the
+  exact manager response was `step_missing_or_duplicate` for the missing
+  post-anchor step. No second continuation task is authorized by the current
+  execution authority.
+- `SIX_CPU_PREFLIGHTS` is not satisfied; R64 reproduction, R128, R160, and
+  L4/GPU remain forbidden. Exact next gate: resolve the supported checkpoint
+  continuation without rerunning CVAT R64.
 
 ## 2026-08-11 Classification V2 post-S1 canonical remote package rule
 

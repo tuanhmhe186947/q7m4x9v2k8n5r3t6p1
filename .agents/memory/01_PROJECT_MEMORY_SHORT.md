@@ -4,8 +4,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-12`.
-- Expires: `2026-08-13T00:00:00+07:00`.
+- Opened: `2026-08-14`.
+- Expires: `2026-08-15T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -13,6 +13,47 @@
   session-local warnings.
 - Forbidden: project history, accepted contracts, raw logs, and unverified lessons.
 - Legacy unmanaged task IDs: none.
+
+### Overnight continuation anchor (2026-08-13)
+
+- Task: `C2V2-CONT-20260813-01`; parent: `C2V2-20260812-02@revision-75`.
+- `TEAMSPACE=ironheart211224/pig-project`.
+- `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp`; Studio creation and browser/UI use
+  are forbidden.
+- `RUNTIME_INPUT_ROOT=/teamspace/studios/this_studio/pig_e0_r3/inputs`.
+- Base post-S1 materialization: `PASS`, `9151758436` bytes; official resolver:
+  `PASS`.
+- Canonical CVAT registration SHA256:
+  `891a7bbe28ca33fc6fb1f264d9ea3bc90476376d8d7f4735b9eeedb5a7752526`.
+- Host binding: `PASS`; observations total `201792` (`CVAT=143550`,
+  `Legacy=58242`).
+- CVAT runtime media materialization: `PASS`; root
+  `/teamspace/studios/this_studio/pig_e0_r3/inputs/data/videos`; files `12`,
+  bytes `3428817239`, SHA256 matches `12/12`.
+- Previous CVAT R64 failure was absent runtime media; post-materialization R64
+  has not run. Next gate: persist anchor checkpoint, then CVAT R64 CPU only.
+
+### Overnight continuation CVAT R64 stop (2026-08-13)
+
+- CVAT R64 was attempted once on the existing CPU Studio after anchor
+  checkpoint. The bounded sample covered `16` CVAT windows and stopped on
+  `image_load_failed@0..5` for every sampled window; observed frames were
+  `0`.
+- First failed window: `source=cvat_tracking_xml`, video
+  `Pigs291119_000216_30fps`, window `0-5`.
+- Registered logical media path:
+  `data/videos/Pigs291119_000216_30fps.mp4`; resolved media path is the same
+  authority-relative path under
+  `/teamspace/studios/this_studio/pig_e0_r3/inputs`; the MP4 exists and is
+  `255698503` bytes. The loader failure class beyond `image_load_failed@0..5`
+  is not inferred.
+- No other CPU preflight, GPU switch, training, retry, or workaround ran.
+- Manager checkpoint attempt for the R64 stop was rejected exactly as
+  `step_missing_or_duplicate`: continuation task has no post-anchor step;
+  task remains terminal at revision `2` and cannot record the gate result.
+- Exact next safe action: obtain a supported continuation checkpoint step
+  without creating a second continuation task, then preserve this stop before
+  any retry.
 
 ## Active Task Checklist
 
@@ -43,23 +84,40 @@
   realtime_fast, and rf_hybrid on the locked 13-video development population without overwriting
   historical outputs; bind code, configs, inputs, predictions, metrics, hashes, and no-MP4
   audit.
-- Status: `IN_PROGRESS`.
+- Status: `BLOCKED`.
 - Opened: `2026-08-04T23:08:36+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner runtime session: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
-- Owner token SHA256: `4a901901612b6261137d8d2b4dedc61754899f6907745fa6a9499f327661bed4`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `1`.
-- Lease expires: `2026-08-05T03:08:36+07:00`.
-- Block SHA256: `8992294a42f20962913dad21ae88aac60eee289232cce5a19cd6550fd4fb3052`.
+- Owner session: `019ff4b9-7cfb-77a0-82d5-572218a22b8a`.
+- Owner runtime session: `019ff4b9-7cfb-77a0-82d5-572218a22b8a`.
+- Owner token SHA256: `f5d0b8480bd9332357bb64bf8964c9eee7a60410df5da534ae34abbf90c07cc2`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_task_tracking`.
+- Revision: `3`.
+- Lease expires: `2026-08-12T16:06:41+07:00`.
+- Block SHA256: `bdbf756ed7d7af8ea23b00a435c9ba87ad2f89e715cc6c86a1fa6f4c2fdf5c3c`.
+- Previous owner: `019fca5e-40c4-74a3-bc5d-254f64c30926`.
+- Ownership reason: `expired_lease_user_requested_fresh_tracking_evaluation`.
+- Ownership audit event: `1faae72236f9259e6753e8fdc016295cc3054d509f0758009dc414479dc52fc1`.
+  - Timestamp: 2026-08-12T13:59:08+07:00
+  - Action: expired-lease-takeover
+  - From owner: 019fca5e-40c4-74a3-bc5d-254f64c30926
+  - From runtime session: 019fca5e-40c4-74a3-bc5d-254f64c30926
+  - To owner: 019ff4b9-7cfb-77a0-82d5-572218a22b8a
+  - To runtime session: 019ff4b9-7cfb-77a0-82d5-572218a22b8a
+  - Prior revision: 1
+  - Prior block SHA256: 8992294a42f20962913dad21ae88aac60eee289232cce5a19cd6550fd4fb3052
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_task_tracking
+  - Reason: expired_lease_user_requested_fresh_tracking_evaluation
+  - Authority: expired lease plus lock and CAS
 - Acceptance: A unique manifest and isolated output roots are created; all four modes either
   complete with hashes and metrics or fail closed with preserved evidence; old authorities
   remain untouched.
 - Skills: `tracking-experiment-guardian`, `experiment-lineage-reproducibility`, `agent-harness-
   construction`.
-- [ ] `TRACK-01` `[IN_PROGRESS]` Resolve authority and pass preflight
-  - Next: Inspect runner, profiles, manifests, and gates before effects
+- [ ] `TRACK-01` `[BLOCKED]` Resolve authority and pass preflight
+  - Next: Await user authorization phrase to admin-rebind this task to the clean current-main
+    worktree, then rerun preflight.
+
 
 ### C2V2-20260806-06 - Execute plan-bound local diagnostics
 
@@ -752,135 +810,92 @@
 - [ ] `C2V2-99` `[DEFERRED]` Resume archived task from compact state.
   - Next: Historical task remains deferred; resume only through a new explicit authority.
 
-### C2V2-20260812-01 - Final pre-GPU governance closure
+### C2V2-CONT-20260813-02 - Post-S1 resolution execution continuation
 
-- Prompt: Repair only the expired C2V2-20260811-01 managed-task line-budget violation, create a
-  successor readiness authority, and preserve scientific state.
-- Status: `DONE`.
-- Opened: `2026-08-12T00:20:56+07:00`.
+- Prompt: Continue from immutable managed history through the recorded phase and resume point.
+- Status: `BLOCKED`.
+- Opened: `2026-08-13T03:49:35+07:00`.
 - Concurrency: `atomic-v1`.
-- Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner token SHA256: `c662b34a43cc1545c5f44b129af78bdb90f70432dafc3682fdb2115c519f07ce`.
+- Owner session: `019ff6ed-3674-78f0-a154-6d241046bede`.
+- Owner runtime session: `019ff6ed-3674-78f0-a154-6d241046bede`.
+- Owner token SHA256: `c2a795dcda76469f0bcf3825f62f4ad777bfc85a94a0fb75a04ed937c00ac591`.
 - Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `4`.
-- Lease expires: `2026-08-12T01:01:01+07:00`.
-- Block SHA256: `c802982174a27c4c1444f1f3f07bc1a5c2a1c6442cd75d559a4a0f047a7f3120`.
-- Acceptance: Old task remains DEFERRED and <=120 lines through manager compaction; fresh
-  governance validation passes; a successor readiness authority is canonical on main.
-- Skills: `project-state-steward`, `experiment-lineage-reproducibility`.
-- [x] `GOVC-01` `[DONE]` Repair old task through the official manager
-  - Evidence: Manager compact repair succeeded: C2V2-20260811-01 remains DEFERRED at revision 60
-    with verified archive and 47 active lines.
-- [x] `GOVC-02` `[DONE]` Validate and canonicalize governance evidence
-  - Evidence: Fresh validator PASS, governance tests 33 passed, successor readiness authority
-    committed as f553c00811e634d1a14f63dbd927cd73be007e44, and authenticated read-only Lightning
-    inventory shows zero Studio rows.
-
-
-
-
-### C2V2-20260812-02 - Overnight clean resolution execution
-
-- Prompt: Execute only registered Classification V2 resolution work through the one-Studio GCP
-  L4 safety contract; otherwise stop at the exact authority or cost gate.
-- Status: `IN_PROGRESS`.
-- Opened: `2026-08-12T00:54:14+07:00`.
-- Concurrency: `atomic-v1`.
-- Owner session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner runtime session: `019ff0de-65d2-7b43-a3bd-dc8bbd57b621`.
-- Owner token SHA256: `2fcce5e723578e2d88e426fb69a5edde0009588694ab1a19e62fcc27608f9e26`.
-- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
-- Revision: `11`.
-- Lease expires: `2026-08-12T02:55:59+07:00`.
-- Block SHA256: `80c34eafb7bae923f2ae24c64f5600d64a1e5fcdd768a9b0485fb06d70da6958`.
-- Ownership reason: `same-session-token-recovery`.
-- Ownership audit event: `b843e15209edd5d08bcf375d5a3ade9111828ff87b530ddd947520641940bc48`.
-  - Timestamp: 2026-08-12T01:00:20+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - Prior revision: 2
-  - Prior block SHA256: 572a28863fe9ef2082549e6f36730f9f14fb9c37e5e720046421a520922f93b9
+- Revision: `34`.
+- Lease expires: `2026-08-13T17:16:57+07:00`.
+- Block SHA256: `2b779b34d254ad515ebd0fcdf60e3ea39e8ba824017cdf83051caef2142be235`.
+- Previous owner: `019ffa13-ec7f-7f60-a009-de0280b8ac0b`.
+- Ownership reason: `administrative-takeover`.
+- Ownership audit event: `d36c17c63edf9da9c2f7c6bb106c1e4f945b95b46bbe149bca5d8a7ffda9e90f`.
+  - Timestamp: 2026-08-13T16:02:46+07:00
+  - Action: expired-lease-takeover
+  - From owner: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - From runtime session: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - To owner: 019ff6ed-3674-78f0-a154-6d241046bede
+  - To runtime session: 019ff6ed-3674-78f0-a154-6d241046bede
+  - Prior revision: 30
+  - Prior block SHA256: c25579dbcc65e1302e83af290aac9fcdd587bdeb6953c1fe9a920d519af739f4
   - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: Recovered same runtime session after prior-handoff owner token was unavailable;
-    current lease and task binding were revalidated.
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `a3b4e937f840180b0a1058ad27b3f6b1cc75feb8febc63a037a94b8b679a0f3d`.
-  - Timestamp: 2026-08-12T01:26:23+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - Prior revision: 3
-  - Prior block SHA256: 1bd114c768235ae54c2586db0910d3591fd8bb975215431b5a007974aef08c3e
+  - Reason: user_authorized_required_member_coverage_audit
+  - Authority: expired lease plus lock and CAS
+- Ownership audit event: `5b03c7c0e4ad6da6d1e03a839a017c8fe7b86f6621c532472b4f000f434fcd95`.
+  - Timestamp: 2026-08-13T16:05:35+07:00
+  - Action: administrative-takeover
+  - From owner: 019ff6ed-3674-78f0-a154-6d241046bede
+  - From runtime session: 019ff6ed-3674-78f0-a154-6d241046bede
+  - To owner: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - To runtime session: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - Prior revision: 31
+  - Prior block SHA256: 20ae33273c69c796f949bf230c2d903448797f6005437be7a5a3b1caf4e6ef83
   - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: User supplied the explicit R64 bridge; recover the same manager-bound task before
-    registering the pre-execution rule.
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `38bd7421359ea1252b0ab93051f078a8939e3218d077b75b46ff61eabb364c65`.
-  - Timestamp: 2026-08-12T01:40:00+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - Prior revision: 7
-  - Prior block SHA256: 9c864c18d99746f3cd73878258e1cd1cecd9b802db47314e2622628c61ba9d7f
+  - Reason: user_authorized_storage_cleanup_ownership_and_c2v2_resume
+  - Authority: user authorization reference user-2026-08-13-c2v2-takeover-storage-ownership-no-
+    gpu-oof-remote
+- Ownership audit event: `a4021b1b0bb207b5d912a69f7d46ebca57fb8ad1df2dd9417fb6cea2cfe53458`.
+  - Timestamp: 2026-08-13T16:46:57+07:00
+  - Action: administrative-takeover
+  - From owner: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - From runtime session: 019ffa13-ec7f-7f60-a009-de0280b8ac0b
+  - To owner: 019ff6ed-3674-78f0-a154-6d241046bede
+  - To runtime session: 019ff6ed-3674-78f0-a154-6d241046bede
+  - Prior revision: 33
+  - Prior block SHA256: 0a37afb44b10b94793c8d0d3bddbbf272e2acbd280a89c8a14ff6b0b2a06e7fd
   - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
   - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: normal same-runtime recovery after handoff; resume OVR-01 from local gates
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Ownership audit event: `09670017b0765974635dc3f70ed602ae64dee8835f2869c2a57b2c950fc9a6e1`.
-  - Timestamp: 2026-08-12T02:25:52+07:00
-  - Action: same-session-token-recovery
-  - From owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - From runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To owner: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - To runtime session: 019ff0de-65d2-7b43-a3bd-dc8bbd57b621
-  - Prior revision: 9
-  - Prior block SHA256: 57bfc208b60b7e619605c35d91bdd14c8367cdbb50351785745452c6f2d67a08
-  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
-  - Reason: resume same-runtime
-  - Authority: CODEX_THREAD_ID match plus lock and CAS
-- Acceptance: A registered R64 rule is recovered before paid execution; one Studio at most is
-  used; all permitted artifacts are preserved; paid GPU is stopped; canonical authority records
-  the outcome.
-- Skills: `agent-harness-construction`, `project-state-steward`, `dataset-contract-leakage-
-  guard`, `scientific-ablation-controller`, `experiment-lineage-reproducibility`.
-- [x] `OVR-00` `[DONE]` Recover authoritative R64 and resolution decision rules
-  - Evidence: Historical R64 anchor and non-collapsed T6 seed20260806 reference verified from
-    preserved machine-readable authorities; user-authorized bridge frozen at
-    docs/classification_v2/pre_gpu_readiness/r64_control_reproduction_rule_20260812.json,
-    SHA256=0f969f4324fed7e57e05d4837e782beb2a5dc97adb4863c5b7f1c6036393f05e; JSON contract,
-    fresh governance, and 33 governance tests PASS; new path is outside the registered runtime
-    bundle.
-- [ ] `OVR-01` `[IN_PROGRESS]` Prepare one clean Studio and CPU gates
-  - Next: Inspect the authenticated Lightning UI and official non-browser controls for a blank
-    Studio creation route without selecting a template or AI Builder.
-- [ ] `OVR-02` `[TODO]` Execute the permitted resolution branch
-  - Next: Pass live GCP L4 price gate, execute R64 and only conditionally R128/R160, then stop
-    paid GPU.
-- [ ] `OVR-03` `[TODO]` Canonicalize results and inspect encoder authority
-  - Next: Preserve and audit results, issue compact authority, and run only authorized next
-    scientific preparation.
+  - Reason: user_authorized_administrative_takeover
+  - Authority: user authorization reference CHAT_OWNER_AUTH_20260813_C2V2_CONT_02
+- Acceptance: Archive integrity and active continuation metadata remain verifiable.
+- Skills: `project-state-steward`.
+- Phase: CPU_PREFLIGHT_BLOCKED
+- Blocker: CVAT R64: image_load_failed@0..5 after verified media realization; preserve stop and
+  do not retry.
+- Resume point: Resolve loader failure classification with supported evidence, checkpoint step
+  03, then run remaining CPU preflights only if CVAT R64 passes.
+- Authority references: .agents/memory/02_CURRENT_DECISION.md; .agents/memory/08_WORKFLOW.md
+- Canonical SHA: `e396b039d6bd1d58ce6627aa3b00aa08021dc6e9`.
+- Archive reference: `.agents/memory/managed_task_history/C2V2-CONT-20260813-02/revision-000029.json`.
+- Archive SHA256: `ab8f6abf6bf85d3bf92348a4dd9e456dfefffa5c82344e32ba0973375f1f9e54`.
+- Archived content SHA256: `fa80c60e292a0e3a8582a5113fb899b1e3d670f13e6e470dff7777b1dd9c4402`.
+- Pre-compaction revision: `29`.
+- Pre-compaction Block SHA256: `cf82115b5bac479d2ec86b265eb60f7beae571ea440ab3a1b85114998e8173fd`.
+
+- [ ] `C2V2-CONT-20260813-02-99` `[BLOCKED]` Resume archived task from compact state.
+  - Next: Await explicit renewed remote CPU preflight authority; current user instruction
+    forbids remote, GPU, and OOF.
+
 
 ## Previous-Day Closeout
 
-- Source date: `2026-08-11`.
-- Completed: C2V2-20260810-02, GOV-20260811-01, C2V2-20260811-02, C2V2-20260811-03
+- Source date: `2026-08-13`.
+- Completed: C2V2-20260812-02, GOVERNANCE-20260813-01, C2V2-CONT-20260813-01, AGENT-
+  REFORM-20260813-01
 - Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
   CLASSIFICATION-20260807-01, C2V2-20260807-03, C2V2-20260807-04, C2V2-20260807-05,
   C2V2-20260809-03, C2V2-20260809-04, S1-POSTCLOSURE-20260809-01, S1-B-20260809-01,
-  GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01; active
-  tasks remain resume capsules in short memory
-- Purge after: `2026-08-13T00:00:00+07:00`.
+  GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01,
+  C2V2-CONT-20260813-02; active tasks remain resume capsules in short memory
+- Purge after: `2026-08-15T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 

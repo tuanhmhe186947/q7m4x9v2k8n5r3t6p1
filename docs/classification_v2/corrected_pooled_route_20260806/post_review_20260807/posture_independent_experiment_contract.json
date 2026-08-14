@@ -28,14 +28,20 @@
     "stopping rule",
     "behavior evaluator"
   ],
-  "gold_evaluation_authority": "500-item human-reviewed posture labels only",
+  "gold_evaluation_authority": "620-item cumulative human-reviewed posture labels; 596 eligible native units for the matched behavior cohort",
   "included_in_s1": false,
   "matched_comparison": {
     "P0": "final selected behavior architecture without posture supervision",
     "P1": "same architecture with independent masked posture auxiliary head"
   },
-  "posture_authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_completed_authority.json",
-  "posture_authority_sha256": "92fd650ec7371fd8ead7475939b60413fb851ad56269a8ac66ab7c738c7c67af",
+  "posture_authority": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_620_cumulative_authority.json",
+  "posture_authority_sha256": "852f83f9fdef2d4cb5162ec8d5cc2cebbf4d3a71f9c1ea640b857b5451200d49",
+  "eligible_native_units": 596,
+  "eligible_native_unit_support": {
+    "lying": 194,
+    "sitting": 213,
+    "upright": 189
+  },
   "posture_metrics": [
     "Macro-F1",
     "per-class F1",
@@ -43,7 +49,7 @@
   ],
   "primary_task": "lying_vs_sitting_vs_upright",
   "promotion_rule": "Keep posture only when the matched comparison provides complementary behavior evidence without material overall or rare-class harm.",
-  "schema_version": "classification_v2.posture_independent_experiment_contract.v1",
+  "schema_version": "classification_v2.posture_independent_experiment_contract.v2",
   "status": "REGISTERED_NOT_EXECUTED",
   "unresolved_and_exclude_policy": "masked_or_excluded; never coerced"
 }

@@ -1,0 +1,32 @@
+{
+  "schema_version": "classification_v2.legacy_resolution_cpu_preflight.v1",
+  "status": "PASS",
+  "managed_task_reference": {
+    "task_id": "C2V2-CONT-20260813-02",
+    "active_step": "C2V2-CONT-20260813-02-03",
+    "step_completed": false
+  },
+  "preflight": {
+    "source_type": "legacy_recovered",
+    "input_resolution": 64,
+    "sample_window_count": 16,
+    "observed_frame_count": 96,
+    "image_load_failure_count": 0,
+    "all_windows_complete": true
+  },
+  "runtime_binding": {
+    "host_binding_path": "/home/zeus/c2v2_overnight_20260812/runtime/outputs/classification_v2/post_s1_cpu_host_bindings_20260812/t6_binding_host_bound_v5_87b32d04/post_s1_cpu_20260812_t6/post_s1_host_binding.json",
+    "runtime_root": "/teamspace/studios/this_studio/pig_e0_r3/inputs",
+    "host_binding_remains_pass": true,
+    "legacy_materialization_remains_pass": true
+  },
+  "first_sample_window": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000064|track_id=tracklet_00001032|win=6|13-18",
+  "stop_boundary": {
+    "legacy_r128_executed": false,
+    "legacy_r160_executed": false,
+    "cvat_preflights_repeated": false,
+    "l4_or_gpu_used": false,
+    "optimizer_or_training_executed": false
+  },
+  "exact_next_safe_gate": "LEGACY_R128_PREFLIGHT_ONLY"
+}

@@ -1,0 +1,157 @@
+{
+  "schema_version": "classification_v2.posture_cumulative_authority.v1",
+  "authority_id": "posture_review_cumulative_620_20260808_v1",
+  "status": "PASS",
+  "current_authority": true,
+  "authority_scope": "cumulative human-reviewed posture native-unit history",
+  "effective_date": "2026-08-08",
+  "class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "reviewed_units": {
+    "total": 620,
+    "decision_resolved": true,
+    "unresolved": 0,
+    "technical_exclude": 0,
+    "posture_counts": {
+      "lying": 206,
+      "sitting": 221,
+      "upright": 193
+    }
+  },
+  "component_batches": [
+    {
+      "batch_id": "paired_pilot_86edabc",
+      "review_batch_role": "prior human posture review batch",
+      "rows": 120,
+      "decision_counts": {
+        "lying": 12,
+        "sitting": 17,
+        "upright": 91
+      },
+      "unresolved": 0,
+      "blank_decisions": 0,
+      "nonblank_technical_exclusion_reason": 0,
+      "current_binding_checks": {
+        "all_media_bindings_valid": true,
+        "all_snapshot_alignments_valid": true,
+        "all_split_alignments_valid": true,
+        "all_decision_semantics_valid": true,
+        "pilot_only_rows": 0
+      },
+      "source_artifacts": [
+        {
+          "path": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_120_pilot_binding_audit.json",
+          "sha256": "06a5dbad5887306d21837c3f920c66dbde1a29957d034fde86af0e473348e4ee",
+          "semantic_role": "machine-readable binding audit for the 120 reviewed pilot rows"
+        },
+        {
+          "path": "outputs/classification_v2/posture_review_sessions/paired_pilot_86edabc/posture_pilot_decisions.csv",
+          "sha256": "08f626e1faf7ffdb75c5fa99f40744f4b5b1bfbea60b2b199bfea3b92f7bf786",
+          "semantic_role": "immutable 120-row human posture decision ledger"
+        }
+      ]
+    },
+    {
+      "batch_id": "posture_500_a566c58d252c1642",
+      "review_batch_role": "later completed human posture review batch",
+      "rows": 500,
+      "decision_counts": {
+        "lying": 194,
+        "sitting": 204,
+        "upright": 102
+      },
+      "unresolved": 0,
+      "technical_exclude": 0,
+      "duplicate_decision_keys": 0,
+      "unknown_decision_values": 0,
+      "current_binding_checks": {
+        "all_media_bindings_valid": true,
+        "all_snapshot_alignments_valid": true,
+        "all_split_alignments_valid": true
+      },
+      "source_artifacts": [
+        {
+          "path": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_500_completed_authority.json",
+          "sha256": "2769136f89dbcba7083cd3f92a8212e06698451fbec6cae22204b73c0b9cd6f9",
+          "semantic_role": "immutable completed 500-row posture authority audit"
+        },
+        {
+          "path": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_500_human_gold.csv",
+          "sha256": "898c5337754be9a4fcb8c48984dc00b421a515591a6ccacd1d9c856591498635",
+          "semantic_role": "immutable 500-row human posture gold ledger"
+        }
+      ]
+    }
+  ],
+  "key_reconciliation": {
+    "key_name": "stable_native_unit_key",
+    "pilot_key_source": "posture_120_pilot_binding_audit.json.rows[].stable_native_unit_key",
+    "later_key_source": "posture_500_human_gold.csv.stable_native_unit_key",
+    "pilot_key_count": 120,
+    "later_key_count": 500,
+    "overlap_count": 0,
+    "union_count": 620,
+    "pilot_keys_absent_from_later_ledger": 120,
+    "pilot_key_set_sha256": "b54047cecf6e8136ad2825a046dd7a7463e36d41da7297ad8ca780e9f20b337c",
+    "later_key_set_sha256": "64e1708c8e66a2b2a1e8716a003ca00ae33ff9e247353ca9167e9de5ecae62c6",
+    "union_key_set_sha256": "5bceefbd95faeebef5a82d44700435017d8a67023829d75ebaf0e671087c0c11",
+    "decision": "DISJOINT_COMPONENTS_ADD_TO_620"
+  },
+  "matched_behavior_posture_auxiliary_experiment": {
+    "registration_status": "REGISTERED_NOT_EXECUTED",
+    "eligible_native_units": 596,
+    "eligible_support": {
+      "lying": 194,
+      "sitting": 213,
+      "upright": 189
+    },
+    "eligibility_basis": {
+      "later_500_eligible_native_units": 476,
+      "later_500_eligible_support": {
+        "lying": 182,
+        "sitting": 196,
+        "upright": 98
+      },
+      "pilot_120_native_units_with_eligible_window": 120,
+      "pilot_120_matched_window_rows": 1236,
+      "frozen_evaluator_artifact": {
+        "path": "outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/effective_window_index.csv",
+        "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+        "eligibility_test": "at least one row containing the pilot stable_native_unit_key in temporal_unit_keys_json with window_valid_for_main_train=True and window_sample_weight>0"
+      }
+    },
+    "reviewed_units_not_used": {
+      "count": 24,
+      "source": "posture_500_human_gold.csv",
+      "exact_fields": {
+        "split_eligibility_status_tokens": "exclude",
+        "behavior_model_eligible_for_matched_ablation": false,
+        "technical_exclusion_reason": "blank",
+        "usable_for_posture_supervision": true,
+        "posture_valid_mask": true,
+        "media_binding_status": "PASS",
+        "snapshot_binding_status": "PASS",
+        "split_binding_status": "PASS"
+      },
+      "interpretation": "explicit experiment eligibility exclusion; not labelled ambiguous or failed"
+    }
+  },
+  "non_interference": {
+    "source_data_modified": false,
+    "labels_modified": false,
+    "splits_modified": false,
+    "predictions_modified": false,
+    "experiment_outputs_modified": false,
+    "component_ledgers_overwritten": false,
+    "derivation_mode": "read_only_authority_reconciliation"
+  },
+  "derivation_lineage": {
+    "repository_git_head": "4c1bffc4a9eeae696eab04d80fc8bc4764634ca9",
+    "method": "sum two disjoint, resolved human-review ledgers and rebind the matched cohort to the frozen effective window index",
+    "no_new_experiment": true,
+    "no_label_inference": true
+  }
+}

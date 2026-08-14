@@ -6,13 +6,14 @@
   },
   "P1": {
     "eligible_human_posture_support": {
-      "lying": 182,
-      "sitting": 196,
-      "upright": 98
+      "lying": 194,
+      "sitting": 213,
+      "upright": 189
     },
+    "eligible_native_units": 596,
     "id": "behavior_plus_masked_posture",
-    "posture_authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_completed_authority.json",
-    "posture_authority_sha256": "92fd650ec7371fd8ead7475939b60413fb851ad56269a8ac66ab7c738c7c67af",
+    "posture_authority": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_620_cumulative_authority.json",
+    "posture_authority_sha256": "852f83f9fdef2d4cb5162ec8d5cc2cebbf4d3a71f9c1ea640b857b5451200d49",
     "posture_supervision": true,
     "unresolved_targets_contribute": false,
     "valid_mask": "usable_for_posture_supervision AND behavior_model_eligible_for_matched_ablation"
@@ -40,6 +41,6 @@
     "social-nose F1",
     "playwithtoy F1"
   ],
-  "schema_version": "classification_v2.posture_behavior_matched_ablation_contract.v2",
+  "schema_version": "classification_v2.posture_behavior_matched_ablation_contract.v3",
   "status": "REGISTERED_NOT_EXECUTED"
 }

@@ -19,8 +19,10 @@ Classification V2 authorities are under
   masks, central legacy T6 offsets 5..10, and T6/T8/T12/T16 support semantics.
 - H5: `temporal_h5_20260807/temporal_h5_handoff.md` binds `COMMON_H5_T6_R`.
   H5 is five pre-target frames; H6/H12/H24 are deferred.
-- POSTURE: `post_review_20260807/posture_500_completed_authority.json` binds
-  500-human-gold and P0/P1; posture is OFF in E0.
+- POSTURE: `post_review_20260807/posture_620_cumulative_authority.json` binds
+  the cumulative 620-unit human-review authority (`lying=206`, `sitting=221`,
+  `upright=193`); the rebinding gives the registered P0/P1 matched auxiliary
+  cohort 596 eligible native units (`194/213/189`). Posture remains OFF in E0.
 - MODEL DEVELOPMENT: B0-B3, inner-only selection, finite S1, imbalance, and
   evaluation rules remain controlled by the corrected route.
 - E0: `next_phase_20260806_r2/e0_execution_authority.json` and
