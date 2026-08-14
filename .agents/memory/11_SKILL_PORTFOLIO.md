@@ -1,5 +1,59 @@
 # Skill Portfolio Ledger
 
+## 2026-08-12 task manager compaction identity correction
+
+- Root cause: compacted continuations dropped the date/sequence portion of a
+  task ID, so distinct `C2V2` tasks both emitted `C2V2-99`.
+- `project-state-steward`: recovered and compact-repaired the owned task only;
+  immutable archive content and the scientific blocker remained unchanged.
+- `safe-refactor-test-guardian` and `skill-creator`: made the continuation ID
+  task-scoped, documented the invariant, and added a two-task regression test.
+- Evidence: commit `826416c`, `20 passed` manager tests, compile pass, and
+  `quick_validate.py` PASS.
+- Reuse when: compacting any task whose family prefix may recur on one day.
+- Do not reuse when: mutating an unowned or conflicted task; use its manager
+  recovery/takeover path first.
+
+## 2026-08-11 Lightning remote-storage scope correction
+
+- `agent-introspection-debugging`: identified a policy failure, not a platform
+  failure: a stopped Studio and available CLI access were treated as permission
+  to broaden a read-only task, producing an unapproved duplicate archive.
+- `project-state-steward`: bound the correction to `GOV-20260811-01` and added
+  hard scope, halt, workflow, and regression rules without any Lightning action.
+- `agent-self-evaluation`: rejected the earlier narrow diagnosis that mentioned
+  only R2 inspection; the material failure was an unauthorized remote copy.
+- `agent-harness-construction`: marked for maintenance. Its next review must
+  require `READ_ONLY` versus `REMOTE_MUTATION` classification and the complete
+  authorization envelope before a remote-capable command is chosen.
+- Evidence: `.agents/memory/03_PROJECT_RULES.md`, `08_WORKFLOW.md`,
+  `16_HALT_CONDITIONS.md`, `AR-026`, clean Markdown diff/line checks, and the
+  unchanged fixture governance suite (`pass^3=1.0`).
+- Reuse when: any task can reach Drive, a Studio, or a remote volume.
+- Do not reuse when: the task is solely local and has no remote-capable action.
+
+## 2026-08-09 Frozen-XML tracking presentation demo
+
+- `tracking-experiment-guardian`: separated presentation rendering from tracking
+  evaluation; used only the frozen four-method manifest and retained each
+  method's causal/offline claim boundary.
+- `experiment-lineage-reproducibility`: bound the seven MP4s to source video,
+  XML manifest, scene ledger, and SHA-256 artifact index without a rerun.
+- `computer-vision-opencv`: verified OpenCV writer/reader behavior and validated
+  that every emitted MP4 opens at 30 FPS with its expected frame count.
+- `video-editing`: structured the hardest-video extension as four full-mode
+  exports plus four synchronized 10-second comparison scenes.
+- `agent-harness-construction`: recovered from the system NumPy DLL failure by
+  retrying in a bounded `uv` environment and preserved the original output root.
+- `project-state-steward`: resumed the expired demo task atomically and
+  preserved unrelated posture and Classification V2 dirty paths.
+- Evidence: `outputs/tracking_demo_20260809/`, fifteen readable MP4s,
+  `run_manifest_extended.json`, `artifact_manifest.json`, and
+  `TRACKING_DEMO_SCRIPT_VI.md`.
+- Reuse when: exporting presentation-only overlays from a frozen XML/video
+  authority with no detector or tracker execution.
+- Do not reuse when: evaluating, tuning, or claiming new tracking performance.
+
 ## 2026-08-08 Classification V2 pre-GPU canonicalization
 
 - `experiment-lineage-reproducibility`: reconciled the intended staged E0 lock,

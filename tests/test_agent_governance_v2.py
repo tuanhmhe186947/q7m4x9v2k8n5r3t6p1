@@ -202,6 +202,26 @@ def owner(
     }
 
 
+def rebaseline_arguments(
+    manager: ModuleType,
+    record: dict[str, object],
+    project: Path,
+) -> dict[str, object]:
+    identity = manager._worktree_identity(project)
+    return {
+        "task_id": "REFORM-20260813-01",
+        "confirm_task_id": "REFORM-20260813-01",
+        "confirmation": "USER_AUTHORIZED_WORKTREE_FINGERPRINT_REBASELINE",
+        "authorization_ref": "user-request:fixture-rebaseline",
+        "evidence_ref": "tests:test_agent_governance_v2",
+        "expected_revision": record["revision"],
+        "expected_record_sha256": record["record_sha256"],
+        "expected_worktree": project,
+        "expected_stored_fingerprint": record["worktree"]["fingerprint"],
+        "expected_current_fingerprint": identity["fingerprint"],
+    }
+
+
 def confirm(
     ledger: object,
     record: dict[str, object],
@@ -573,6 +593,139 @@ def test_advance_refreshes_worktree_snapshot_after_effect(
         **owner(record, project),
     )
     assert next_record["active_permit"]["step_id"] == "S-2"
+
+
+def test_rebaseline_refreshes_only_worktree_snapshot(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    before = json.loads(json.dumps(record))
+    (project / "task-owned-drift.txt").write_text("drift\n", encoding="utf-8")
+    rebased = ledger.rebaseline_worktree_fingerprint(
+        now=NOW,
+        **rebaseline_arguments(manager, record, project),
+    )
+    assert rebased["revision"] == before["revision"] + 1
+    assert rebased["state"] == before["state"]
+    assert rebased["plan"] == before["plan"]
+    assert rebased["owner"] == before["owner"]
+    assert rebased["active_permit"] == before["active_permit"]
+    assert rebased["events"][:-1] == before["events"]
+    assert rebased["worktree"]["fingerprint"] != before["worktree"]["fingerprint"]
+    assert "task-owned-drift.txt" in rebased["worktree"]["dirty_paths"]
+    event = rebased["events"][-1]
+    assert event["event_type"] == "WORKTREE_FINGERPRINT_REBASELINED"
+    assert event["payload"]["operation"] == "rebaseline-worktree-fingerprint"
+    assert event["payload"]["prior_revision"] == before["revision"]
+    assert event["payload"]["resulting_revision"] == rebased["revision"]
+
+
+def test_rebaseline_rejects_stale_revision(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    arguments = rebaseline_arguments(manager, record, project)
+    arguments["expected_revision"] = record["revision"] - 1
+    with pytest.raises(manager.GovernanceError, match="revision_conflict"):
+        ledger.rebaseline_worktree_fingerprint(now=NOW, **arguments)
+
+
+def test_rebaseline_rejects_stale_stored_fingerprint(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    arguments = rebaseline_arguments(manager, record, project)
+    arguments["expected_stored_fingerprint"] = "0" * 64
+    with pytest.raises(
+        manager.GovernanceError,
+        match="rebaseline_stored_fingerprint_mismatch",
+    ):
+        ledger.rebaseline_worktree_fingerprint(now=NOW, **arguments)
+
+
+def test_rebaseline_rejects_wrong_or_stale_current_fingerprint(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    wrong = rebaseline_arguments(manager, record, project)
+    wrong["expected_current_fingerprint"] = "0" * 64
+    with pytest.raises(
+        manager.GovernanceError,
+        match="rebaseline_current_fingerprint_mismatch",
+    ):
+        ledger.rebaseline_worktree_fingerprint(now=NOW, **wrong)
+    stale = rebaseline_arguments(manager, record, project)
+    (project / "mutated-after-capture.txt").write_text("drift\n", encoding="utf-8")
+    with pytest.raises(
+        manager.GovernanceError,
+        match="rebaseline_current_fingerprint_mismatch",
+    ):
+        ledger.rebaseline_worktree_fingerprint(now=NOW, **stale)
+
+
+def test_rebaseline_rejects_active_valid_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    with pytest.raises(manager.GovernanceError, match="rebaseline_active_permit"):
+        ledger.rebaseline_worktree_fingerprint(
+            now=NOW,
+            **rebaseline_arguments(manager, record, project),
+        )
+
+
+def test_permit_renewal_preserves_scope_and_rejects_expiry(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    permit = dict(record["active_permit"])
+    record = ledger.renew(
+        "REFORM-20260813-01",
+        lease_seconds=86400,
+        now=NOW.replace(minute=10),
+        **owner(record, project),
+    )
+    renewed = ledger.renew_permit(
+        "REFORM-20260813-01",
+        permit["permit_id"],
+        ttl_seconds=21600,
+        now=NOW.replace(minute=10),
+        **owner(record, project),
+    )
+    assert renewed["active_permit"]["permit_id"] == permit["permit_id"]
+    assert renewed["active_permit"]["effects"] == permit["effects"]
+    assert renewed["active_permit"]["step_id"] == permit["step_id"]
+    assert renewed["events"][-1]["event_type"] == "ACTION_PERMIT_RENEWED"
+    expired_at = datetime.fromisoformat(renewed["active_permit"]["expires_at"])
+    with pytest.raises(manager.GovernanceError, match="permit_expired"):
+        ledger.renew_permit(
+            "REFORM-20260813-01",
+            permit["permit_id"],
+            now=expired_at.replace(second=expired_at.second + 1),
+            **owner(renewed, project),
+        )
 
 
 def test_cas_rejects_stale_record(manager: ModuleType, project: Path) -> None:

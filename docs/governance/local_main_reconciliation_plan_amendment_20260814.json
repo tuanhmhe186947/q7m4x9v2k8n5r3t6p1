@@ -1,0 +1,28 @@
+{
+  "steps": [
+      {
+        "step_id": "I-1",
+        "summary": "Audit dirty paths, verify authority and retention, and repair documentation formatting only.",
+        "acceptance_ids": ["AC-1", "AC-2"],
+        "allowed_effects": ["edit", "test"]
+      },
+      {
+        "step_id": "I-2",
+        "summary": "Repair the short-memory validator gate, then run focused governance and authority checks.",
+        "acceptance_ids": ["AC-2", "AC-3"],
+        "allowed_effects": ["edit", "test"]
+      },
+      {
+        "step_id": "I-3",
+        "summary": "Commit verified deliverables to local main in separate coherent scope commits.",
+        "acceptance_ids": ["AC-4"],
+        "allowed_effects": ["integrate"]
+      },
+      {
+        "step_id": "I-4",
+        "summary": "Review integration, preserve excluded paths, and close the reconciliation task.",
+        "acceptance_ids": ["AC-1", "AC-4"],
+        "allowed_effects": ["integrate"]
+      }
+  ]
+}

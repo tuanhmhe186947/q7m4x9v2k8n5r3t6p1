@@ -1,0 +1,114 @@
+{
+  "task_id": "LOCAL-MAIN-RECONCILIATION-20260814-01",
+  "title": "Reconcile verified data and governance work into local main",
+  "task_class": "governance_implementation",
+  "risk_class": "high",
+  "worktree_mode": "shared_main",
+  "path_scope": [
+    ".agents/memory",
+    ".agents/skills/project-state-steward/scripts/manage_agent_governance.py",
+    ".codex_cpu_preflight_runner.py",
+    ".codex_gpu_gate.py",
+    ".codex_host_binding_runner.py",
+    ".codex_tmp_legacy_r128_runtime_audit.py",
+    "data/README.md",
+    "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+    "docs/classification_v2",
+    "docs/governance",
+    "tests/test_agent_governance_v2.py"
+  ],
+  "authorities": [
+    {
+      "scope": "governance.current_state",
+      "locator": ".agents/memory/02_CURRENT_DECISION.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T13:00:00+07:00",
+      "sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "section_sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e"
+    },
+    {
+      "scope": "classification_v2.current_state",
+      "locator": "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T13:00:00+07:00",
+      "sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e",
+      "section_sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"
+    },
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T13:00:00+07:00",
+      "sha256": "46e37859c8d538904fb576ca5ed65997f1a4947591cb0653817da9f12e02da2c",
+      "section_sha256": "46e37859c8d538904fb576ca5ed65997f1a4947591cb0653817da9f12e02da2c"
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "agent-architecture-audit",
+      "role": "reasoning",
+      "purpose": "Classify governance and evidence artifacts before integration.",
+      "selection_mode": "explicit",
+      "skill_sha256": "9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b"
+    }
+  ],
+  "acceptance": [
+    {
+      "acceptance_id": "AC-1",
+      "text": "Every current dirty path is classified from direct evidence and no unknown path is staged."
+    },
+    {
+      "acceptance_id": "AC-2",
+      "text": "Classification authority references and posture counts remain internally hash-consistent."
+    },
+    {
+      "acceptance_id": "AC-3",
+      "text": "Governance manager changes pass focused regressions without weakening fail-closed controls."
+    },
+    {
+      "acceptance_id": "AC-4",
+      "text": "Verified deliverables are committed on local main in coherent commits, with no push, training, GPU, media regeneration, or data mutation."
+    }
+  ],
+  "risks": [
+    "Do not stage or delete an artifact whose provenance or retention status is unknown.",
+    "Do not alter reviewed labels, split authorities, temporal semantics, or upstream data.",
+    "Do not push to origin without a separate explicit request."
+  ],
+  "non_actions": [
+    "No video decode, detection, tracking, crop regeneration, spatial re-extraction, GPU, or training.",
+    "No raw-data, review, split, or source-authority mutation.",
+    "No reset, clean, stash, or deletion of pre-existing user-owned work."
+  ],
+  "plan": {
+    "steps": [
+      {
+        "step_id": "I-1",
+        "summary": "Audit every uncommitted path and verify its authority, provenance, and required retention.",
+        "acceptance_ids": ["AC-1", "AC-2"],
+        "allowed_effects": ["test"]
+      },
+      {
+        "step_id": "I-2",
+        "summary": "Run focused governance and authority validation for the selected candidates.",
+        "acceptance_ids": ["AC-2", "AC-3"],
+        "allowed_effects": ["test"]
+      },
+      {
+        "step_id": "I-3",
+        "summary": "Commit only verified current deliverables to local main in coherent scope-separated commits.",
+        "acceptance_ids": ["AC-4"],
+        "allowed_effects": ["integrate"]
+      },
+      {
+        "step_id": "I-4",
+        "summary": "Review integration outcome, preserve any excluded paths, and close the governed reconciliation task.",
+        "acceptance_ids": ["AC-1", "AC-4"],
+        "allowed_effects": ["integrate"]
+      }
+    ]
+  }
+}

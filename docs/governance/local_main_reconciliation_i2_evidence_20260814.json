@@ -1,0 +1,25 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I2-SHORT-MEMORY-VALIDATOR",
+      "kind": "command",
+      "locator": "validate_memory_contract_v2.py: PASS",
+      "supports": ["AC-2"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I2-GOVERNANCE-REGRESSION",
+      "kind": "command",
+      "locator": "pytest tests/test_agent_governance_v2.py tests/test_project_governance_contract.py: 100 passed",
+      "supports": ["AC-3"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I2-DIFF-AND-LINE-SCANS",
+      "kind": "command",
+      "locator": "git diff --check PASS; new documentation line scans PASS",
+      "supports": ["AC-2", "AC-3"],
+      "status": "PASS"
+    }
+  ]
+}

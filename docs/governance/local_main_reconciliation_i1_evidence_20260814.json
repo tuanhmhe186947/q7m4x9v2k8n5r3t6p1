@@ -1,0 +1,27 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "I1-CLASSIFIED-DIRTY-SCOPE",
+      "kind": "artifact",
+      "locator": "docs/governance/local_main_reconciliation_task_packet_20260814.json",
+      "sha256": "50341297eb7a82c3fffab416059735396019a4f85a5faf2c607f6998bc3a7f15",
+      "supports": ["AC-1"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I1-POSTURE-AUTHORITY-RECONCILIATION",
+      "kind": "artifact",
+      "locator": "docs/classification_v2/corrected_pooled_route_20260806/post_review_20260807/posture_620_cumulative_authority.json",
+      "sha256": "852f83f9fdef2d4cb5162ec8d5cc2cebbf4d3a71f9c1ea640b857b5451200d49",
+      "supports": ["AC-2"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "I1-JSON-AND-DIFF-CHECKS",
+      "kind": "command",
+      "locator": "JSON parse: 10 contracts PASS; git diff --check PASS; four scoped runners compile PASS",
+      "supports": ["AC-1", "AC-2"],
+      "status": "PASS"
+    }
+  ]
+}

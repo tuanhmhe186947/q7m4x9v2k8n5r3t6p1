@@ -1367,6 +1367,271 @@ class AgentGovernanceLedger:
             result["owner_token"] = token
         return result
 
+    def rebaseline_worktree_fingerprint(
+        self,
+        task_id: str,
+        confirm_task_id: str,
+        confirmation: str,
+        authorization_ref: str,
+        evidence_ref: str,
+        expected_revision: int,
+        expected_record_sha256: str,
+        expected_worktree: Path,
+        expected_stored_fingerprint: str,
+        expected_current_fingerprint: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Administratively rebaseline one verified dirty-worktree snapshot."""
+        if confirm_task_id != task_id:
+            raise GovernanceError("rebaseline_task_confirmation_mismatch", confirm_task_id)
+        if confirmation != "USER_AUTHORIZED_WORKTREE_FINGERPRINT_REBASELINE":
+            raise GovernanceError("rebaseline_confirmation_missing", confirmation)
+        expected_stored = expected_stored_fingerprint.lower()
+        expected_current = expected_current_fingerprint.lower()
+        if not HEX_SHA256_RE.fullmatch(expected_stored):
+            raise GovernanceError("rebaseline_stored_fingerprint_invalid", expected_stored)
+        if not HEX_SHA256_RE.fullmatch(expected_current):
+            raise GovernanceError("rebaseline_current_fingerprint_invalid", expected_current)
+        current = _now(now)
+        with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
+            record = self._read(task_id)
+            self._check_cas(record, expected_revision, expected_record_sha256)
+            worktree = record.get("worktree")
+            if not isinstance(worktree, dict):
+                raise GovernanceError("rebaseline_worktree_metadata_missing", task_id)
+            required = ("path", "common_dir", "head_sha", "branch", "detached", "fingerprint")
+            if any(key not in worktree for key in required):
+                raise GovernanceError("rebaseline_worktree_metadata_missing", task_id)
+            if Path(worktree["path"]).resolve() != expected_worktree.resolve():
+                raise GovernanceError("rebaseline_worktree_mismatch", str(expected_worktree))
+            identity = _worktree_identity(expected_worktree)
+            _validate_worktree_binding(self.root, identity)
+            for key in ("path", "common_dir", "head_sha", "branch", "detached"):
+                if worktree[key] != identity[key]:
+                    raise GovernanceError("rebaseline_worktree_identity_mismatch", key)
+            if not secrets.compare_digest(worktree["fingerprint"], expected_stored):
+                raise GovernanceError(
+                    "rebaseline_stored_fingerprint_mismatch",
+                    "Inspect the current task record.",
+                )
+            if not secrets.compare_digest(identity["fingerprint"], expected_current):
+                raise GovernanceError(
+                    "rebaseline_current_fingerprint_mismatch",
+                    "Recompute the worktree fingerprint before retrying.",
+                )
+            permit = record.get("active_permit")
+            if permit:
+                expires_at = permit.get("expires_at")
+                if not isinstance(expires_at, str):
+                    raise GovernanceError("rebaseline_active_permit_invalid", task_id)
+                if current < datetime.fromisoformat(expires_at):
+                    raise GovernanceError("rebaseline_active_permit", task_id)
+            old_fingerprint = worktree["fingerprint"]
+            worktree["dirty_paths"] = identity["dirty_paths"]
+            worktree["fingerprint"] = identity["fingerprint"]
+            payload = {
+                "operation": "rebaseline-worktree-fingerprint",
+                "old_fingerprint": old_fingerprint,
+                "new_fingerprint": identity["fingerprint"],
+                "prior_revision": expected_revision,
+                "resulting_revision": expected_revision + 1,
+                "administrator_confirmation": confirmation,
+                "authorization_ref": _clean(
+                    authorization_ref,
+                    "rebaseline_authorization_ref",
+                    300,
+                ),
+                "evidence_ref": _clean(evidence_ref, "rebaseline_evidence_ref", 500),
+                "rebaselined_at": _iso(current),
+            }
+            record = self._finish_mutation(
+                record,
+                "WORKTREE_FINGERPRINT_REBASELINED",
+                payload,
+                current,
+            )
+            _atomic_json(self._path(task_id), record)
+            return record
+
+    def rebind_worktree_head(
+        self,
+        task_id: str,
+        confirm_task_id: str,
+        confirmation: str,
+        authorization_ref: str,
+        expected_revision: int,
+        expected_record_sha256: str,
+        expected_worktree: Path,
+        expected_old_head: str,
+        expected_new_head: str,
+        expected_stored_fingerprint: str,
+        expected_current_fingerprint: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Bind one task record to a proven descendant task-worktree commit."""
+        if confirm_task_id != task_id:
+            raise GovernanceError("head_rebind_task_confirmation_mismatch", confirm_task_id)
+        if confirmation != "USER_AUTHORIZED_WORKTREE_HEAD_REBIND":
+            raise GovernanceError("head_rebind_confirmation_missing", confirmation)
+        values = {
+            "expected_old_head": expected_old_head.lower(),
+            "expected_new_head": expected_new_head.lower(),
+            "expected_stored_fingerprint": expected_stored_fingerprint.lower(),
+            "expected_current_fingerprint": expected_current_fingerprint.lower(),
+        }
+        if any(
+            not re.fullmatch(r"[0-9a-f]{40}", values[key])
+            for key in ("expected_old_head", "expected_new_head")
+        ) or any(
+            not HEX_SHA256_RE.fullmatch(values[key])
+            for key in (
+                "expected_stored_fingerprint",
+                "expected_current_fingerprint",
+            )
+        ):
+            raise GovernanceError("head_rebind_hash_invalid", "Provide Git and SHA-256 hashes.")
+        current = _now(now)
+        with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
+            record = self._read(task_id)
+            self._check_cas(record, expected_revision, expected_record_sha256)
+            if record.get("active_permit"):
+                raise GovernanceError("head_rebind_active_permit", task_id)
+            worktree = record.get("worktree")
+            if not isinstance(worktree, dict):
+                raise GovernanceError("head_rebind_worktree_metadata_missing", task_id)
+            if Path(worktree.get("path", "")).resolve() != expected_worktree.resolve():
+                raise GovernanceError("head_rebind_worktree_mismatch", str(expected_worktree))
+            if worktree.get("head_sha") != values["expected_old_head"]:
+                raise GovernanceError("head_rebind_old_head_mismatch", task_id)
+            if worktree.get("fingerprint") != values["expected_stored_fingerprint"]:
+                raise GovernanceError("head_rebind_stored_fingerprint_mismatch", task_id)
+            identity = _worktree_identity(expected_worktree)
+            _validate_worktree_binding(self.root, identity)
+            if identity["head_sha"] != values["expected_new_head"]:
+                raise GovernanceError("head_rebind_actual_head_mismatch", identity["head_sha"])
+            if identity["fingerprint"] != values["expected_current_fingerprint"]:
+                raise GovernanceError("head_rebind_current_fingerprint_mismatch", task_id)
+            if identity["dirty_paths"]:
+                raise GovernanceError(
+                    "head_rebind_unrelated_worktree_changes",
+                    ",".join(identity["dirty_paths"]),
+                )
+            for key in ("path", "common_dir", "branch", "detached"):
+                if worktree.get(key) != identity[key]:
+                    raise GovernanceError("head_rebind_worktree_identity_mismatch", key)
+            ancestry = _git(
+                expected_worktree,
+                "merge-base",
+                "--is-ancestor",
+                values["expected_old_head"],
+                values["expected_new_head"],
+            )
+            if ancestry.returncode:
+                raise GovernanceError("head_rebind_ancestry_missing", task_id)
+            worktree["head_sha"] = identity["head_sha"]
+            worktree["dirty_paths"] = identity["dirty_paths"]
+            worktree["fingerprint"] = identity["fingerprint"]
+            payload = {
+                "operation": "rebind-worktree-head",
+                "old_head": values["expected_old_head"],
+                "new_head": values["expected_new_head"],
+                "worktree": identity["path"],
+                "old_fingerprint": values["expected_stored_fingerprint"],
+                "new_fingerprint": identity["fingerprint"],
+                "prior_revision": expected_revision,
+                "administrator_confirmation": confirmation,
+                "authorization_ref": _clean(
+                    authorization_ref,
+                    "head_rebind_authorization_ref",
+                    300,
+                ),
+                "ancestry_proof": "merge-base-is-ancestor",
+                "integration_commit": values["expected_new_head"],
+            }
+            record = self._finish_mutation(
+                record,
+                "WORKTREE_HEAD_REBOUND",
+                payload,
+                current,
+            )
+            _atomic_json(self._path(task_id), record)
+            return record
+
+    def reconcile_completed_history(
+        self,
+        task_id: str,
+        confirm_task_id: str,
+        confirmation: str,
+        authorization_ref: str,
+        expected_revision: int,
+        expected_record_sha256: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Restore a cursor only from the record's prior STEP_ADVANCED events."""
+        if confirm_task_id != task_id:
+            raise GovernanceError("history_reconcile_task_confirmation_mismatch", confirm_task_id)
+        if confirmation != "USER_AUTHORIZED_WORKTREE_HEAD_REBIND":
+            raise GovernanceError("history_reconcile_confirmation_missing", confirmation)
+        current = _now(now)
+        with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
+            record = self._read(task_id)
+            self._check_cas(record, expected_revision, expected_record_sha256)
+            if record.get("active_permit"):
+                raise GovernanceError("history_reconcile_active_permit", task_id)
+            completed: dict[str, dict[str, Any]] = {}
+            for event in record.get("events", []):
+                payload = event.get("payload", {})
+                if (
+                    event.get("event_type") == "STEP_ADVANCED"
+                    and payload.get("terminal_status") == "DONE"
+                    and payload.get("evidence_ids")
+                ):
+                    completed[payload.get("step_id", "")] = event
+            steps = record["plan"]["steps"]
+            prefix = []
+            for step in steps:
+                if step["step_id"] not in completed:
+                    break
+                prefix.append(step["step_id"])
+            if not prefix:
+                raise GovernanceError("history_reconcile_no_completed_prefix", task_id)
+            for step in steps:
+                step["status"] = "DONE" if step["step_id"] in prefix else "TODO"
+                if step["status"] == "TODO":
+                    step["evidence"] = []
+            next_step = next(
+                (step for step in steps if step["step_id"] not in prefix),
+                None,
+            )
+            if next_step is not None:
+                next_step["status"] = "IN_PROGRESS"
+                record["state"] = "ACTIVE"
+            else:
+                record["state"] = "ACTIVE"
+            payload = {
+                "operation": "reconcile-completed-history",
+                "completed_steps": prefix,
+                "completion_event_sha256": {
+                    step_id: completed[step_id]["event_sha256"] for step_id in prefix
+                },
+                "derived_next_step": next_step["step_id"] if next_step else None,
+                "prior_revision": expected_revision,
+                "administrator_confirmation": confirmation,
+                "authorization_ref": _clean(
+                    authorization_ref,
+                    "history_reconcile_authorization_ref",
+                    300,
+                ),
+            }
+            record = self._finish_mutation(
+                record,
+                "COMPLETED_HISTORY_RECONCILED",
+                payload,
+                current,
+            )
+            _atomic_json(self._path(task_id), record)
+            return record
+
     def confirm_plan(
         self,
         task_id: str,
@@ -1539,6 +1804,43 @@ class AgentGovernanceLedger:
         return self._mutate(
             task_id,
             event_type="ACTION_PERMIT_ISSUED",
+            mutation=mutate,
+            now=current,
+            **owner,
+        )
+
+    def renew_permit(
+        self,
+        task_id: str,
+        permit_id: str,
+        ttl_seconds: int = 1800,
+        now: datetime | None = None,
+        **owner: Any,
+    ) -> dict[str, Any]:
+        """Extend one still-valid permit without changing its permitted effects."""
+        if ttl_seconds < 1 or ttl_seconds > 86400:
+            raise GovernanceError("permit_ttl_invalid", "Use a one-second to one-day TTL.")
+        current = _now(now)
+
+        def mutate(record: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+            permit = record.get("active_permit")
+            if not permit or permit.get("permit_id") != permit_id:
+                raise GovernanceError("permit_invalid", "Use the current permit ID.")
+            expires_at = datetime.fromisoformat(permit["expires_at"])
+            if current >= expires_at:
+                raise GovernanceError("permit_expired", "Issue a fresh permit.")
+            new_expiry = current + timedelta(seconds=ttl_seconds)
+            permit["expires_at"] = _iso(new_expiry)
+            return record, {
+                "permit_id": permit_id,
+                "step_id": permit["step_id"],
+                "prior_expires_at": _iso(expires_at),
+                "expires_at": permit["expires_at"],
+            }
+
+        return self._mutate(
+            task_id,
+            event_type="ACTION_PERMIT_RENEWED",
             mutation=mutate,
             now=current,
             **owner,
@@ -2229,6 +2531,41 @@ def build_parser() -> argparse.ArgumentParser:
     admin.add_argument("--lease-seconds", type=int, default=1800)
     admin.add_argument("--expected-revision", required=True, type=int)
     admin.add_argument("--expected-record-sha256", required=True)
+    rebaseline = commands.add_parser("rebaseline-worktree-fingerprint")
+    rebaseline.add_argument("--task-id", required=True)
+    rebaseline.add_argument("--confirm-task-id", required=True)
+    rebaseline.add_argument("--confirmation", required=True)
+    rebaseline.add_argument("--authorization-ref", required=True)
+    rebaseline.add_argument("--evidence-ref", required=True)
+    rebaseline.add_argument("--expected-worktree", type=Path, required=True)
+    rebaseline.add_argument("--expected-stored-fingerprint", required=True)
+    rebaseline.add_argument("--expected-current-fingerprint", required=True)
+    rebaseline.add_argument("--expected-revision", required=True, type=int)
+    rebaseline.add_argument("--expected-record-sha256", required=True)
+    head_rebind = commands.add_parser("rebind-worktree-head")
+    head_rebind.add_argument("--task-id", required=True)
+    head_rebind.add_argument("--confirm-task-id", required=True)
+    head_rebind.add_argument("--confirmation", required=True)
+    head_rebind.add_argument("--authorization-ref", required=True)
+    head_rebind.add_argument("--expected-worktree", type=Path, required=True)
+    head_rebind.add_argument("--expected-old-head", required=True)
+    head_rebind.add_argument("--expected-new-head", required=True)
+    head_rebind.add_argument("--expected-stored-fingerprint", required=True)
+    head_rebind.add_argument("--expected-current-fingerprint", required=True)
+    head_rebind.add_argument("--expected-revision", required=True, type=int)
+    head_rebind.add_argument("--expected-record-sha256", required=True)
+    history_reconcile = commands.add_parser("reconcile-completed-history")
+    history_reconcile.add_argument("--task-id", required=True)
+    history_reconcile.add_argument("--confirm-task-id", required=True)
+    history_reconcile.add_argument("--confirmation", required=True)
+    history_reconcile.add_argument("--authorization-ref", required=True)
+    history_reconcile.add_argument("--expected-revision", required=True, type=int)
+    history_reconcile.add_argument("--expected-record-sha256", required=True)
+    renew_permit = commands.add_parser("renew-permit")
+    renew_permit.add_argument("--task-id", required=True)
+    renew_permit.add_argument("--permit-id", required=True)
+    renew_permit.add_argument("--ttl-seconds", type=int, default=1800)
+    _owner_arguments(renew_permit)
     amend = commands.add_parser("amend-plan")
     amend.add_argument("--task-id", required=True)
     amend.add_argument("--plan-packet", required=True, type=Path)
@@ -2311,6 +2648,42 @@ def main(argv: list[str] | None = None) -> int:
                 new_owner_token=args.new_owner_token,
                 lease_seconds=args.lease_seconds,
             )
+        elif args.command == "rebaseline-worktree-fingerprint":
+            result = ledger.rebaseline_worktree_fingerprint(
+                args.task_id,
+                args.confirm_task_id,
+                args.confirmation,
+                args.authorization_ref,
+                args.evidence_ref,
+                args.expected_revision,
+                args.expected_record_sha256,
+                args.expected_worktree,
+                args.expected_stored_fingerprint,
+                args.expected_current_fingerprint,
+            )
+        elif args.command == "rebind-worktree-head":
+            result = ledger.rebind_worktree_head(
+                args.task_id,
+                args.confirm_task_id,
+                args.confirmation,
+                args.authorization_ref,
+                args.expected_revision,
+                args.expected_record_sha256,
+                args.expected_worktree,
+                args.expected_old_head,
+                args.expected_new_head,
+                args.expected_stored_fingerprint,
+                args.expected_current_fingerprint,
+            )
+        elif args.command == "reconcile-completed-history":
+            result = ledger.reconcile_completed_history(
+                args.task_id,
+                args.confirm_task_id,
+                args.confirmation,
+                args.authorization_ref,
+                args.expected_revision,
+                args.expected_record_sha256,
+            )
         else:
             if not args.owner_token:
                 raise GovernanceError("owner_token_missing", "Use the private owner token.")
@@ -2347,6 +2720,13 @@ def main(argv: list[str] | None = None) -> int:
                 result = ledger.renew(
                     args.task_id,
                     lease_seconds=args.lease_seconds,
+                    **owner,
+                )
+            elif args.command == "renew-permit":
+                result = ledger.renew_permit(
+                    args.task_id,
+                    args.permit_id,
+                    ttl_seconds=args.ttl_seconds,
                     **owner,
                 )
             elif args.command == "advance":
