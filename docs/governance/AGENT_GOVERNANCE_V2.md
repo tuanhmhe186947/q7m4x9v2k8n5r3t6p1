@@ -63,18 +63,54 @@ worktree collision fails closed before an action permit is issued.
 
 ## Execution progression model
 
+### Repair acceptance markers
+
+The execution model is accepted only when the following markers are backed by
+the synthetic and negative-control fixtures:
+
+- `GOVERNANCE_EXECUTION_MODEL_REPAIR_COMPLETE=YES`
+- `AUTHORIZED_TASK_PROGRESS_CONTINUOUS=YES`
+- `EXPIRED_PERMIT_ZOMBIE_BLOCKING=0`
+- `PER_FILE_ADMIN_SCOPE_CHURN_REQUIRED=NO`
+- `ACCEPTED_RECONCILED_ARTIFACT_RECLASSIFICATION=PASS`
+- `AUTHORIZED_FINGERPRINT_PROGRESSION=PASS`
+- `TASK_CURSOR_MONOTONIC=YES`
+- `SESSION_RECOVERY_STATE_PRESERVED=YES`
+- `SYNTHETIC_CONTINUOUS_TASK_PROGRESS=PASS`
+- `SYNTHETIC_EXTERNAL_DRIFT_REJECTION=PASS`
+- `S1_GOVERNANCE_FAILURE_PATTERN_REGRESSION=PASS`
+
+The hard boundaries remain fail-closed for unexpected external edits,
+unrelated HEAD changes, mixed unknown state, stale CAS, scope escape,
+path traversal, merge-owner conflict, owner-only capture, and scientific-data
+mutation. These controls are evaluated at G0, while G1 records a release
+candidate and G2 performs canonical integration and closure.
+
+Governance validates meaningful trust boundaries, not every internal operation.
+The conceptual boundaries are:
+
+- `G0`: task authorization and the bounded execution envelope;
+- continuous task-owned execution inside that envelope;
+- `G1`: release-candidate and evidence readiness;
+- `G2`: canonical integration and task closure.
+
 Task-start provenance is immutable: `BASE_HEAD` and `BASE_FINGERPRINT` record
 the admitted worktree. `ACCEPTED_TASK_HEAD` and `ACCEPTED_TASK_FINGERPRINT`
 advance only after a governance-validated task transition. `ACTUAL_WORKTREE_HEAD`
 and `ACTUAL_WORKTREE_FINGERPRINT` are fresh observations; they never overwrite
 base provenance merely because a task continued.
 
-An expired permit is closed before a fresh one can be issued. A transition is
+`AUTHORIZED_TASK_PROGRESS != UNEXPECTED_EXTERNAL_DRIFT`. A transition is
 `TASK_OWNED_AUTHORIZED` only when its registered worktree, CAS state, permit,
-Git lineage, and declared task scope all agree. `EXTERNAL_OR_OWNER` and
-`UNKNOWN_OR_MIXED` changes fail closed. A legacy task without an explicit scope
-can still advance through an evidence-bearing checkpoint, but changed state is
-not automatically accepted after permit expiry.
+Git lineage, and declared task scope or artifact root all agree. Exact accepted
+path and content bindings remain accepted even when Git reports them as
+untracked. `EXTERNAL_OR_OWNER` and `UNKNOWN_OR_MIXED` changes fail closed.
+
+`EXPIRED_PERMIT_HISTORY != ACTIVE_VALID_PERMIT`. Expiry is normalized into
+append-only permit history before the next manager transition evaluates the
+active slot. Historical expiry cannot block a fresh bounded permit or a safe
+scope recovery, while a currently valid permit still blocks conflicting admin
+transitions.
 
 Good: a scoped task edits `docs/governance/`, records evidence, commits a
 descendant, and requests a new permit after expiry. The manager preserves its
@@ -88,6 +124,23 @@ Session recovery rotates ownership only. It retains the base and accepted
 provenance, worktree, append-only history, and current logical checkpoint.
 Release-candidate and canonical-integration validation remain separate gates,
 including destination owner-work checks.
+
+## Execution-model repair acceptance markers
+
+The synthetic acceptance suite records these durable markers:
+
+- `SYNTHETIC_CONTINUOUS_TASK_PROGRESS=PASS`;
+- `SYNTHETIC_EXTERNAL_DRIFT_REJECTION=PASS`;
+- `S1_GOVERNANCE_FAILURE_PATTERN_REGRESSION=PASS`;
+- `EXPIRED_PERMIT_ZOMBIE_BLOCKING=0`;
+- `ACCEPTED_RECONCILED_ARTIFACT_RECLASSIFICATION=PASS`;
+- `AUTHORIZED_FINGERPRINT_PROGRESSION=PASS`.
+
+The repaired model makes these former blockers impossible in a correctly
+authorized bounded task: `MISSING_EXECUTION_ROUTE_SELF_BLOCK`,
+`EXPIRED_ACTIVE_PERMIT_ZOMBIE`, `TASK_OWNED_FINGERPRINT_SELF_BLOCK`,
+`ACCEPTED_ARTIFACT_UNKNOWN_RECLASSIFICATION`, and
+`PER_FILE_SCOPE_AMENDMENT_CHURN`.
 
 ## Pre-permit task-file reconciliation
 
@@ -221,6 +274,12 @@ The implementation must reject all of the following:
 11. retirement while dirty paths, active references, processes, or unknown
     ownership remain;
 12. fixture-only regression results presented as live-agent reliability.
+13. a task-owned descendant, accepted artifact, or expired permit is treated as
+    external drift solely because it is a descendant, untracked, or historical;
+14. artifact roots that are wildcarded, project-root-wide, traversing, or
+    outside the declared effect envelope;
+15. owner-only, mixed, unrelated-head, merge-owner, binary, or scientific-data
+    changes entering accepted task lineage without exact authority.
 
 ## Migration order
 

@@ -1,0 +1,31 @@
+{
+  "schema_version": "pig.governance.execution-model-repair.integration.v1",
+  "candidate": {
+    "pre_receipt_head": "ab2be4db92f2fe91322f24ac91e555d2fb6c3bef",
+    "parent_head": "8948ef092d7ca940660f9d591abbbe0ac745693a",
+    "allowed_paths": [
+      ".agents/skills/project-state-steward/scripts/manage_agent_governance.py",
+      "docs/governance",
+      "tests/test_agent_governance_v2.py",
+      "tests/test_governance_execution_model.py"
+    ]
+  },
+  "destination": {
+    "ref": "main",
+    "pre_integration_head": "8948ef092d7ca940660f9d591abbbe0ac745693a",
+    "owner_dirty_paths_preserved": [
+      ".agents/memory/01_PROJECT_MEMORY_SHORT.md",
+      ".codex_cpu_preflight_runner.py",
+      ".codex_gpu_gate.py",
+      ".codex_host_binding_runner.py",
+      ".codex_tmp_legacy_r128_runtime_audit.py"
+    ]
+  },
+  "scope_guard": {
+    "scientific_data_mutated": false,
+    "model_code_mutated": false,
+    "active_s1_mutated": false,
+    "gpu_used": false,
+    "training_run": false
+  }
+}

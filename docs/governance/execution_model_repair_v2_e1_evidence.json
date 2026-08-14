@@ -1,0 +1,18 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-E1-REPRO",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_governance_execution_model.py:2-passed",
+      "supports": ["AC-1"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "EV-E1-ROOT-CAUSE",
+      "kind": "command_result",
+      "locator": "file:docs/governance/EXECUTION_MODEL_REPAIR_V2_ROOT_CAUSE_MAP_20260814.md",
+      "supports": ["AC-1"],
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-E2-CONTINUOUS",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_governance_execution_model.py:113-passed",
+      "status": "PASS",
+      "supports": ["AC-2"]
+    },
+    {
+      "evidence_id": "EV-E2-EXPIRY-LINEAGE",
+      "kind": "command_result",
+      "locator": "pytest:accepted-lineage-and-expired-permit-regressions",
+      "status": "PASS",
+      "supports": ["AC-3"]
+    },
+    {
+      "evidence_id": "EV-E2-NEGATIVE-CONTROLS",
+      "kind": "command_result",
+      "locator": "pytest:external-drift-CAS-scope-owner-data-controls",
+      "status": "PASS",
+      "supports": ["AC-4"]
+    }
+  ]
+}

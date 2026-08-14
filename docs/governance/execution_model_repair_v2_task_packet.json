@@ -1,0 +1,135 @@
+{
+  "task_id": "GOVERNANCE-EXECUTION-MODEL-REPAIR-V2-20260814-01",
+  "title": "Remove governance micro-gating while preserving fail-closed drift controls",
+  "task_class": "governance_implementation",
+  "risk_class": "high",
+  "worktree_mode": "exclusive",
+  "path_scope": [
+    ".agents/skills/project-state-steward/scripts/manage_agent_governance.py",
+    "tests/test_agent_governance_v2.py",
+    "tests/test_governance_execution_model.py",
+    "docs/governance"
+  ],
+  "artifact_roots": ["docs/governance"],
+  "authorities": [
+    {
+      "scope": "governance.current_state",
+      "locator": ".agents/memory/02_CURRENT_DECISION.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "section_sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e"
+    },
+    {
+      "scope": "memory.lifecycle",
+      "locator": ".agents/memory/03_PROJECT_RULES.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "d2690262694bd3abe5a217a24c8ee4d6ed71ee157b97742b7bd1b4c39fb0f732",
+      "section_sha256": "d2690262694bd3abe5a217a24c8ee4d6ed71ee157b97742b7bd1b4c39fb0f732"
+    },
+    {
+      "scope": "memory.maturity",
+      "locator": ".agents/memory/21_MEMORY_MATURITY.json",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "fdbc6a2e5160534a5576554469657311bdc80b85b49d18ffd5ad48b416f85eb0",
+      "section_sha256": "fdbc6a2e5160534a5576554469657311bdc80b85b49d18ffd5ad48b416f85eb0"
+    },
+    {
+      "scope": "method.state",
+      "locator": ".agents/memory/13_METHOD_STATE.json",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "185a5dec7e2eaaf71e020ecd78bbd23431acb747c78f336d5080aaf8b0ad7969",
+      "section_sha256": "185a5dec7e2eaaf71e020ecd78bbd23431acb747c78f336d5080aaf8b0ad7969"
+    },
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "b8d19ab2279f7daca4096d8b7de70e400b8c77a2a4c9cac09788714f7b8dc6f3",
+      "section_sha256": "b8d19ab2279f7daca4096d8b7de70e400b8c77a2a4c9cac09788714f7b8dc6f3"
+    },
+    {
+      "scope": "permission.halt",
+      "locator": ".agents/memory/16_HALT_CONDITIONS.json",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34",
+      "section_sha256": "1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34"
+    },
+    {
+      "scope": "skill.portfolio",
+      "locator": ".agents/skills/skill_inventory.json",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T22:38:39+07:00",
+      "sha256": "0942e67502b9f8128c49625d0b5eddf3a8bf8df6367c213312e446ce0192b9e7",
+      "section_sha256": "0942e67502b9f8128c49625d0b5eddf3a8bf8df6367c213312e446ce0192b9e7"
+    }
+  ],
+  "acceptance": [
+    {"acceptance_id": "AC-1", "text": "The real failure sequence is reproduced in disposable synthetic governance fixtures and mapped to root causes."},
+    {"acceptance_id": "AC-2", "text": "Authorized task progress is continuous across scoped artifacts, tests, receipts, descendant commits, expiry, recovery, and release readiness."},
+    {"acceptance_id": "AC-3", "text": "Expired permit history is never semantically active, while accepted task lineage advances without manual rebaseline."},
+    {"acceptance_id": "AC-4", "text": "All required external-drift, CAS, scope, traversal, owner, merge, and scientific-data safety controls still fail closed."},
+    {"acceptance_id": "AC-5", "text": "The execution model, G0/G1/G2 boundaries, and named acceptance markers are documented and validated."},
+    {"acceptance_id": "AC-6", "text": "Only governance manager/tests/docs changes are integrated after fresh destination owner-work checks and post-integration validation."}
+  ],
+  "risks": [
+    "Do not weaken owner-drift, scope, CAS, merge, or scientific-data mutation safeguards.",
+    "Existing CLOSED governance and scientific records are historical fixtures and remain immutable."
+  ],
+  "non_actions": [
+    "Do not modify active S1 or Temporal-v2 worktrees, data, model code, training outputs, or scientific authorities.",
+    "Do not use GPU, remote compute, training, or scientific data in this repair.",
+    "Do not add wildcard bypasses, global fingerprint disablement, or global scope disablement.",
+    "Do not reset, clean, stash, or overwrite owner work."
+  ],
+  "skills": [
+    {
+      "skill_id": "agent-architecture-audit",
+      "role": "reasoning",
+      "purpose": "Map state-machine conflations and preserve hard safety boundaries.",
+      "selection_mode": "explicit",
+      "skill_sha256": "9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b"
+    },
+    {
+      "skill_id": "agent-governance-steward",
+      "role": "governance",
+      "purpose": "Operate the repair through the governed task, permit, evidence, and closeout lifecycle.",
+      "selection_mode": "explicit",
+      "skill_sha256": "774fa3fc0b6069a06278d687766d6824d72c77559319f956d0114de1882adf2c"
+    },
+    {
+      "skill_id": "project-state-steward",
+      "role": "governance",
+      "purpose": "Reconcile state and preserve unrelated owner work at integration and closeout.",
+      "selection_mode": "explicit",
+      "skill_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc"
+    },
+    {
+      "skill_id": "safe-refactor-test-guardian",
+      "role": "verification",
+      "purpose": "Keep the manager repair small, reversible, and covered by focused synthetic tests.",
+      "selection_mode": "explicit",
+      "skill_sha256": "00aa27194a0653ee0fa00ff4007f37e43b2bc955b5a89b327665ed0a10584818"
+    }
+  ],
+  "plan": {
+    "steps": [
+      {"step_id": "E-1", "summary": "Reproduce the historical failure sequence and persist the root-cause map before the behavioral fix.", "acceptance_ids": ["AC-1"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "E-2", "summary": "Implement progression-aware accepted lineage, safe task-owned scope, and non-zombie permit lifecycle semantics.", "acceptance_ids": ["AC-2", "AC-3", "AC-4"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "E-3", "summary": "Run the full synthetic scientific-task acceptance matrix and document the execution model and named markers.", "acceptance_ids": ["AC-5"], "allowed_effects": ["edit", "test"]},
+      {"step_id": "E-4", "summary": "Freeze the governance release candidate, integrate only approved governance paths, and validate the destination.", "acceptance_ids": ["AC-6"], "allowed_effects": ["integrate"]}
+    ]
+  }
+}

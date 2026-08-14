@@ -592,7 +592,9 @@ def test_advance_refreshes_worktree_snapshot_after_effect(
     manager: ModuleType,
     project: Path,
 ) -> None:
-    ledger, record = create(manager, project)
+    value = packet(project)
+    value["path_scope"] = ["after-effect.txt"]
+    ledger, record = create(manager, project, value)
     record = confirm(ledger, record, project)
     original_fingerprint = record["worktree"]["fingerprint"]
     record = ledger.permit(

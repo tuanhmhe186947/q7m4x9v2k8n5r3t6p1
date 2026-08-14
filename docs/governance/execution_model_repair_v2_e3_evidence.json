@@ -1,0 +1,25 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "EV-E3-SYNTHETIC-CONTINUOUS",
+      "kind": "command_result",
+      "locator": "pytest:tests/test_governance_execution_model.py:15-passed",
+      "status": "PASS",
+      "supports": ["AC-5"]
+    },
+    {
+      "evidence_id": "EV-E3-DOCUMENTATION",
+      "kind": "command_result",
+      "locator": "file:docs/governance/AGENT_GOVERNANCE_V2.md:G0-G1-G2-and-acceptance-markers",
+      "status": "PASS",
+      "supports": ["AC-5"]
+    },
+    {
+      "evidence_id": "EV-E3-NO-SCIENTIFIC-EFFECT",
+      "kind": "command_result",
+      "locator": "scope-audit:governance-only-worktree-no-GPU-no-training",
+      "status": "PASS",
+      "supports": ["AC-5"]
+    }
+  ]
+}

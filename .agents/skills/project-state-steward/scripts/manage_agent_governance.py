@@ -70,6 +70,34 @@ WORKTREE_LIFECYCLE_STATES = {
     "RETIRED",
     "PROTECTED",
 }
+ARTIFACT_CATEGORIES = {
+    "artifact",
+    "authority",
+    "evidence",
+    "receipt",
+    "source",
+    "test",
+}
+PROTECTED_SCIENTIFIC_PATH_PARTS = {
+    "checkpoints",
+    "data",
+    "datasets",
+    "model",
+    "models",
+    "outputs",
+    "temporal_v2",
+    "training",
+}
+PROTECTED_SCIENTIFIC_SUFFIXES = {
+    ".bin",
+    ".ckpt",
+    ".h5",
+    ".mp4",
+    ".npy",
+    ".parquet",
+    ".pt",
+    ".pth",
+}
 HEX_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$")
 
@@ -199,7 +227,13 @@ def _worktree_identity(worktree: Path) -> dict[str, Any]:
     common = _git(resolved, "rev-parse", "--git-common-dir")
     head = _git(resolved, "rev-parse", "HEAD")
     branch = _git(resolved, "symbolic-ref", "--quiet", "--short", "HEAD")
-    status = _git(resolved, "status", "--porcelain=v1", "-z")
+    status = _git(
+        resolved,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "-z",
+    )
     if top.returncode or common.returncode or head.returncode or status.returncode:
         raise GovernanceError(
             "worktree_unregistered",
@@ -234,6 +268,101 @@ def _worktree_identity(worktree: Path) -> dict[str, Any]:
 def _path_within_scope(path: str, scopes: list[str]) -> bool:
     normalized = path.replace("\\", "/").strip("/")
     return any(normalized == scope or normalized.startswith(f"{scope}/") for scope in scopes)
+
+
+def _normalized_scope_prefix(value: Any, label: str) -> str:
+    raw = _clean(value, label, 300).replace("\\", "/")
+    if any(character in raw for character in "*?[]{}"):
+        raise GovernanceError(f"{label}_wildcard_forbidden", raw)
+    path = Path(raw)
+    if path.is_absolute() or raw.startswith("/") or re.match(r"^[A-Za-z]:($|/)", raw):
+        raise GovernanceError(f"{label}_invalid", raw)
+    if ".." in path.parts:
+        raise GovernanceError(f"{label}_invalid", raw)
+    normalized = path.as_posix().rstrip("/")
+    if not normalized or normalized == ".":
+        raise GovernanceError(f"{label}_root_forbidden", raw)
+    return normalized
+
+
+def _normalized_artifact_roots(
+    values: Any,
+    path_scope: list[str],
+    allowed_effects: set[str],
+) -> list[dict[str, Any]]:
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        raise GovernanceError("artifact_roots_invalid", "Expected a list.")
+    normalized: list[dict[str, Any]] = []
+    for item in values:
+        if isinstance(item, str):
+            root = item
+            category = "artifact"
+            effects = sorted(allowed_effects)
+        elif isinstance(item, dict):
+            root = item.get("root", item.get("path"))
+            category = _clean(item.get("category", "artifact"), "artifact_category", 48)
+            effects = sorted(
+                {
+                    _clean(effect, "artifact_effect", 80)
+                    for effect in item.get("effects", sorted(allowed_effects))
+                }
+            )
+        else:
+            raise GovernanceError("artifact_root_invalid", str(item))
+        normalized_root = _normalized_scope_prefix(root, "artifact_root")
+        if category not in ARTIFACT_CATEGORIES:
+            raise GovernanceError("artifact_category_invalid", category)
+        if not effects or not set(effects).issubset(allowed_effects):
+            raise GovernanceError("artifact_effect_invalid", normalized_root)
+        if not _path_within_scope(normalized_root, path_scope):
+            raise GovernanceError("artifact_root_outside_scope", normalized_root)
+        normalized.append(
+            {
+                "root": normalized_root,
+                "category": category,
+                "effects": effects,
+            }
+        )
+    roots = sorted(normalized, key=lambda item: (item["root"], item["category"]))
+    if len({item["root"] for item in roots}) != len(roots):
+        raise GovernanceError("artifact_root_duplicate", "Declare each root once.")
+    return roots
+
+
+def _artifact_root_for_path(
+    path: str,
+    roots: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    matches = [
+        item
+        for item in roots
+        if _path_within_scope(path, [str(item.get("root", ""))])
+    ]
+    return max(matches, key=lambda item: len(str(item["root"]))) if matches else None
+
+
+def _content_sha256(worktree: Path, relative_path: str) -> str | None:
+    target = (worktree.resolve() / relative_path).resolve()
+    try:
+        target.relative_to(worktree.resolve())
+    except ValueError as exc:
+        raise GovernanceError("path_scope_escape", relative_path) from exc
+    if not target.exists():
+        return None
+    if not target.is_file():
+        raise GovernanceError("path_type_unknown", relative_path)
+    return _file_sha256(target)
+
+
+def _protected_scientific_path(path: str) -> bool:
+    normalized = path.replace("\\", "/").strip("/")
+    parts = {part.lower() for part in Path(normalized).parts}
+    suffix = Path(normalized).suffix.lower()
+    return bool(parts.intersection(PROTECTED_SCIENTIFIC_PATH_PARTS)) or (
+        suffix in PROTECTED_SCIENTIFIC_SUFFIXES
+    )
 
 
 def _normalized_exact_task_path(relative_path: str, worktree: Path) -> str:
@@ -307,11 +436,7 @@ def _normalized_path_scope(values: Any) -> list[str]:
         )
     normalized: list[str] = []
     for value in values:
-        raw = _clean(value, "worktree_scope", 300).replace("\\", "/")
-        path = Path(raw)
-        if path.is_absolute() or ".." in path.parts:
-            raise GovernanceError("worktree_scope_invalid", raw)
-        normalized.append(path.as_posix().rstrip("/"))
+        normalized.append(_normalized_scope_prefix(value, "worktree_scope"))
     result = sorted(set(normalized))
     if len(result) != len(normalized):
         raise GovernanceError("worktree_scope_duplicate", ",".join(normalized))
@@ -862,6 +987,25 @@ def _validate_record(record: dict[str, Any]) -> None:
         raise GovernanceError("record_worktree_invalid", "A bound worktree is required.")
     if worktree.get("retirement") not in RETIREMENT_STATES:
         raise GovernanceError("record_retirement_invalid", str(worktree.get("retirement")))
+    if "artifact_roots" in worktree:
+        roots = worktree["artifact_roots"]
+        if not isinstance(roots, list) or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("root"), str)
+            or item.get("category") not in ARTIFACT_CATEGORIES
+            or not isinstance(item.get("effects"), list)
+            for item in roots
+        ):
+            raise GovernanceError("record_artifact_roots_invalid", "Inspect task roots.")
+    for field in ("accepted_artifacts", "baseline_artifacts"):
+        if field in worktree and not isinstance(worktree[field], dict):
+            raise GovernanceError(f"record_{field}_invalid", "Expected a path map.")
+    if "task_cursor" in worktree and (
+        not isinstance(worktree["task_cursor"], int) or worktree["task_cursor"] < 0
+    ):
+        raise GovernanceError("record_task_cursor_invalid", str(worktree["task_cursor"]))
+    if "permit_history" in record and not isinstance(record["permit_history"], list):
+        raise GovernanceError("record_permit_history_invalid", "Expected a list.")
     expected = _record_hash(record)
     if record.get("record_sha256") != expected:
         raise GovernanceError("record_hash_mismatch", "Inspect a fresh record.")
@@ -951,6 +1095,18 @@ class AgentGovernanceLedger:
         record["updated_at"] = _iso(current)
         return _seal(record)
 
+    @staticmethod
+    def _with_expired_permit_history(
+        event_payload: Any,
+        expired_permit: dict[str, Any] | None,
+    ) -> Any:
+        if expired_permit is None:
+            return event_payload
+        return {
+            "operation": event_payload,
+            "expired_permit_finalized": expired_permit,
+        }
+
     def _mutate(
         self,
         task_id: str,
@@ -969,7 +1125,13 @@ class AgentGovernanceLedger:
             self._check_owner(record, token, worktree)
             if current >= datetime.fromisoformat(record["owner"]["lease_expires"]):
                 raise GovernanceError("lease_expired", "Recover or take over before mutation.")
-            result, event_payload = mutation(_json_copy(record))
+            working = _json_copy(record)
+            expired_permit = self._normalize_expired_permit(working, current)
+            result, event_payload = mutation(working)
+            event_payload = self._with_expired_permit_history(
+                event_payload,
+                expired_permit,
+            )
             result = self._finish_mutation(
                 result,
                 event_type,
@@ -1023,16 +1185,32 @@ class AgentGovernanceLedger:
                 "shared_main_path_invalid",
                 "shared_main binds only the canonical main worktree.",
             )
-        path_scope = (
-            _normalized_path_scope(packet["path_scope"])
-            if packet.get("path_scope") is not None
-            else []
-        )
+        raw_roots = packet.get("artifact_roots")
+        if packet.get("path_scope") is not None:
+            path_scope = _normalized_path_scope(packet["path_scope"])
+        elif raw_roots:
+            root_values = [
+                item if isinstance(item, str) else item.get("root", item.get("path"))
+                for item in raw_roots
+            ]
+            path_scope = _normalized_path_scope(root_values)
+        else:
+            path_scope = []
         if worktree_mode == "shared_main" and not path_scope:
             raise GovernanceError(
                 "shared_main_scope_missing",
                 "Declare bounded repository-relative path prefixes.",
             )
+        allowed_effects = {
+            effect
+            for step in steps
+            for effect in step.get("allowed_effects", [])
+        }
+        artifact_roots = _normalized_artifact_roots(
+            raw_roots,
+            path_scope,
+            allowed_effects,
+        )
         token = owner_token or secrets.token_urlsafe(32)
         if len(token) < 16:
             raise GovernanceError("owner_token_weak", "Use a generated private token.")
@@ -1078,6 +1256,16 @@ class AgentGovernanceLedger:
                 "base_fingerprint": identity["fingerprint"],
                 "accepted_task_fingerprint": identity["fingerprint"],
                 "actual_worktree_fingerprint": identity["fingerprint"],
+                "artifact_roots": artifact_roots,
+                "accepted_artifacts": {},
+                "baseline_artifacts": {
+                    path: {
+                        "sha256": _content_sha256(worktree, path),
+                        "exists": _content_sha256(worktree, path) is not None,
+                    }
+                    for path in identity["dirty_paths"]
+                },
+                "task_cursor": 0,
                 "state": "ADMITTED",
                 "outcome": None,
                 "path_dispositions": [],
@@ -1085,6 +1273,7 @@ class AgentGovernanceLedger:
                 "retirement": "PROTECTED",
             },
             "active_permit": None,
+            "permit_history": [],
             "skill_reads": [],
             "learning": None,
             "skill_maintenance": [],
@@ -1482,6 +1671,11 @@ class AgentGovernanceLedger:
                     "rebaseline_current_fingerprint_mismatch",
                     "Recompute the worktree fingerprint before retrying.",
                 )
+            expired_permit = self._normalize_expired_permit(
+                record,
+                current,
+                classify=False,
+            )
             permit = record.get("active_permit")
             if permit:
                 expires_at = permit.get("expires_at")
@@ -1507,6 +1701,7 @@ class AgentGovernanceLedger:
                 "evidence_ref": _clean(evidence_ref, "rebaseline_evidence_ref", 500),
                 "rebaselined_at": _iso(current),
             }
+            payload = self._with_expired_permit_history(payload, expired_permit)
             record = self._finish_mutation(
                 record,
                 "WORKTREE_FINGERPRINT_REBASELINED",
@@ -1581,6 +1776,11 @@ class AgentGovernanceLedger:
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
             self._check_cas(record, expected_revision, expected_record_sha256)
+            expired_permit = self._normalize_expired_permit(
+                record,
+                current,
+                classify=False,
+            )
             if record.get("active_permit"):
                 raise GovernanceError("prepermit_active_permit", task_id)
             worktree = record.get("worktree")
@@ -1610,11 +1810,13 @@ class AgentGovernanceLedger:
             }:
                 raise GovernanceError("prepermit_prior_write_event_missing", values["prior_event"])
             previous_fingerprint = worktree["accepted_task_fingerprint"]
-            worktree["dirty_paths"] = identity["dirty_paths"]
-            worktree["fingerprint"] = identity["fingerprint"]
-            worktree["accepted_task_fingerprint"] = identity["fingerprint"]
-            worktree["actual_worktree_head"] = identity["head_sha"]
-            worktree["actual_worktree_fingerprint"] = identity["fingerprint"]
+            accepted_head = worktree["accepted_task_head"]
+            self._record_accepted_progress(
+                record,
+                identity,
+                [normalized_path],
+                permit=expired_permit,
+            )
             payload = {
                 "operation": "reconcile-prepermit-task-file",
                 "file_class": file_class,
@@ -1630,7 +1832,7 @@ class AgentGovernanceLedger:
                 "previous_accepted_fingerprint": previous_fingerprint,
                 "accepted_fingerprint": identity["fingerprint"],
                 "actual_fingerprint": identity["fingerprint"],
-                "accepted_head_preserved": worktree["accepted_task_head"],
+                "accepted_head_preserved": accepted_head,
                 "owner_only_delta": 0,
                 "external_or_unknown_delta": 0,
                 "mixed_delta": 0,
@@ -1639,6 +1841,7 @@ class AgentGovernanceLedger:
                 "authorization_ref": _clean(authorization_ref, "prepermit_authorization_ref", 300),
                 "prior_revision": expected_revision,
             }
+            payload = self._with_expired_permit_history(payload, expired_permit)
             record = self._finish_mutation(
                 record,
                 "PREPERMIT_TASK_FILE_RECONCILED",
@@ -1678,6 +1881,11 @@ class AgentGovernanceLedger:
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
             self._check_cas(record, expected_revision, expected_record_sha256)
+            expired_permit = self._normalize_expired_permit(
+                record,
+                current,
+                classify=False,
+            )
             if record.get("state") == "CLOSED":
                 raise GovernanceError("scope_amendment_closed_task", task_id)
             if record.get("state") not in {"PLANNED", "CONFIRMED", "ACTIVE"}:
@@ -1706,6 +1914,8 @@ class AgentGovernanceLedger:
                 )
             if identity["fingerprint"] != expected_actual:
                 raise GovernanceError("scope_amendment_actual_fingerprint_mismatch", task_id)
+            if _protected_scientific_path(normalized_path):
+                raise GovernanceError("scope_amendment_protected_path", normalized_path)
             dirty_paths = {
                 Path(value.replace("\\", "/")).as_posix().strip("/")
                 for value in identity["dirty_paths"]
@@ -1727,6 +1937,13 @@ class AgentGovernanceLedger:
             before_scope = list(existing_scope)
             after_scope = [*before_scope, normalized_path]
             worktree["path_scope"] = after_scope
+            if dirty_paths:
+                self._record_accepted_progress(
+                    record,
+                    identity,
+                    [normalized_path],
+                    permit=expired_permit,
+                )
             payload = {
                 "operation": "amend-task-path-scope",
                 "exact_path": normalized_path,
@@ -1740,6 +1957,9 @@ class AgentGovernanceLedger:
                 "accepted_fingerprint": expected_accepted,
                 "actual_fingerprint": expected_actual,
                 "observed_dirty_paths": sorted(dirty_paths),
+                "accepted_task_fingerprint_after": worktree[
+                    "accepted_task_fingerprint"
+                ],
                 "administrator_confirmation": confirmation,
                 "authorization_ref": _clean(
                     authorization_ref,
@@ -1748,6 +1968,7 @@ class AgentGovernanceLedger:
                 ),
                 "prior_revision": expected_revision,
             }
+            payload = self._with_expired_permit_history(payload, expired_permit)
             record = self._finish_mutation(
                 record,
                 "TASK_PATH_SCOPE_AMENDED",
@@ -1798,6 +2019,11 @@ class AgentGovernanceLedger:
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
             self._check_cas(record, expected_revision, expected_record_sha256)
+            expired_permit = self._normalize_expired_permit(
+                record,
+                current,
+                classify=False,
+            )
             if record.get("active_permit"):
                 raise GovernanceError("head_rebind_active_permit", task_id)
             worktree = record.get("worktree")
@@ -1852,6 +2078,7 @@ class AgentGovernanceLedger:
                 "ancestry_proof": "merge-base-is-ancestor",
                 "integration_commit": values["expected_new_head"],
             }
+            payload = self._with_expired_permit_history(payload, expired_permit)
             record = self._finish_mutation(
                 record,
                 "WORKTREE_HEAD_REBOUND",
@@ -1880,6 +2107,11 @@ class AgentGovernanceLedger:
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
             self._check_cas(record, expected_revision, expected_record_sha256)
+            expired_permit = self._normalize_expired_permit(
+                record,
+                current,
+                classify=False,
+            )
             if record.get("active_permit"):
                 raise GovernanceError("history_reconcile_active_permit", task_id)
             completed: dict[str, dict[str, Any]] = {}
@@ -1927,6 +2159,7 @@ class AgentGovernanceLedger:
                     300,
                 ),
             }
+            payload = self._with_expired_permit_history(payload, expired_permit)
             record = self._finish_mutation(
                 record,
                 "COMPLETED_HISTORY_RECONCILED",
@@ -1971,58 +2204,202 @@ class AgentGovernanceLedger:
     def _record_accepted_progress(
         record: dict[str, Any],
         identity: dict[str, Any],
+        accepted_paths: list[str] | None = None,
+        permit: dict[str, Any] | None = None,
+        accepted_at: datetime | None = None,
     ) -> None:
         worktree = record["worktree"]
+        prior_head = worktree.get("accepted_task_head", worktree.get("head_sha"))
+        prior_fingerprint = worktree.get(
+            "accepted_task_fingerprint",
+            worktree.get("fingerprint"),
+        )
+        paths = sorted(set(accepted_paths or []))
+        artifacts = worktree.setdefault("accepted_artifacts", {})
+        roots = worktree.get("artifact_roots", [])
+        task_cursor = int(worktree.get("task_cursor", 0))
+        next_cursor = task_cursor + 1 if (
+            paths
+            or identity["head_sha"] != prior_head
+            or identity["fingerprint"] != prior_fingerprint
+        ) else task_cursor
+        for path in paths:
+            digest = _content_sha256(Path(worktree["path"]), path)
+            root = _artifact_root_for_path(path, roots)
+            effects = sorted(set((permit or {}).get("effects", [])))
+            artifacts[path] = {
+                "path": path,
+                "sha256": digest,
+                "exists": digest is not None,
+                "category": (root or {}).get("category", "artifact"),
+                "effects": effects,
+                "permit_id": (permit or {}).get("permit_id"),
+                "accepted_cursor": next_cursor,
+                "accepted_at": _iso(accepted_at or _now()),
+            }
         for key in ("head_sha", "dirty_paths", "fingerprint"):
             worktree[key] = identity[key]
         worktree["accepted_task_head"] = identity["head_sha"]
         worktree["accepted_task_fingerprint"] = identity["fingerprint"]
         worktree["actual_worktree_head"] = identity["head_sha"]
         worktree["actual_worktree_fingerprint"] = identity["fingerprint"]
+        worktree["task_cursor"] = next_cursor
+
+    def _classify_task_progress(
+        self,
+        record: dict[str, Any],
+        permit: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        worktree = record["worktree"]
+        worktree_path = Path(worktree["path"])
+        actual = _worktree_identity(worktree_path)
+        _validate_worktree_binding(self.root, actual)
+        accepted_head = worktree.get("accepted_task_head", worktree["head_sha"])
+        accepted_fingerprint = worktree.get(
+            "accepted_task_fingerprint",
+            worktree["fingerprint"],
+        )
+        if actual["head_sha"] != accepted_head and not _is_ancestor(
+            worktree_path,
+            accepted_head,
+            actual["head_sha"],
+        ):
+            raise GovernanceError("external_or_owner_change", actual["head_sha"])
+        changed = set(
+            _changed_paths_since(worktree_path, accepted_head, actual["head_sha"])
+        )
+        changed.update(actual["dirty_paths"])
+        accepted_artifacts = worktree.get("accepted_artifacts", {})
+        baseline_artifacts = worktree.get("baseline_artifacts", {})
+        scope = worktree.get("path_scope", [])
+        known_lineage_paths = set(accepted_artifacts) | set(baseline_artifacts)
+        if scope:
+            in_scope = sorted(
+                path for path in changed if _path_within_scope(path, scope)
+            )
+        else:
+            in_scope = sorted(path for path in changed if path in known_lineage_paths)
+        out_of_scope = sorted(changed.difference(in_scope))
+        if changed and not scope:
+            if out_of_scope:
+                raise GovernanceError(
+                    "unknown_or_mixed_change",
+                    "task scope is required for new task paths",
+                )
+        if out_of_scope:
+            code = "unknown_or_mixed_change" if in_scope else "external_or_owner_change"
+            raise GovernanceError(code, ",".join(out_of_scope))
+        authorized_effects = set((permit or {}).get("effects", []))
+        task_paths: list[str] = []
+        known_paths: list[str] = []
+        unknown_paths: list[str] = []
+        for path in in_scope:
+            digest = _content_sha256(worktree_path, path)
+            accepted = accepted_artifacts.get(path)
+            baseline = baseline_artifacts.get(path)
+            if baseline and baseline.get("sha256") == digest:
+                known_paths.append(path)
+                continue
+            if accepted and accepted.get("sha256") == digest:
+                known_paths.append(path)
+                continue
+            if not scope:
+                unknown_paths.append(path)
+                continue
+            if _protected_scientific_path(path):
+                unknown_paths.append(path)
+                continue
+            if not authorized_effects:
+                unknown_paths.append(path)
+                continue
+            root = _artifact_root_for_path(path, worktree.get("artifact_roots", []))
+            if worktree.get("artifact_roots") and root is None:
+                accepted_effects = set((accepted or {}).get("effects", []))
+                if not accepted_effects.intersection(authorized_effects):
+                    unknown_paths.append(path)
+                    continue
+            if root and not authorized_effects.intersection(root.get("effects", [])):
+                unknown_paths.append(path)
+                continue
+            if digest is None and "delete" not in authorized_effects:
+                unknown_paths.append(path)
+                continue
+            task_paths.append(path)
+        if unknown_paths:
+            code = "unknown_or_mixed_change" if task_paths else "external_or_owner_change"
+            raise GovernanceError(code, ",".join(sorted(unknown_paths)))
+        return {
+            "identity": actual,
+            "previous_accepted_head": accepted_head,
+            "previous_accepted_fingerprint": accepted_fingerprint,
+            "changed_paths": sorted(changed),
+            "task_owned_paths": sorted(task_paths),
+            "known_paths": sorted(known_paths),
+        }
 
     def _classify_expired_permit_progress(
         self,
         record: dict[str, Any],
         permit: dict[str, Any],
     ) -> dict[str, Any]:
-        worktree = record["worktree"]
-        actual = _worktree_identity(Path(worktree["path"]))
-        _validate_worktree_binding(self.root, actual)
-        accepted_head = worktree.get("accepted_task_head", worktree["head_sha"])
-        accepted_fingerprint = worktree.get(
-            "accepted_task_fingerprint", worktree["fingerprint"]
-        )
-        if actual["head_sha"] != accepted_head and not _is_ancestor(
-            Path(worktree["path"]), accepted_head, actual["head_sha"]
+        progress = self._classify_task_progress(record, permit)
+        actual = progress["identity"]
+        if progress["changed_paths"] or (
+            actual["head_sha"] != progress["previous_accepted_head"]
+            or actual["fingerprint"] != progress["previous_accepted_fingerprint"]
         ):
-            raise GovernanceError("external_or_owner_change", actual["head_sha"])
-        changed = set(
-            _changed_paths_since(
-                Path(worktree["path"]),
-                accepted_head,
-                actual["head_sha"],
+            self._record_accepted_progress(
+                record,
+                actual,
+                progress["task_owned_paths"],
+                permit=permit,
             )
-        )
-        changed.update(actual["dirty_paths"])
-        scope = worktree.get("path_scope", [])
-        in_scope = sorted(path for path in changed if _path_within_scope(path, scope))
-        out_of_scope = sorted(changed.difference(in_scope))
-        if changed and not scope:
-            raise GovernanceError("unknown_or_mixed_change", "task scope is required")
-        if in_scope and out_of_scope:
-            raise GovernanceError("unknown_or_mixed_change", ",".join(out_of_scope))
-        if out_of_scope:
-            raise GovernanceError("external_or_owner_change", ",".join(out_of_scope))
-        self._record_accepted_progress(record, actual)
         return {
             "classification": "TASK_OWNED_AUTHORIZED",
             "permit_id": permit["permit_id"],
-            "previous_accepted_head": accepted_head,
-            "previous_accepted_fingerprint": accepted_fingerprint,
+            "previous_accepted_head": progress["previous_accepted_head"],
+            "previous_accepted_fingerprint": progress[
+                "previous_accepted_fingerprint"
+            ],
             "actual_head": actual["head_sha"],
             "actual_fingerprint": actual["fingerprint"],
-            "changed_paths": sorted(changed),
+            "changed_paths": progress["changed_paths"],
+            "task_owned_paths": progress["task_owned_paths"],
+            "known_paths": progress["known_paths"],
         }
+
+    def _normalize_expired_permit(
+        self,
+        record: dict[str, Any],
+        current: datetime,
+        classify: bool = True,
+    ) -> dict[str, Any] | None:
+        permit = record.get("active_permit")
+        if not permit:
+            return None
+        try:
+            expires_at = datetime.fromisoformat(str(permit["expires_at"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GovernanceError("permit_expiry_invalid", str(permit)) from exc
+        if current < expires_at:
+            return None
+        progress = (
+            self._classify_expired_permit_progress(record, permit)
+            if classify
+            else None
+        )
+        history_entry = {
+            **_json_copy(permit),
+            "status": "EXPIRED",
+            "expired_at": _iso(current),
+            "progress": progress,
+        }
+        record.setdefault("permit_history", []).append(history_entry)
+        record["active_permit"] = None
+        if record.get("state") == "ACTIVE":
+            record["state"] = "CONFIRMED"
+        record["worktree"]["state"] = "ADMITTED"
+        return history_entry
 
     def permit(
         self,
@@ -2129,6 +2506,12 @@ class AgentGovernanceLedger:
         def mutate(record: dict[str, Any]) -> tuple[dict[str, Any], Any]:
             permit = record.get("active_permit")
             if not permit or permit.get("permit_id") != permit_id:
+                if any(
+                    item.get("permit_id") == permit_id
+                    and item.get("status") == "EXPIRED"
+                    for item in record.get("permit_history", [])
+                ):
+                    raise GovernanceError("permit_expired", "Issue a fresh permit.")
                 raise GovernanceError("permit_invalid", "Use the current permit ID.")
             expires_at = datetime.fromisoformat(permit["expires_at"])
             if current >= expires_at:
@@ -2175,6 +2558,8 @@ class AgentGovernanceLedger:
                 for item in record["plan"]["steps"]
                 if item["step_id"] == permit["step_id"]
             )
+            progress = self._classify_task_progress(record, permit)
+            identity = progress["identity"]
             if terminal_status not in STEP_COMPLETION_STATES:
                 raise GovernanceError("step_terminal_status_invalid", terminal_status)
             require_pass = terminal_status == "DONE"
@@ -2182,6 +2567,7 @@ class AgentGovernanceLedger:
                 evidence,
                 step["acceptance_ids"],
                 require_pass=require_pass,
+                worktree=Path(record["worktree"]["path"]),
             )
             if terminal_status in {"BLOCKED", "CANCELLED"}:
                 if not failed_gate or not next_action:
@@ -2208,11 +2594,26 @@ class AgentGovernanceLedger:
                 if target is None or target["status"] != "TODO":
                     raise GovernanceError("next_step_invalid", str(next_step_id))
                 target["status"] = "IN_PROGRESS"
-            identity = _worktree_identity(Path(record["worktree"]["path"]))
-            _validate_worktree_binding(self.root, identity)
-            for key in ("path", "common_dir", "branch", "detached"):
-                record["worktree"][key] = identity[key]
-            self._record_accepted_progress(record, identity)
+            self._record_accepted_progress(
+                record,
+                identity,
+                progress["task_owned_paths"],
+                permit=permit,
+                accepted_at=current,
+            )
+            record.setdefault("permit_history", []).append(
+                {
+                    **_json_copy(permit),
+                    "status": "CONSUMED",
+                    "consumed_at": _iso(current),
+                    "progress": {
+                        "classification": "TASK_OWNED_AUTHORIZED",
+                        "changed_paths": progress["changed_paths"],
+                        "task_owned_paths": progress["task_owned_paths"],
+                        "known_paths": progress["known_paths"],
+                    },
+                }
+            )
             record["active_permit"] = None
             return record, {
                 "step_id": step["step_id"],
@@ -2239,6 +2640,7 @@ class AgentGovernanceLedger:
         evidence: list[dict[str, Any]],
         acceptance_ids: list[str],
         require_pass: bool = True,
+        worktree: Path | None = None,
     ) -> list[dict[str, Any]]:
         if not evidence:
             raise GovernanceError("evidence_missing", "Bind typed evidence.")
@@ -2261,9 +2663,10 @@ class AgentGovernanceLedger:
             if supplied_hash:
                 if not HEX_SHA256_RE.fullmatch(supplied_hash):
                     raise GovernanceError("evidence_hash_invalid", locator)
-                path = (self.root / locator).resolve()
+                evidence_root = (worktree or self.root).resolve()
+                path = (evidence_root / locator).resolve()
                 try:
-                    path.relative_to(self.root)
+                    path.relative_to(evidence_root)
                 except ValueError as exc:
                     raise GovernanceError("evidence_path_escape", locator) from exc
                 if not path.is_file() or _file_sha256(path) != supplied_hash:
