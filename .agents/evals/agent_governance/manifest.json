@@ -4,10 +4,10 @@
   "task_definition": "tasks.json",
   "judge": "judge.py",
   "runner": "run_regression.py",
-  "task_sha256": "82d696eaf3bb0812d0059abae1fe2c5476c792c3d6fc417e56b13f39ec81d233",
+  "task_sha256": "e3f6e7adb4530c41a9a48b28bce6702c7927d2e6b6a24bcc2f62c3189384da51",
   "judge_sha256": "3ef4b59fce9a7a543821f403c27a1b9e5df447a4794f45a8de55237fb21c8935",
   "runner_sha256": "b8ca02a25bad68d1d3ef787ac9d1f6d497d11de2bf9f5c2eeb956ae83c5b0525",
-  "validator_sha256": "ad5704d5438b29d8c6a692577bfe6f2507b9cb835009783e405eb5b38075c41f",
+  "validator_sha256": "c9fb1352157e0e441fe76b766b76e7ea6c6b3f983aebc3e62567a2b0b95afc68",
   "live_agent_suite": {
     "task_definition": "live_tasks.json",
     "trace_schema": "live_trace_schema.json",
@@ -24,12 +24,12 @@
     "schema_version": "pig.git-tracked-identity-set.v1",
     "git_reference": "HEAD",
     "blob_oids": {
-      ".agents/evals/agent_governance/tasks.json": "8ec15c76d514953fa458f7d7b559cf6c77546635",
+      ".agents/evals/agent_governance/tasks.json": "58c0030c3670d6be84609b404da34079977dcee3",
       ".agents/evals/agent_governance/judge.py": "953ada883726e408fa29c85afebbaa3f701e9143",
       ".agents/evals/agent_governance/run_regression.py":
         "b114f8613be64cad27faf06ba3e2a31b2b006c40",
       ".agents/skills/project-state-steward/scripts/validate_governance_contracts.py":
-        "c94cefabc9fc746cebe804681e8b811d6f990026"
+        "85b209a193c0d84b168c702d069c711a81f891f4"
     }
   },
   "minimum_runs": 3,

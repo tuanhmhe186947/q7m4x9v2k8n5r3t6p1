@@ -1,0 +1,22 @@
+{
+  "authorities": [
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "sha256": "f19ab7e610d6ffc6d933aa4a885336bda093a0b707a13161c458810ce9a50f5a",
+      "section_sha256": "f19ab7e610d6ffc6d933aa4a885336bda093a0b707a13161c458810ce9a50f5a",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T14:00:00+07:00"
+    },
+    {
+      "scope": "governance.current_state",
+      "locator": ".agents/memory/02_CURRENT_DECISION.md",
+      "selector": "FULL_FILE",
+      "sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "section_sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T14:00:00+07:00"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "dirty_worktree": true,
   "dirty_worktree_fingerprint": "5ed88b805cf9c49697106b1eb86ce5fd2dcfeb27837db6617eb5a89f2060c7fa",
-  "evaluated_at": "2026-08-14T07:06:02.750616+00:00",
+  "evaluated_at": "2026-08-14T07:03:43.115450+00:00",
   "git_sha": "71f93b9e024069fcbac2385bde01dad7cb5d0ca5",
   "input_responses": ".agents\\evals\\agent_governance\\fixtures\\pass_responses.json",
   "manifest": {

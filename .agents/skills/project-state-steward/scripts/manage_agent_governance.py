@@ -2012,6 +2012,72 @@ class AgentGovernanceLedger:
 
         return self._mutate(task_id, event_type="PLAN_AMENDED", mutation=mutate, **owner)
 
+    def refresh_authority_receipts(
+        self,
+        task_id: str,
+        receipt_packet: dict[str, Any],
+        confirmation: str,
+        authorization_ref: str,
+        **owner: Any,
+    ) -> dict[str, Any]:
+        """Refresh existing authority receipts after explicit user confirmation.
+
+        This transition intentionally cannot alter task scope, plans, skills, or
+        permit effects.  It exists only for a task whose own bounded work has
+        updated an already-declared authority document.
+        """
+        if confirmation != "ALLOW_EXPLICIT_AUTHORITY_RECEIPT_REFRESH":
+            raise GovernanceError("authority_refresh_confirmation_missing", confirmation)
+        if not isinstance(receipt_packet, dict):
+            raise GovernanceError("authority_refresh_packet_invalid", task_id)
+        supplied = receipt_packet.get("authorities")
+        if not isinstance(supplied, list):
+            raise GovernanceError("authority_refresh_receipts_missing", task_id)
+        authorization = _clean(
+            authorization_ref,
+            "authority_refresh_authorization_ref",
+            300,
+        )
+
+        def mutate(record: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+            if record["state"] == "CLOSED":
+                raise GovernanceError("closed_task_immutable", task_id)
+            if record.get("active_permit"):
+                raise GovernanceError("authority_refresh_active_permit", task_id)
+            current_pairs = {
+                (item["scope"], item["locator"])
+                for item in record["authorities"]
+            }
+            supplied_pairs = {
+                (str(item.get("scope", "")), str(item.get("locator", "")))
+                for item in supplied
+                if isinstance(item, dict)
+            }
+            if supplied_pairs != current_pairs or len(supplied_pairs) != len(supplied):
+                raise GovernanceError(
+                    "authority_refresh_scope_change_forbidden",
+                    "Refresh exactly the existing authority scopes and locators.",
+                )
+            refreshed = _authority_receipts(self.root, supplied)
+            old_digest = record["authority_digest"]
+            new_digest = _digest(refreshed)
+            record["authorities"] = refreshed
+            record["authority_digest"] = new_digest
+            return record, {
+                "operation": "explicit-authority-receipt-refresh",
+                "old_authority_digest": old_digest,
+                "new_authority_digest": new_digest,
+                "administrator_confirmation": confirmation,
+                "authorization_ref": authorization,
+            }
+
+        return self._mutate(
+            task_id,
+            event_type="AUTHORITY_RECEIPTS_REFRESHED",
+            mutation=mutate,
+            **owner,
+        )
+
     def review_outcome(
         self,
         task_id: str,
@@ -2571,6 +2637,12 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("--plan-packet", required=True, type=Path)
     amend.add_argument("--reason", required=True)
     _owner_arguments(amend)
+    refresh = commands.add_parser("refresh-authority-receipts")
+    refresh.add_argument("--task-id", required=True)
+    refresh.add_argument("--receipt-packet", required=True, type=Path)
+    refresh.add_argument("--confirmation", required=True)
+    refresh.add_argument("--authorization-ref", required=True)
+    _owner_arguments(refresh)
     review = commands.add_parser("review-outcome")
     review.add_argument("--task-id", required=True)
     review.add_argument("--outcome-packet", required=True, type=Path)
@@ -2747,6 +2819,14 @@ def main(argv: list[str] | None = None) -> int:
                     args.task_id,
                     steps,
                     args.reason,
+                    **owner,
+                )
+            elif args.command == "refresh-authority-receipts":
+                result = ledger.refresh_authority_receipts(
+                    args.task_id,
+                    _load_payload(args.receipt_packet),
+                    args.confirmation,
+                    args.authorization_ref,
                     **owner,
                 )
             elif args.command == "review-outcome":

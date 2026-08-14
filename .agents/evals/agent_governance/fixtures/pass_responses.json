@@ -17,6 +17,7 @@
         "19",
         "21",
         "AGENTS.md",
+        "agent.governance",
         "project-state-steward"
       ],
       "selected_skills": [
@@ -91,7 +92,10 @@
         "confirm_revision_and_block_hash",
         "confirm_expected_worktree",
         "record_authorization_reference",
-        "admin_takeover_only_after_user_authorization"
+        "admin_takeover_only_after_user_authorization",
+        "integrate_verified_milestone_immediately",
+        "record_main_delivery_before_next_milestone",
+        "limit_exclusive_worktree_to_isolation_or_concurrency"
       ],
       "halt": true,
       "claim_status": "HOLD_INCOMPLETE_LINEAGE",

@@ -14,6 +14,22 @@ generated views are checked by the governance validator. Simple read-only questi
 not create a task; fixture-only passes, apologies, clean worktrees, and
 unmerged branches are not completion evidence.
 
+## Progressive delivery and worktree use
+
+- `main` is the continuous delivery branch. For ordinary linear work, use the
+  admitted `shared_main` mode and commit each verified bounded milestone to
+  local `main` immediately; that commit is the integration for the milestone.
+- Use an exclusive worktree only when concurrent owner work or a concrete
+  isolation risk requires it. Integrate each verified milestone into `main`
+  before starting another implementation milestone; do not accumulate a queue
+  of completed worktree changes for a later reconciliation task.
+- Outcome review and task closure record evidence after delivery; they are not
+  a reason to delay a verified integration. Create a reconciliation task only
+  for a real conflict, mixed ownership, or failed integration—not as routine
+  end-of-work bookkeeping.
+- Keep checks proportional to the changed milestone. Do not repeatedly reopen
+  previously accepted steps unless new evidence invalidates their authority.
+
 Before working on this repository, always read these files first:
 
 1. `.agents/memory/01_PROJECT_MEMORY_SHORT.md`

@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "step_id": "P-1",
+      "summary": "Encode progressive-delivery rules, evaluator coverage, and its pinned fixture contract.",
+      "acceptance_ids": ["AC-1", "AC-2"],
+      "allowed_effects": ["edit", "test", "integrate"]
+    },
+    {
+      "step_id": "P-2",
+      "summary": "Revalidate the integrated governance correction on local main and close it with evidence.",
+      "acceptance_ids": ["AC-3"],
+      "allowed_effects": ["test", "integrate"]
+    }
+  ]
+}

@@ -1062,7 +1062,7 @@ def _check_eval_harness(root: Path) -> list[str]:
                 )
     tasks = _load_json(suite / "tasks.json").get("tasks", [])
     task_ids = {task.get("id") for task in tasks}
-    expected_ids = {f"AR-{index:03d}" for index in range(1, 26)}
+    expected_ids = {f"AR-{index:03d}" for index in range(1, 26)} | {"AR-036"}
     if task_ids != expected_ids:
         errors.append("eval_task_set_mismatch")
     pass_report = _load_json(suite / "reports" / "fixture_self_test_20260731.json")
@@ -1071,7 +1071,7 @@ def _check_eval_harness(root: Path) -> list[str]:
     for metric in ("pass_rate", "pass@1", "pass@3", "pass^3"):
         if pass_metrics.get(metric) != 1.0:
             errors.append(f"eval_pass_report_metric_failed:{metric}")
-    if pass_metrics.get("runs") != 3 or pass_metrics.get("task_count") != 25:
+    if pass_metrics.get("runs") != 3 or pass_metrics.get("task_count") != 26:
         errors.append("eval_pass_report_scope_mismatch")
     if not pass_report.get("dirty_worktree_fingerprint"):
         errors.append("eval_pass_report_missing_worktree_fingerprint")

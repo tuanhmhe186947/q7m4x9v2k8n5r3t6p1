@@ -1,0 +1,82 @@
+{
+  "task_id": "PROGRESSIVE-DELIVERY-20260814-01",
+  "title": "Make progressive delivery the default worktree operating contract",
+  "task_class": "governance_implementation",
+  "risk_class": "medium",
+  "authorities": [
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "sha256": "46e37859c8d538904fb576ca5ed65997f1a4947591cb0653817da9f12e02da2c",
+      "section_sha256": "46e37859c8d538904fb576ca5ed65997f1a4947591cb0653817da9f12e02da2c",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T13:30:00+07:00"
+    },
+    {
+      "scope": "governance.current_state",
+      "locator": ".agents/memory/02_CURRENT_DECISION.md",
+      "selector": "FULL_FILE",
+      "sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "section_sha256": "53f523e1c2cce65ae06337ca8d469d5adbe89f2eaeb3d96d7fbdd9388a62424e",
+      "status": "CURRENT",
+      "read_at": "2026-08-14T13:30:00+07:00"
+    }
+  ],
+  "acceptance": [
+    {
+      "acceptance_id": "AC-1",
+      "text": "The governing rules require immediate main delivery after each verified bounded milestone."
+    },
+    {
+      "acceptance_id": "AC-2",
+      "text": "Exclusive worktrees are limited to real isolation or concurrency needs and cannot accumulate verified work."
+    },
+    {
+      "acceptance_id": "AC-3",
+      "text": "Regression coverage detects late-reconciliation behavior and focused governance tests pass."
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "agent-architecture-audit",
+      "skill_sha256": "9b75d0e17edf80a55ad0a723aeb451ef715ea51d56ded92b0f05d43ee4bf7b1b",
+      "role": "reasoning",
+      "purpose": "Convert the user-reported workflow failure into a small enforceable governance correction.",
+      "selection_mode": "explicit"
+    }
+  ],
+  "non_actions": [
+    "Do not mutate reviewed data, source media, splits, feature authorities, or model artifacts.",
+    "Do not run video decode, detection, tracking, crop regeneration, GPU, or training.",
+    "Do not reset, clean, stash, delete, or stage the pre-existing .codex temporary runners.",
+    "Do not push to origin."
+  ],
+  "risks": [
+    "Do not weaken ownership, evidence, or safety gates while removing administrative delay.",
+    "Do not convert a policy-only correction into an unrelated manager redesign."
+  ],
+  "worktree_mode": "shared_main",
+  "path_scope": [
+    "AGENTS.md",
+    "docs/governance",
+    ".agents/evals/agent_governance",
+    "tests/test_agent_governance_v2.py"
+  ],
+  "plan": {
+    "steps": [
+      {
+        "step_id": "P-1",
+        "summary": "Encode progressive-delivery and limited-worktree rules with matching regression coverage.",
+        "acceptance_ids": ["AC-1", "AC-2"],
+        "allowed_effects": ["edit", "test"]
+      },
+      {
+        "step_id": "P-2",
+        "summary": "Run focused governance validation and integrate the verified correction directly on local main.",
+        "acceptance_ids": ["AC-3"],
+        "allowed_effects": ["test", "integrate"]
+      }
+    ]
+  }
+}

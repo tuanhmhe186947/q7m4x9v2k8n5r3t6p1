@@ -13,8 +13,8 @@ Passing the legacy validator therefore gives false assurance about behavior.
 V2 makes the execution loop machine-enforced:
 
 ```text
-retrieve -> confirm plan -> permit effect -> verify -> review outcome
-         -> integrate or extract evidence -> learn -> regress -> retire
+retrieve -> confirm plan -> permit bounded effect -> verify -> deliver
+         -> record outcome -> learn -> regress -> retire
 ```
 
 ## Compatibility boundary
@@ -88,6 +88,23 @@ Session recovery rotates ownership only. It retains the base and accepted
 provenance, worktree, append-only history, and current logical checkpoint.
 Release-candidate and canonical-integration validation remain separate gates,
 including destination owner-work checks.
+
+## Progressive delivery
+
+`main` is the delivery spine, not an end-of-task destination. In `shared_main`
+mode, every verified bounded implementation milestone is committed directly to
+local `main` before the next implementation milestone starts; the commit and
+the following `advance` record are its integration evidence.
+
+An exclusive worktree is permitted only for actual concurrent-owner work or a
+concrete isolation risk. Its verified milestone must be integrated into `main`
+and revalidated before the next implementation milestone. It must never become
+a queue of completed changes awaiting a separate reconciliation task.
+
+`review-outcome` and `close` record the delivered result; they do not defer or
+authorize ordinary integration. Reconciliation is reserved for a real merge
+conflict, mixed ownership, or failed integration. Validation remains bounded to
+the changed milestone unless new evidence invalidates earlier accepted work.
 
 ## Evidence contract
 

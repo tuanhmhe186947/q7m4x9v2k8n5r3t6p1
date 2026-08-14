@@ -833,6 +833,125 @@ def test_terminal_plan_requires_amendment_before_new_effect(
     assert amended["plan_confirmation"] is None
 
 
+def test_authority_receipt_refresh_requires_exact_confirmation(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    with pytest.raises(manager.GovernanceError, match="authority_refresh_confirmation_missing"):
+        ledger.refresh_authority_receipts(
+            "REFORM-20260813-01",
+            {"authorities": record["authorities"]},
+            "WRONG_CONFIRMATION",
+            "user-request:test",
+            now=NOW,
+            **owner(record, project),
+        )
+
+
+def test_authority_receipt_refresh_rejects_stale_or_changed_scope(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    stale = [dict(record["authorities"][0])]
+    stale[0]["sha256"] = "0" * 64
+    stale[0]["section_sha256"] = "0" * 64
+    with pytest.raises(manager.GovernanceError, match="authority_hash_mismatch"):
+        ledger.refresh_authority_receipts(
+            "REFORM-20260813-01",
+            {"authorities": stale},
+            "ALLOW_EXPLICIT_AUTHORITY_RECEIPT_REFRESH",
+            "user-request:test",
+            now=NOW,
+            **owner(record, project),
+        )
+    changed = [dict(record["authorities"][0])]
+    changed[0]["locator"] = "README.md"
+    with pytest.raises(manager.GovernanceError, match="authority_refresh_scope_change_forbidden"):
+        ledger.refresh_authority_receipts(
+            "REFORM-20260813-01",
+            {"authorities": changed},
+            "ALLOW_EXPLICIT_AUTHORITY_RECEIPT_REFRESH",
+            "user-request:test",
+            now=NOW,
+            **owner(record, project),
+        )
+
+
+def test_authority_receipt_refresh_updates_only_receipts_and_digest(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    before_plan = json.loads(json.dumps(record["plan"]))
+    before_skills = json.loads(json.dumps(record["skills"]))
+    authority = project / ".agents" / "memory" / "03_PROJECT_RULES.md"
+    authority.write_text("# Rules\n\nRefreshed authority.\n", encoding="utf-8")
+    refreshed_receipt = dict(record["authorities"][0])
+    refreshed_receipt["sha256"] = sha256(authority)
+    refreshed_receipt["section_sha256"] = sha256(authority)
+    refreshed = ledger.refresh_authority_receipts(
+        "REFORM-20260813-01",
+        {"authorities": [refreshed_receipt]},
+        "ALLOW_EXPLICIT_AUTHORITY_RECEIPT_REFRESH",
+        "user-request:test-authority-refresh",
+        now=NOW,
+        **owner(record, project),
+    )
+    assert refreshed["authorities"] == [refreshed_receipt]
+    assert refreshed["authority_digest"] != record["authority_digest"]
+    assert refreshed["plan"] == before_plan
+    assert refreshed["skills"] == before_skills
+    assert refreshed["active_permit"] is None
+    event = refreshed["events"][-1]
+    assert event["event_type"] == "AUTHORITY_RECEIPTS_REFRESHED"
+    assert event["payload"]["old_authority_digest"] == record["authority_digest"]
+    assert event["payload"]["new_authority_digest"] == refreshed["authority_digest"]
+
+
+def test_authority_receipt_refresh_rejects_active_permit(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    with pytest.raises(manager.GovernanceError, match="authority_refresh_active_permit"):
+        ledger.refresh_authority_receipts(
+            "REFORM-20260813-01",
+            {"authorities": record["authorities"]},
+            "ALLOW_EXPLICIT_AUTHORITY_RECEIPT_REFRESH",
+            "user-request:test-active-permit",
+            now=NOW,
+            **owner(record, project),
+        )
+
+
+def test_amend_plan_does_not_refresh_authority_receipts(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    authority = project / ".agents" / "memory" / "03_PROJECT_RULES.md"
+    authority.write_text("# Rules\n\nDrifted authority.\n", encoding="utf-8")
+    amended = ledger.amend_plan(
+        "REFORM-20260813-01",
+        packet(project)["plan"]["steps"],
+        "Plan-only amendment.",
+        now=NOW,
+        **owner(record, project),
+    )
+    assert amended["authorities"] == record["authorities"]
+    assert amended["authority_digest"] == record["authority_digest"]
+
+
 def test_outcome_review_requires_every_dirty_path_disposition(
     manager: ModuleType,
     project: Path,
@@ -1830,3 +1949,17 @@ def test_synthetic_multi_commit_progress_needs_no_manual_rebaseline(
         **owner(record, project),
     )
     assert record["worktree"]["base_head"] != record["worktree"]["accepted_task_head"]
+
+
+def test_progressive_delivery_contract_forbids_late_reconciliation() -> None:
+    agent_rules = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    protocol = (
+        ROOT / "docs" / "governance" / "AGENT_GOVERNANCE_V2.md"
+    ).read_text(encoding="utf-8")
+    normalized_protocol = " ".join(protocol.split())
+
+    assert "`main` is the continuous delivery branch" in agent_rules
+    assert "do not accumulate a queue" in agent_rules
+    assert "`main` is the delivery spine" in protocol
+    assert "not an end-of-task destination" in protocol
+    assert "It must never become a queue of completed changes" in normalized_protocol

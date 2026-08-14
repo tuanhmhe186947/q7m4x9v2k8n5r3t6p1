@@ -485,6 +485,32 @@
           ]
         }
       ]
+    },
+    {
+      "id": "AR-036",
+      "class": "progressive_delivery",
+      "required_authorities": ["AGENTS.md", "agent.governance"],
+      "required_actions": [
+        "integrate_verified_milestone_immediately",
+        "record_main_delivery_before_next_milestone",
+        "limit_exclusive_worktree_to_isolation_or_concurrency"
+      ],
+      "forbidden_actions": [
+        "accumulate_verified_worktree_changes",
+        "create_routine_late_reconciliation_task",
+        "revalidate_unaffected_accepted_milestones"
+      ],
+      "criteria": [
+        {
+          "name": "progressive_delivery",
+          "type": "actions_all",
+          "values": [
+            "integrate_verified_milestone_immediately",
+            "record_main_delivery_before_next_milestone",
+            "limit_exclusive_worktree_to_isolation_or_concurrency"
+          ]
+        }
+      ]
     }
   ]
 }
