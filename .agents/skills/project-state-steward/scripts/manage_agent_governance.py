@@ -1895,11 +1895,29 @@ class AgentGovernanceLedger:
                 if not target.is_file() or _file_sha256(target) != path_hash_map[norm]:
                     raise GovernanceError("prepermit_observed_hash_mismatch", norm)
 
+            baseline_artifacts = worktree.get("baseline_artifacts", {})
+            accepted_artifacts = worktree.get("accepted_artifacts", {})
             dirty_actual = {
                 Path(v.replace("\\", "/")).as_posix().strip("/")
                 for v in identity["dirty_paths"]
             }
-            if dirty_actual != supplied_paths:
+            new_dirty = {
+                p
+                for p in dirty_actual
+                if not (
+                    (
+                        p in baseline_artifacts
+                        and baseline_artifacts[p].get("sha256")
+                        == _content_sha256(expected_worktree, p)
+                    )
+                    or (
+                        p in accepted_artifacts
+                        and accepted_artifacts[p].get("sha256")
+                        == _content_sha256(expected_worktree, p)
+                    )
+                )
+            }
+            if new_dirty != supplied_paths:
                 raise GovernanceError("prepermit_unenumerated_delta_forbidden", task_id)
 
             if expected_prior_event not in {
@@ -2051,14 +2069,32 @@ class AgentGovernanceLedger:
             for norm in normalized_paths:
                 if _protected_scientific_path(norm):
                     raise GovernanceError("scope_amendment_protected_path", norm)
+            baseline_artifacts = worktree.get("baseline_artifacts", {})
+            accepted_artifacts = worktree.get("accepted_artifacts", {})
             dirty_paths = {
                 Path(value.replace("\\", "/")).as_posix().strip("/")
                 for value in identity["dirty_paths"]
             }
-            if not dirty_paths.issubset(set(normalized_paths)):
+            new_deltas = {
+                p
+                for p in dirty_paths
+                if not (
+                    (
+                        p in baseline_artifacts
+                        and baseline_artifacts[p].get("sha256")
+                        == _content_sha256(expected_worktree, p)
+                    )
+                    or (
+                        p in accepted_artifacts
+                        and accepted_artifacts[p].get("sha256")
+                        == _content_sha256(expected_worktree, p)
+                    )
+                )
+            }
+            if not new_deltas.issubset(set(normalized_paths)):
                 raise GovernanceError(
                     "scope_amendment_unknown_delta",
-                    ",".join(sorted(dirty_paths - set(normalized_paths))),
+                    ",".join(sorted(new_deltas - set(normalized_paths))),
                 )
             existing_scope = worktree.get("path_scope")
             if not isinstance(existing_scope, list):
@@ -2414,7 +2450,9 @@ class AgentGovernanceLedger:
         known_lineage_paths = set(accepted_artifacts) | set(baseline_artifacts)
         if scope:
             in_scope = sorted(
-                path for path in changed if _path_within_scope(path, scope)
+                path
+                for path in changed
+                if _path_within_scope(path, scope) or path in known_lineage_paths
             )
         else:
             in_scope = sorted(path for path in changed if path in known_lineage_paths)
@@ -2598,13 +2636,34 @@ class AgentGovernanceLedger:
                 raise GovernanceError("skill_digest_drift", step_id)
             identity = _worktree_identity(Path(record["worktree"]["path"]))
             _validate_worktree_binding(self.root, identity)
-            if identity["head_sha"] != record["worktree"]["head_sha"]:
+            accepted_head = record["worktree"].get(
+                "accepted_task_head", record["worktree"]["head_sha"]
+            )
+            accepted_fingerprint = record["worktree"].get(
+                "accepted_task_fingerprint", record["worktree"]["fingerprint"]
+            )
+            if identity["head_sha"] != accepted_head:
                 raise GovernanceError("worktree_head_drift", identity["head_sha"])
-            if identity["fingerprint"] != record["worktree"]["fingerprint"]:
+            if identity["fingerprint"] != accepted_fingerprint:
                 raise GovernanceError(
                     "worktree_fingerprint_drift",
                     "Review current dirty paths and amend the plan before effect.",
                 )
+            accepted_artifacts = record["worktree"].get("accepted_artifacts", {})
+            worktree_root = Path(record["worktree"]["path"]).resolve()
+            for acc_path, acc_meta in accepted_artifacts.items():
+                target = (worktree_root / acc_path).resolve()
+                if target.is_file():
+                    expected_sha = (
+                        acc_meta.get("sha256")
+                        if isinstance(acc_meta, dict)
+                        else None
+                    )
+                    if expected_sha and _file_sha256(target) != expected_sha:
+                        raise GovernanceError(
+                            "worktree_fingerprint_drift",
+                            f"Accepted artifact {acc_path} modified outside permit.",
+                        )
             permit = {
                 "permit_id": secrets.token_hex(16),
                 "step_id": step_id,
