@@ -35,6 +35,23 @@ HIGH_RISK_EFFECTS = {
     "remote_mutation",
 }
 PREPERMIT_FILE_CLASS = "TASK_PLAN_METADATA"
+ALLOWED_PREPERMIT_FILE_CLASSES = {
+    "TASK_PLAN_METADATA",
+    "TASK_SOURCE_CODE",
+    "TASK_TEST_CODE",
+    "TASK_SCRIPT",
+    "TASK_OWNED_CODE",
+    "TASK_OWNED_FILE",
+    "TASK_OWNED_ARTIFACT",
+}
+ALLOWED_PREPERMIT_DELTA_CLASSIFICATIONS = {
+    "TASK_OWNED_METADATA_ONLY",
+    "TASK_OWNED_CODE_ONLY",
+    "TASK_OWNED_TEST_ONLY",
+    "TASK_OWNED_SOURCE_ONLY",
+    "TASK_OWNED_EXACT_PATHS_ONLY",
+    "TASK_OWNED_ONLY",
+}
 PREPERMIT_CONFIRMATION = "USER_AUTHORIZED_PREPERMIT_TASK_FILE_ADOPTION"
 SCOPE_AMENDMENT_CONFIRMATION = "USER_AUTHORIZED_EXACT_TASK_PATH_SCOPE_AMENDMENT"
 STEP_COMPLETION_STATES = {"DONE", "BLOCKED", "CANCELLED"}
@@ -78,15 +95,27 @@ ARTIFACT_CATEGORIES = {
     "source",
     "test",
 }
-PROTECTED_SCIENTIFIC_PATH_PARTS = {
+PROTECTED_SCIENTIFIC_ROOTS = {
     "checkpoints",
     "data",
     "datasets",
-    "model",
-    "models",
+    "outputs",
+}
+PROTECTED_SCIENTIFIC_PARTS = {
+    "checkpoints",
+    "data",
+    "datasets",
     "outputs",
     "temporal_v2",
-    "training",
+}
+CODE_AND_DOC_ROOTS = {
+    "configs",
+    "docs",
+    "scripts",
+    "src",
+    "tests",
+    "tools",
+    ".agents",
 }
 PROTECTED_SCIENTIFIC_SUFFIXES = {
     ".bin",
@@ -358,11 +387,17 @@ def _content_sha256(worktree: Path, relative_path: str) -> str | None:
 
 def _protected_scientific_path(path: str) -> bool:
     normalized = path.replace("\\", "/").strip("/")
-    parts = {part.lower() for part in Path(normalized).parts}
-    suffix = Path(normalized).suffix.lower()
-    return bool(parts.intersection(PROTECTED_SCIENTIFIC_PATH_PARTS)) or (
-        suffix in PROTECTED_SCIENTIFIC_SUFFIXES
-    )
+    path_obj = Path(normalized)
+    parts = [part.lower() for part in path_obj.parts]
+    suffix = path_obj.suffix.lower()
+    if suffix in PROTECTED_SCIENTIFIC_SUFFIXES:
+        return True
+    if parts and parts[0] in PROTECTED_SCIENTIFIC_ROOTS:
+        return True
+    if parts and parts[0] not in CODE_AND_DOC_ROOTS:
+        if bool(set(parts).intersection(PROTECTED_SCIENTIFIC_PARTS)):
+            return True
+    return False
 
 
 def _normalized_exact_task_path(relative_path: str, worktree: Path) -> str:
@@ -1718,8 +1753,8 @@ class AgentGovernanceLedger:
         confirmation: str,
         authorization_ref: str,
         file_class: str,
-        relative_path: str,
-        observed_sha256: str,
+        relative_path: str | list[str],
+        observed_sha256: str | list[str] | dict[str, str],
         original_write_lacked_proven_authority: bool,
         prior_write_event_sha256: str,
         expected_revision: int,
@@ -1734,44 +1769,101 @@ class AgentGovernanceLedger:
         enumerated_delta_paths: list[str],
         now: datetime | None = None,
     ) -> dict[str, Any]:
-        """Adopt one exact pre-permit task-plan file without retroactive authority."""
+        """Adopt exact pre-permit task-owned file(s) without retroactive authority."""
         if confirm_task_id != task_id:
             raise GovernanceError("prepermit_task_confirmation_mismatch", confirm_task_id)
         if confirmation != PREPERMIT_CONFIRMATION:
             raise GovernanceError("prepermit_confirmation_missing", confirmation)
-        if file_class != PREPERMIT_FILE_CLASS:
+        if file_class not in ALLOWED_PREPERMIT_FILE_CLASSES:
             raise GovernanceError("prepermit_file_class_forbidden", file_class)
-        path = Path(relative_path.replace("\\", "/"))
-        normalized_path = path.as_posix().strip("/")
+        if isinstance(relative_path, str):
+            raw_paths = [relative_path]
+        elif isinstance(relative_path, (list, tuple)):
+            raw_paths = list(relative_path)
+        else:
+            raise GovernanceError("prepermit_path_invalid", "Provide relative path(s).")
+
+        if isinstance(observed_sha256, str):
+            raw_hashes = [observed_sha256]
+        elif isinstance(observed_sha256, dict):
+            raw_hashes = [observed_sha256.get(p, "") for p in raw_paths]
+        elif isinstance(observed_sha256, (list, tuple)):
+            raw_hashes = list(observed_sha256)
+        else:
+            raise GovernanceError("prepermit_hash_invalid", "Provide observed hash(es).")
+
+        if len(raw_paths) != len(raw_hashes) or not raw_paths:
+            raise GovernanceError(
+                "prepermit_path_hash_count_mismatch",
+                f"{len(raw_paths)} != {len(raw_hashes)}",
+            )
+
+        normalized_paths: list[str] = []
+        path_hash_map: dict[str, str] = {}
+        for p, h in zip(raw_paths, raw_hashes):
+            path = Path(p.replace("\\", "/"))
+            normalized_path = path.as_posix().strip("/")
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or not normalized_path
+                or normalized_path == "."
+            ):
+                raise GovernanceError("prepermit_metadata_path_forbidden", p)
+            target = (expected_worktree.resolve() / normalized_path).resolve()
+            try:
+                target.relative_to(expected_worktree.resolve())
+            except ValueError as exc:
+                raise GovernanceError("prepermit_path_escape", p) from exc
+            if target.is_dir():
+                raise GovernanceError("prepermit_directory_forbidden", p)
+            if file_class == "TASK_PLAN_METADATA":
+                if (
+                    not normalized_path.startswith("docs/")
+                    or path.suffix != ".json"
+                    or "plan" not in path.name.lower()
+                    or bool({"data", "dataset", "manifest", "temporal_v2"}.intersection(path.parts))
+                ):
+                    raise GovernanceError("prepermit_metadata_path_forbidden", p)
+            elif _protected_scientific_path(normalized_path):
+                raise GovernanceError("prepermit_protected_scientific_path_forbidden", p)
+            h_clean = h.lower().strip()
+            if not HEX_SHA256_RE.fullmatch(h_clean):
+                raise GovernanceError("prepermit_hash_invalid", normalized_path)
+            normalized_paths.append(normalized_path)
+            path_hash_map[normalized_path] = h_clean
+
+        expected_accepted = expected_accepted_fingerprint.lower()
+        expected_actual = expected_actual_fingerprint.lower()
+        expected_prior_event = prior_write_event_sha256.lower()
+
         if (
-            path.is_absolute()
-            or ".." in path.parts
-            or not normalized_path.startswith("docs/")
-            or path.suffix != ".json"
-            or "plan" not in path.name.lower()
-            or {"data", "dataset", "manifest", "temporal_v2"}.intersection(path.parts)
+            not HEX_SHA256_RE.fullmatch(expected_accepted)
+            or not HEX_SHA256_RE.fullmatch(expected_actual)
+            or not HEX_SHA256_RE.fullmatch(expected_prior_event)
         ):
-            raise GovernanceError("prepermit_metadata_path_forbidden", relative_path)
-        values = {
-            "observed": observed_sha256.lower(),
-            "accepted": expected_accepted_fingerprint.lower(),
-            "actual": expected_actual_fingerprint.lower(),
-            "prior_event": prior_write_event_sha256.lower(),
-        }
-        if not all(HEX_SHA256_RE.fullmatch(value) for value in values.values()):
-            raise GovernanceError("prepermit_hash_invalid", normalized_path)
+            raise GovernanceError("prepermit_hash_invalid", task_id)
+
         if not original_write_lacked_proven_authority:
             raise GovernanceError("prepermit_retroactive_authorization_forbidden", task_id)
         if any(value != 0 for value in (owner_only_delta, external_or_unknown_delta, mixed_delta)):
             raise GovernanceError("prepermit_delta_classification_forbidden", task_id)
-        if delta_classification != "TASK_OWNED_METADATA_ONLY":
+        if (
+            delta_classification not in ALLOWED_PREPERMIT_DELTA_CLASSIFICATIONS
+            and not (
+                delta_classification.startswith("TASK_OWNED_")
+                and delta_classification.endswith("_ONLY")
+            )
+        ):
             raise GovernanceError("prepermit_delta_classification_invalid", delta_classification)
+
         supplied_paths = {
             Path(value.replace("\\", "/")).as_posix().strip("/")
             for value in enumerated_delta_paths
         }
-        if supplied_paths != {normalized_path}:
+        if supplied_paths != set(normalized_paths):
             raise GovernanceError("prepermit_blanket_or_extra_adoption_forbidden", task_id)
+
         current = _now(now)
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
@@ -1788,41 +1880,61 @@ class AgentGovernanceLedger:
                 raise GovernanceError("prepermit_worktree_metadata_missing", task_id)
             if Path(worktree.get("path", "")).resolve() != expected_worktree.resolve():
                 raise GovernanceError("prepermit_worktree_mismatch", str(expected_worktree))
-            if worktree.get("accepted_task_fingerprint") != values["accepted"]:
+            if worktree.get("accepted_task_fingerprint") != expected_accepted:
                 raise GovernanceError("prepermit_accepted_fingerprint_mismatch", task_id)
-            if not _path_within_scope(normalized_path, worktree.get("path_scope", [])):
-                raise GovernanceError("prepermit_path_outside_task_scope", normalized_path)
+
             identity = _worktree_identity(expected_worktree)
             _validate_worktree_binding(self.root, identity)
-            if identity["fingerprint"] != values["actual"]:
+            if identity["fingerprint"] != expected_actual:
                 raise GovernanceError("prepermit_actual_fingerprint_mismatch", task_id)
             if identity["head_sha"] != worktree.get("accepted_task_head"):
                 raise GovernanceError("prepermit_head_transition_forbidden", identity["head_sha"])
-            target = (expected_worktree / normalized_path).resolve()
-            if not target.is_file() or _file_sha256(target) != values["observed"]:
-                raise GovernanceError("prepermit_observed_hash_mismatch", normalized_path)
-            if set(identity["dirty_paths"]) != supplied_paths:
+
+            for norm in normalized_paths:
+                target = (expected_worktree / norm).resolve()
+                if not target.is_file() or _file_sha256(target) != path_hash_map[norm]:
+                    raise GovernanceError("prepermit_observed_hash_mismatch", norm)
+
+            dirty_actual = {
+                Path(v.replace("\\", "/")).as_posix().strip("/")
+                for v in identity["dirty_paths"]
+            }
+            if dirty_actual != supplied_paths:
                 raise GovernanceError("prepermit_unenumerated_delta_forbidden", task_id)
-            if values["prior_event"] not in {
+
+            if expected_prior_event not in {
                 event.get("event_sha256")
                 for event in record.get("events", [])
                 if isinstance(event, dict)
             }:
-                raise GovernanceError("prepermit_prior_write_event_missing", values["prior_event"])
+                raise GovernanceError("prepermit_prior_write_event_missing", expected_prior_event)
+
+            existing_scope = worktree.setdefault("path_scope", [])
+            for norm in normalized_paths:
+                if norm not in existing_scope and not _path_within_scope(norm, existing_scope):
+                    existing_scope.append(norm)
+
             previous_fingerprint = worktree["accepted_task_fingerprint"]
             accepted_head = worktree["accepted_task_head"]
             self._record_accepted_progress(
                 record,
                 identity,
-                [normalized_path],
+                normalized_paths,
                 permit=expired_permit,
             )
             payload = {
                 "operation": "reconcile-prepermit-task-file",
                 "file_class": file_class,
-                "relative_path": normalized_path,
-                "observed_sha256": values["observed"],
-                "prior_write_event_sha256": values["prior_event"],
+                "relative_paths": normalized_paths,
+                "relative_path": (
+                    normalized_paths[0] if len(normalized_paths) == 1 else normalized_paths
+                ),
+                "observed_sha256": (
+                    path_hash_map[normalized_paths[0]]
+                    if len(normalized_paths) == 1
+                    else path_hash_map
+                ),
+                "prior_write_event_sha256": expected_prior_event,
                 "prior_write_classification": "TASK_OWNED_BUT_WRITE_AUTHORITY_NOT_PROVEN",
                 "original_write_lacked_proven_authority": True,
                 "original_write_retroactively_marked_authorized": False,
@@ -1836,9 +1948,13 @@ class AgentGovernanceLedger:
                 "owner_only_delta": 0,
                 "external_or_unknown_delta": 0,
                 "mixed_delta": 0,
-                "enumerated_delta_paths": [normalized_path],
+                "enumerated_delta_paths": sorted(normalized_paths),
                 "administrator_confirmation": confirmation,
-                "authorization_ref": _clean(authorization_ref, "prepermit_authorization_ref", 300),
+                "authorization_ref": _clean(
+                    authorization_ref,
+                    "prepermit_authorization_ref",
+                    300,
+                ),
                 "prior_revision": expected_revision,
             }
             payload = self._with_expired_permit_history(payload, expired_permit)
@@ -1857,7 +1973,7 @@ class AgentGovernanceLedger:
         confirm_task_id: str,
         confirmation: str,
         authorization_ref: str,
-        exact_path: str,
+        exact_path: str | list[str],
         expected_revision: int,
         expected_record_sha256: str,
         expected_worktree: Path,
@@ -1865,7 +1981,7 @@ class AgentGovernanceLedger:
         expected_actual_fingerprint: str,
         now: datetime | None = None,
     ) -> dict[str, Any]:
-        """Append one explicitly authorized exact path to an active task."""
+        """Append explicitly authorized exact path(s) to an active task."""
         if confirm_task_id != task_id:
             raise GovernanceError("scope_amendment_task_confirmation_mismatch", confirm_task_id)
         if confirmation != SCOPE_AMENDMENT_CONFIRMATION:
@@ -1876,7 +1992,25 @@ class AgentGovernanceLedger:
             expected_actual
         ):
             raise GovernanceError("scope_amendment_fingerprint_invalid", task_id)
-        normalized_path = _normalized_exact_task_path(exact_path, expected_worktree)
+        if isinstance(exact_path, str):
+            raw_paths = [exact_path]
+        elif isinstance(exact_path, (list, tuple)):
+            raw_paths = list(exact_path)
+        else:
+            raise GovernanceError("scope_amendment_path_invalid", "Provide exact path(s).")
+        if not raw_paths:
+            raise GovernanceError(
+                "scope_amendment_path_invalid",
+                "Provide at least one exact path.",
+            )
+        normalized_paths = [
+            _normalized_exact_task_path(p, expected_worktree) for p in raw_paths
+        ]
+        if len(set(normalized_paths)) != len(normalized_paths):
+            raise GovernanceError(
+                "scope_amendment_duplicate",
+                "Duplicate path in amendment request.",
+            )
         current = _now(now)
         with V1_MANAGER.exclusive_file_lock(self.lock, self.lock_timeout_seconds):
             record = self._read(task_id)
@@ -1914,16 +2048,17 @@ class AgentGovernanceLedger:
                 )
             if identity["fingerprint"] != expected_actual:
                 raise GovernanceError("scope_amendment_actual_fingerprint_mismatch", task_id)
-            if _protected_scientific_path(normalized_path):
-                raise GovernanceError("scope_amendment_protected_path", normalized_path)
+            for norm in normalized_paths:
+                if _protected_scientific_path(norm):
+                    raise GovernanceError("scope_amendment_protected_path", norm)
             dirty_paths = {
                 Path(value.replace("\\", "/")).as_posix().strip("/")
                 for value in identity["dirty_paths"]
             }
-            if not dirty_paths.issubset({normalized_path}):
+            if not dirty_paths.issubset(set(normalized_paths)):
                 raise GovernanceError(
                     "scope_amendment_unknown_delta",
-                    ",".join(sorted(dirty_paths - {normalized_path})),
+                    ",".join(sorted(dirty_paths - set(normalized_paths))),
                 )
             existing_scope = worktree.get("path_scope")
             if not isinstance(existing_scope, list):
@@ -1932,21 +2067,25 @@ class AgentGovernanceLedger:
                 Path(str(value).replace("\\", "/")).as_posix().strip("/")
                 for value in existing_scope
             }
-            if normalized_path in existing_normalized:
-                raise GovernanceError("scope_amendment_duplicate", normalized_path)
+            for norm in normalized_paths:
+                if norm in existing_normalized:
+                    raise GovernanceError("scope_amendment_duplicate", norm)
             before_scope = list(existing_scope)
-            after_scope = [*before_scope, normalized_path]
+            after_scope = [*before_scope, *normalized_paths]
             worktree["path_scope"] = after_scope
             if dirty_paths:
                 self._record_accepted_progress(
                     record,
                     identity,
-                    [normalized_path],
+                    normalized_paths,
                     permit=expired_permit,
                 )
             payload = {
                 "operation": "amend-task-path-scope",
-                "exact_path": normalized_path,
+                "exact_paths": normalized_paths,
+                "exact_path": (
+                    normalized_paths[0] if len(normalized_paths) == 1 else normalized_paths
+                ),
                 "previous_path_scope": before_scope,
                 "new_path_scope": after_scope,
                 "append_only": True,
@@ -3360,7 +3499,7 @@ def build_parser() -> argparse.ArgumentParser:
     scope_amendment.add_argument("--confirm-task-id", required=True)
     scope_amendment.add_argument("--confirmation", required=True)
     scope_amendment.add_argument("--authorization-ref", required=True)
-    scope_amendment.add_argument("--exact-path", required=True)
+    scope_amendment.add_argument("--exact-path", action="append", required=True)
     scope_amendment.add_argument("--expected-worktree", type=Path, required=True)
     scope_amendment.add_argument("--expected-accepted-fingerprint", required=True)
     scope_amendment.add_argument("--expected-actual-fingerprint", required=True)
@@ -3372,8 +3511,8 @@ def build_parser() -> argparse.ArgumentParser:
     prepermit.add_argument("--confirmation", required=True)
     prepermit.add_argument("--authorization-ref", required=True)
     prepermit.add_argument("--file-class", required=True)
-    prepermit.add_argument("--relative-path", required=True)
-    prepermit.add_argument("--observed-sha256", required=True)
+    prepermit.add_argument("--relative-path", action="append", required=True)
+    prepermit.add_argument("--observed-sha256", action="append", required=True)
     prepermit.add_argument(
         "--original-write-lacked-proven-authority",
         action="store_true",

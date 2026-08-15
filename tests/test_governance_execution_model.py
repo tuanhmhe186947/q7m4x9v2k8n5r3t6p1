@@ -726,6 +726,76 @@ def test_s1_governance_failure_pattern_regression(
     )
 
 
+def test_s1_three_paths_exact_reconciliation_and_continuous_progression(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    task_id = "S1-THREE-PATHS-RECONCILIATION-20260815-01"
+    ledger, record = create_confirm(manager, project, packet(project, task_id))
+    
+    p1 = "scripts/classification_v2/04_baselines_smokes/classification_v2_s1_descriptor_binding.py"
+    p2 = "src/pig_behavior/classification_v2/training/s1_descriptor_executor.py"
+    p3 = "tests/test_classification_v2_s1_descriptor_executor.py"
+    for path in (p1, p2, p3):
+        (project / path).parent.mkdir(parents=True, exist_ok=True)
+        (project / path).write_text(f"# Task owned content for {path}\n", encoding="utf-8")
+    
+    identity = manager._worktree_identity(project)
+    assert set(identity["dirty_paths"]) == {p1, p2, p3}
+    
+    amended = ledger.amend_task_path_scope(
+        task_id=task_id,
+        confirm_task_id=task_id,
+        confirmation=manager.SCOPE_AMENDMENT_CONFIRMATION,
+        authorization_ref="user-request:s1-exact-paths-amendment",
+        exact_path=[p1, p2, p3],
+        expected_revision=record["revision"],
+        expected_record_sha256=record["record_sha256"],
+        expected_worktree=project,
+        expected_accepted_fingerprint=record["worktree"]["accepted_task_fingerprint"],
+        expected_actual_fingerprint=identity["fingerprint"],
+        now=NOW,
+    )
+    
+    assert set([p1, p2, p3]).issubset(set(amended["worktree"]["path_scope"]))
+    assert amended["worktree"]["accepted_task_fingerprint"] == identity["fingerprint"]
+    for path in (p1, p2, p3):
+        assert path in amended["worktree"]["accepted_artifacts"]
+    
+    fresh_permit = ledger.permit(
+        task_id,
+        "S-1",
+        ["edit", "test"],
+        ttl_seconds=600,
+        now=NOW + timedelta(minutes=5),
+        **owner(amended, project),
+    )
+    assert fresh_permit["active_permit"]["step_id"] == "S-1"
+    
+    advance_evidence = "docs/synthetic_governance/s1_step_evidence.json"
+    (project / advance_evidence).parent.mkdir(parents=True, exist_ok=True)
+    (project / advance_evidence).write_text('{"status":"PASS"}\n', encoding="utf-8")
+    commit_paths(project, "Commit S1 paths and evidence", p1, p2, p3, advance_evidence)
+    
+    advanced = ledger.advance(
+        task_id,
+        fresh_permit["active_permit"]["permit_id"],
+        [artifact_evidence("EV-S1-BATCH", advance_evidence, "AC-1", project)],
+        "S-2",
+        now=NOW + timedelta(minutes=10),
+        **owner(fresh_permit, project),
+    )
+    assert (
+        next(s for s in advanced["plan"]["steps"] if s["step_id"] == "S-1")["status"]
+        == "DONE"
+    )
+    assert (
+        next(s for s in advanced["plan"]["steps"] if s["step_id"] == "S-2")["status"]
+        == "IN_PROGRESS"
+    )
+    assert advanced["worktree"]["accepted_artifacts"][advance_evidence]
+
+
 def test_session_recovery_preserves_cursor_and_accepted_state(
     manager: ModuleType,
     project: Path,

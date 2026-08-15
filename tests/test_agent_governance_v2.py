@@ -874,6 +874,100 @@ def test_scope_amendment_rejects_closed_task(
         )
 
 
+def test_scope_amendment_supports_multiple_exact_paths_batch(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    p1 = project / "scripts" / "binding.py"
+    p2 = project / "src" / "training" / "executor.py"
+    p3 = project / "tests" / "test_executor.py"
+    for p in (p1, p2, p3):
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# code\n", encoding="utf-8")
+    paths = [
+        "scripts/binding.py",
+        "src/training/executor.py",
+        "tests/test_executor.py",
+    ]
+    identity = manager._worktree_identity(project)
+    amended = ledger.amend_task_path_scope(
+        task_id="REFORM-20260813-01",
+        confirm_task_id="REFORM-20260813-01",
+        confirmation=manager.SCOPE_AMENDMENT_CONFIRMATION,
+        authorization_ref="user-request:fixture-batch-scope-amendment",
+        exact_path=paths,
+        expected_revision=record["revision"],
+        expected_record_sha256=record["record_sha256"],
+        expected_worktree=project,
+        expected_accepted_fingerprint=record["worktree"]["accepted_task_fingerprint"],
+        expected_actual_fingerprint=identity["fingerprint"],
+        now=NOW,
+    )
+    assert set(paths).issubset(set(amended["worktree"]["path_scope"]))
+    assert amended["worktree"]["accepted_task_fingerprint"] == identity["fingerprint"]
+    for path in paths:
+        assert path in amended["worktree"]["accepted_artifacts"]
+
+
+def test_scope_amendment_batch_is_atomic_and_rejects_on_single_failure(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = create(manager, project)
+    p1 = project / "scripts" / "valid1.py"
+    p2 = project / "src" / "valid2.py"
+    for p in (p1, p2):
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# code\n", encoding="utf-8")
+    paths = [
+        "scripts/valid1.py",
+        "src/valid2.py",
+        "data/scientific_data.pt",
+    ]
+    identity = manager._worktree_identity(project)
+    with pytest.raises(manager.GovernanceError, match="scope_amendment_protected_path"):
+        ledger.amend_task_path_scope(
+            task_id="REFORM-20260813-01",
+            confirm_task_id="REFORM-20260813-01",
+            confirmation=manager.SCOPE_AMENDMENT_CONFIRMATION,
+            authorization_ref="user-request:fixture-atomic-scope-amendment",
+            exact_path=paths,
+            expected_revision=record["revision"],
+            expected_record_sha256=record["record_sha256"],
+            expected_worktree=project,
+            expected_accepted_fingerprint=record["worktree"]["accepted_task_fingerprint"],
+            expected_actual_fingerprint=identity["fingerprint"],
+            now=NOW,
+        )
+    fresh = ledger._read("REFORM-20260813-01")
+    assert "scripts/valid1.py" not in fresh["worktree"]["path_scope"]
+    assert "src/valid2.py" not in fresh["worktree"]["path_scope"]
+
+
+def test_protected_scientific_path_distinguishes_source_code_from_scientific_data(
+    manager: ModuleType,
+) -> None:
+    assert not manager._protected_scientific_path(
+        "src/pig_behavior/classification_v2/training/s1_descriptor_executor.py"
+    )
+    assert not manager._protected_scientific_path("src/pig_behavior/models/backbone.py")
+    assert not manager._protected_scientific_path(
+        "scripts/classification_v2/04_baselines_smokes/classification_v2_s1_descriptor_binding.py"
+    )
+    assert not manager._protected_scientific_path(
+        "tests/test_classification_v2_s1_descriptor_executor.py"
+    )
+    assert not manager._protected_scientific_path("docs/classification_v2/s1_plan.json")
+
+    assert manager._protected_scientific_path("data/videos/video.mp4")
+    assert manager._protected_scientific_path("outputs/classification_v2/model.pt")
+    assert manager._protected_scientific_path("checkpoints/epoch_10.ckpt")
+    assert manager._protected_scientific_path("audit/synthetic/unknown.bin")
+    assert manager._protected_scientific_path("src/weights.pt")
+    assert manager._protected_scientific_path("temporal_v2/dataset.parquet")
+
+
 def prepermit_arguments(
     manager: ModuleType,
     record: dict[str, object],
@@ -1005,6 +1099,53 @@ def test_prepermit_reconciliation_rejects_scientific_data_path(
     arguments = prepermit_arguments(manager, record, project, "docs/data/plan.json")
     with pytest.raises(manager.GovernanceError, match="prepermit_metadata_path_forbidden"):
         ledger.reconcile_prepermit_task_file(now=NOW, **arguments)
+
+
+def test_prepermit_reconciliation_supports_source_code_batch(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger, record = prepermit_record(manager, project)
+    (project / "docs" / "s1_plan_amendment.json").unlink(missing_ok=True)
+    p1 = project / "scripts" / "s1_descriptor_binding.py"
+    p2 = project / "src" / "training" / "s1_descriptor_executor.py"
+    p3 = project / "tests" / "test_s1_descriptor_executor.py"
+    for p in (p1, p2, p3):
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# s1 task code\n", encoding="utf-8")
+    paths = [
+        "scripts/s1_descriptor_binding.py",
+        "src/training/s1_descriptor_executor.py",
+        "tests/test_s1_descriptor_executor.py",
+    ]
+    hashes = [sha256(p) for p in (p1, p2, p3)]
+    identity = manager._worktree_identity(project)
+    reconciled = ledger.reconcile_prepermit_task_file(
+        task_id="REFORM-20260813-01",
+        confirm_task_id="REFORM-20260813-01",
+        confirmation=manager.PREPERMIT_CONFIRMATION,
+        authorization_ref="user-request:fixture-prepermit-batch-code",
+        file_class="TASK_SOURCE_CODE",
+        relative_path=paths,
+        observed_sha256=hashes,
+        original_write_lacked_proven_authority=True,
+        prior_write_event_sha256=record["events"][0]["event_sha256"],
+        expected_revision=record["revision"],
+        expected_record_sha256=record["record_sha256"],
+        expected_worktree=project,
+        expected_accepted_fingerprint=record["worktree"]["accepted_task_fingerprint"],
+        expected_actual_fingerprint=identity["fingerprint"],
+        owner_only_delta=0,
+        external_or_unknown_delta=0,
+        mixed_delta=0,
+        delta_classification="TASK_OWNED_CODE_ONLY",
+        enumerated_delta_paths=paths,
+        now=NOW,
+    )
+    assert reconciled["worktree"]["accepted_task_fingerprint"] == identity["fingerprint"]
+    for path in paths:
+        assert path in reconciled["worktree"]["accepted_artifacts"]
+
 
 
 def test_permit_renewal_preserves_scope_and_rejects_expiry(
