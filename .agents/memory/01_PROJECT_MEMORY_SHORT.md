@@ -4,8 +4,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-16`.
-- Expires: `2026-08-17T00:00:00+07:00`.
+- Opened: `2026-08-17`.
+- Expires: `2026-08-18T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -13,12 +13,14 @@
   session-local warnings.
 - Forbidden: project history, accepted contracts, raw logs, and unverified lessons.
 - Legacy unmanaged task IDs: none.
+- Governance continuity note (2026-08-17):
+  - Mình đã xác nhận branch/worktree continuation còn nguyên; không tạo task hay Studio mới. Có một điểm governance cần giữ: các chỉ thị lịch sử về pig-gpu-l4-gcp vẫn xuất hiện trong các memory cũ, nhưng AGENTS.md và contract ngày 2026-08-17 trong task branch đã ghi Studio mới là authority cho recovery này. Mình sẽ coi pig-gpu-l4-gcp là stale/deleted và không dùng nó.
 
 ### Overnight continuation anchor (2026-08-13)
 
 - Task: `C2V2-CONT-20260813-01`; parent: `C2V2-20260812-02@revision-75`.
 - `TEAMSPACE=ironheart211224/pig-project`.
-- `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp`; Studio creation and browser/UI use
+- `ONLY_AUTHORIZED_STUDIO=training-pig-project-l4`; Studio creation and browser/UI use
   are forbidden.
 - `RUNTIME_INPUT_ROOT=/teamspace/studios/this_studio/pig_e0_r3/inputs`.
 - Base post-S1 materialization: `PASS`, `9151758436` bytes; official resolver:
@@ -885,16 +887,50 @@
     forbids remote, GPU, and OOF.
 
 
+### CLASSIFICATION-V2-FULL-T6-46D-20260817-01 - Resume FULL-T6 canonical 46D binding from executable 18377 schema
+
+- Prompt: Continue the expired CLASSIFICATION-V2-FULL-T6-46D-20260816-02 packet from the
+  interrupted local CVAT parity checkpoint; compute only missing legacy rows, merge without CVAT
+  mutation, and publish the final authority.
+- Status: `IN_PROGRESS`.
+- Opened: `2026-08-17T01:47:36+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `codex_root_20260817_full_t6_46d_resume`.
+- Owner runtime session: `codex_root_20260817_full_t6_46d_resume`.
+- Owner token SHA256: `bc2fdbf98ac99e351faa6cf9933fe3315cc469f402701dc5a4b35c71605a7045`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `3`.
+- Lease expires: `2026-08-17T03:48:10+07:00`.
+- Block SHA256: `02faab7ecb091786646b941bc2a51fd86d2d1271572c00dcc7176eea0c8ba9ce`.
+- Acceptance: d890 revoked; executable 18377 active; exact 4539 legacy rows computed with no
+  placeholders; 33287-row merge passes schema, target, frame-order, mask, source-count, and
+  CVAT-value parity; final authority hash-bound; no GPU or Studio.
+- Skills: `scientific-ablation-controller`, `dataset-contract-leakage-guard`, `experiment-
+  lineage-reproducibility`, `grouped-cv-evaluation`, `agent-harness-construction`.
+- [x] `F46D17-01` `[DONE]` Publish and verify the explicit d890 revocation correction
+  - Evidence: docs/classification_v2/full_t6_46d_authority_correction_20260817.json;
+    docs/classification_v2/full_t6_46d_revocation_evidence_20260817.json; active executable
+    schema 18377; d890 revoked; no GPU or Studio
+- [ ] `F46D17-02` `[IN_PROGRESS]` Resolve the exact 4539 legacy target set and source evidence
+  - Next: Read the existing current FULL-T6 target manifest and source evidence, then run exact
+    28748 CVAT key parity before any producer.
+- [ ] `F46D17-03` `[TODO]` Compute only the missing legacy rows with executable 18377
+  - Next: Run the bounded producer and fail closed on any unresolved target.
+- [ ] `F46D17-04` `[TODO]` Merge and audit the complete 33287-row binding
+  - Next: Preserve CVAT values and publish artifact plus authority hashes.
+- [ ] `F46D17-05` `[TODO]` Close lineage and project state locally
+  - Next: Run state-steward closeout and leave GPU and Studio unused.
+
 ## Previous-Day Closeout
 
-- Source date: `2026-08-15`.
-- Completed: CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260815-01
+- Source date: `2026-08-16`.
+- Completed: none
 - Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
   CLASSIFICATION-20260807-01, C2V2-20260807-03, C2V2-20260807-04, C2V2-20260807-05,
   C2V2-20260809-03, C2V2-20260809-04, S1-POSTCLOSURE-20260809-01, S1-B-20260809-01,
   GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01,
   C2V2-CONT-20260813-02; active tasks remain resume capsules in short memory
-- Purge after: `2026-08-17T00:00:00+07:00`.
+- Purge after: `2026-08-18T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 

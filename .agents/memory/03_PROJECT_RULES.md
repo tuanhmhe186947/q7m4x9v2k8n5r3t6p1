@@ -211,12 +211,12 @@
 ### Lightning operational rules (2026-08-13)
 
 1. `TEAMSPACE=ironheart211224/pig-project`.
-2. `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp`.
+2. `ONLY_AUTHORIZED_STUDIO=training-pig-project-l4` (historical `pig-gpu-l4-gcp` is stale/deleted).
 3. Never infer a Studio name from the Teamspace name.
 4. `lightning studio create` is forbidden during task resume. If the authorized
    Studio is missing or mismatched, stop and report it; never create another
    Studio automatically.
-5. Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
+5. Starting the existing `training-pig-project-l4` on CPU is authorized for `/inputs`
    runtime materialization, host binding, resolver checks, and the six CPU
    preflights. L4/GPU is forbidden until all six CPU preflights pass.
 6. Lifecycle correction: when that existing Studio is `STOPPED` or `SLEEPING`,

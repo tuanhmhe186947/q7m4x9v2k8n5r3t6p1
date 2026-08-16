@@ -12,14 +12,14 @@ authority and require these exact values:
 
 ```text
 TEAMSPACE=ironheart211224/pig-project
-ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp
+ONLY_AUTHORIZED_STUDIO=training-pig-project-l4
 STUDIO_NAME_MUST_NOT_BE_INFERRED_FROM_TEAMSPACE=YES
 STUDIO_CREATE_DURING_RESUME=FORBIDDEN
 AGENT_BROWSER_UI=FORBIDDEN
 ```
 
-If `pig-gpu-l4-gcp` is missing or mismatched, stop and report it. Never create
-another Studio automatically. Starting the existing `pig-gpu-l4-gcp` on CPU is
+If `training-pig-project-l4` is missing or mismatched, stop and report it (historical `pig-gpu-l4-gcp` is stale/deleted). Never create
+another Studio automatically. Starting the existing `training-pig-project-l4` on CPU is
 authorized for `/inputs` runtime materialization, host binding, resolver checks,
 and the six CPU preflights. Do not switch to L4/GPU until all six CPU
 preflights pass. If it is `STOPPED`/`SLEEPING`, start/wake this same Studio on

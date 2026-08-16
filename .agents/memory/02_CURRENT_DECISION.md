@@ -9,18 +9,18 @@
   and packaged locally on the local machine / local GPU first.
 - Paid cloud GPU instances are reserved strictly for high-throughput tensor
   training and evaluation over pre-cached, verified artifacts.
-- Remote Studio `pig-gpu-l4-gcp` must remain `STOPPED` until all dataset caches
+- Remote Studio `training-pig-project-l4` must remain `STOPPED` until all dataset caches
   are built and verified locally.
 
 ## 2026-08-13 Lightning operational authority and resume rules
 
 - `TEAMSPACE=ironheart211224/pig-project` exactly.
-- `ONLY_AUTHORIZED_STUDIO=pig-gpu-l4-gcp` exactly. Never infer a Studio name
+- `ONLY_AUTHORIZED_STUDIO=training-pig-project-l4` exactly (historical `pig-gpu-l4-gcp` is stale/deleted). Never infer a Studio name
   from the Teamspace name.
 - `lightning studio create` is forbidden during task resume. If the authorized
   Studio is missing or mismatched, stop and report it; never create another
   Studio automatically.
-- Starting the existing `pig-gpu-l4-gcp` on CPU is authorized for `/inputs`
+- Starting the existing `training-pig-project-l4` on CPU is authorized for `/inputs`
   runtime materialization, host binding, resolver checks, and the six CPU
   preflights. L4/GPU is forbidden until all six CPU preflights pass.
 - Lifecycle correction: `STOPPED`/`SLEEPING` is a resumable Studio state, not a
