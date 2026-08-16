@@ -1,0 +1,49 @@
+{
+  "schema": "classification_v2.full_t6_downstream_dtp04_evidence.v1",
+  "task_id": "CLASSIFICATION-V2-FULL-T6-DRIVE-PACKAGE-20260817-01",
+  "step_id": "DTP-04",
+  "observed_at": "2026-08-17T04:40:00+07:00",
+  "status": "PASS",
+  "evidence": [
+    {
+      "evidence_id": "DTP-04-STORAGE-RULE",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/authority_refresh_packet_dtp04_20260817.json",
+      "sha256": "b84224eab60bfff59b399383e380ddb57e4fd9055e152e7eba714e6cbdd6f8fd",
+      "status": "PASS",
+      "supports": ["STORAGE-RULE"]
+    },
+    {
+      "evidence_id": "DTP-04-AUTHORITY-REFRESH",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/authority_refresh_packet_dtp04_20260817.json",
+      "sha256": "b84224eab60bfff59b399383e380ddb57e4fd9055e152e7eba714e6cbdd6f8fd",
+      "status": "PASS",
+      "supports": ["STORAGE-RULE"]
+    },
+    {
+      "evidence_id": "DTP-04-R128-ISOLATION",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/dtp03_evidence.json",
+      "sha256": "95e2654832446b9d744c2d96f7a112b81100dff2cf3dc8de5864d49413e2282b",
+      "status": "PASS",
+      "supports": ["STORAGE-RULE"],
+      "notes": "The independent R128 run was not touched; no Studio was started; GPU and model training runs remained zero."
+    }
+  ],
+  "invariant": {
+    "local": "Source data construction and validation.",
+    "teamspace_drive": "Final reusable train-ready bulk artifacts and claim-grade outputs.",
+    "studio": "Compute runtime only over pre-verified artifacts.",
+    "sequence": "PREPARE DATA LOCALLY -> VERIFY -> UPLOAD FINAL TRAIN-READY ARTIFACT ONCE -> REUSE FROM TEAMSPACE DRIVE -> USE STUDIO FOR COMPUTE ONLY",
+    "studio_raw_video_included": false,
+    "studio_loose_crops_included": false,
+    "studio_dataset_building_intermediates_included": false
+  },
+  "non_actions": {
+    "current_r128_run_touched": false,
+    "studio_started_for_data_preparation": false,
+    "gpu_used": false,
+    "model_training_runs": 0
+  }
+}

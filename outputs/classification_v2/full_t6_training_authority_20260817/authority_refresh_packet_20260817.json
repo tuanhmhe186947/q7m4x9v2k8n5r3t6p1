@@ -1,0 +1,31 @@
+{
+  "authorities": [
+    {
+      "scope": "classification_v2.current_state",
+      "locator": "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T04:00:00+07:00",
+      "sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e",
+      "section_sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"
+    },
+    {
+      "scope": "memory.lifecycle",
+      "locator": ".agents/memory/03_PROJECT_RULES.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T04:00:00+07:00",
+      "sha256": "c18b0bbfa684e25d8d1b3c3e48df923d4f29f528de43f47e5194487f9336f44c",
+      "section_sha256": "c18b0bbfa684e25d8d1b3c3e48df923d4f29f528de43f47e5194487f9336f44c"
+    },
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T04:00:00+07:00",
+      "sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab",
+      "section_sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab"
+    }
+  ]
+}

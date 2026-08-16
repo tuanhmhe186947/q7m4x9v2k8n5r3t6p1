@@ -1,0 +1,45 @@
+{
+  "schema": "classification_v2.full_t6_downstream_authority_refresh.v1",
+  "task_id": "CLASSIFICATION-V2-FULL-T6-DRIVE-PACKAGE-20260817-01",
+  "step_id": "DTP-04",
+  "authorities": [
+    {
+      "scope": "classification_v2.current_state",
+      "locator": "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"
+    },
+    {
+      "scope": "memory.lifecycle",
+      "locator": ".agents/memory/03_PROJECT_RULES.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "sha256": "ba02ffc26f45ebd0db63de2f5869959f2e9981d6a8b9eadd2ac595be985a1e78"
+    },
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab"
+    }
+  ],
+  "correction": {
+    "local_construction": "Source data, derived caches, and train-ready bulk artifacts are constructed and validated locally.",
+    "teamspace_drive": "Final reusable train-ready bulk artifacts and claim-grade outputs are uploaded once and reused from Teamspace Drive.",
+    "studio": "Studio is compute-only over pre-verified Drive artifacts.",
+    "forbidden_studio_uploads": [
+      "raw videos",
+      "loose crops",
+      "dataset-building intermediates"
+    ],
+    "sequence": "PREPARE DATA LOCALLY -> VERIFY -> UPLOAD FINAL TRAIN-READY ARTIFACT ONCE -> REUSE FROM TEAMSPACE DRIVE -> USE STUDIO FOR COMPUTE ONLY"
+  },
+  "non_actions": {
+    "current_r128_run_touched": false,
+    "studio_started": false,
+    "gpu_used": false,
+    "model_training_runs": 0
+  }
+}

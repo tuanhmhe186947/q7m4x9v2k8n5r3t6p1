@@ -1,0 +1,94 @@
+{
+  "schema": "classification_v2.full_t6_downstream_dtp03_evidence.v1",
+  "task_id": "CLASSIFICATION-V2-FULL-T6-DRIVE-PACKAGE-20260817-01",
+  "step_id": "DTP-03",
+  "observed_at": "2026-08-17T04:24:53+07:00",
+  "status": "PASS",
+  "evidence": [
+    {
+      "evidence_id": "DTP-03-LOCAL-CROSS-BINDING",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/local_cross_binding_audit.json",
+      "sha256": "5c30fe17ba1e24db74c765f545c9ca4d76ff621d91eed79af1707069f357ac96",
+      "status": "PASS",
+      "supports": ["CROSS-BINDING", "DRIVE-PACKAGE"]
+    },
+    {
+      "evidence_id": "DTP-03-REMOTE-FULL-T6-PACKAGE",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/remote_package_verification_20260817.json",
+      "sha256": "cf36be3502e88a6cf6ab1850f0223812ffd4d4b0f6f58db00f3b333c8d8469cc",
+      "status": "PASS",
+      "notes": "13/13 files present; byte sizes match; all clusterId values are gcp-lightning-public-prod."
+    },
+    {
+      "evidence_id": "DTP-03-REMOTE-R128-GCP-CACHE",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/remote_r128_gcp_verification_20260817.json",
+      "sha256": "9b18cd02b0533088b8935bb51665b854192c5979e53bd11c07d93e24e3702c3a",
+      "status": "PASS",
+      "supports": ["CROSS-BINDING", "DRIVE-PACKAGE"],
+      "notes": "Read-only listing of the existing independent R128 cache; no upload or run mutation performed."
+    }
+  ],
+  "teamspace": "ironheart211224/pig-project",
+  "teamspace_id": "01kkjpg368znrn5jjxw57mvgqg",
+  "cloud_account": "gcp-lightning-public-prod",
+  "remote_r128_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache",
+  "remote_r128_listing_count": 2,
+  "remote_r128_entries": [
+    {
+      "path": "packed_image_cache_index.csv",
+      "type": "blob",
+      "bytes": 47781243,
+      "cluster_id": "gcp-lightning-public-prod",
+      "size_status": "PASS"
+    },
+    {
+      "path": "packed_rgb_128_letterbox.npy",
+      "type": "blob",
+      "bytes": 12075663488,
+      "cluster_id": "gcp-lightning-public-prod",
+      "size_status": "PASS"
+    }
+  ],
+  "remote_r128_sha256_status": "HASH_PENDING_REMOTE_READ",
+  "local_r128_hashes": {
+    "packed_image_cache_index.csv": {
+      "bytes": 47781243,
+      "sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68"
+    },
+    "packed_rgb_128_letterbox.npy": {
+      "bytes": 12075663488,
+      "sha256": "c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee"
+    }
+  },
+  "local_binding": {
+    "total_targets": 33287,
+    "train_targets": 27834,
+    "validation_targets": 5453,
+    "rgb_target_coverage": "33287/33287",
+    "feature_target_coverage": "33287/33287",
+    "rgb_46d_target_id_parity": "PASS",
+    "temporal_v2_binding": "PASS",
+    "split_parity": "PASS",
+    "order_parity": "PASS",
+    "labels_parity": "PASS",
+    "masks_parity": "PASS",
+    "active_46d_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"
+  },
+  "input_map": {
+    "path": "docs/classification_v2/full_t6_training_authority_20260817/full_t6_training_input_map_20260817.json",
+    "sha256": "fe71737f2e0b6952903111c7b8c94b21699a041134080619f0e13333083f79b8"
+  },
+  "non_actions": {
+    "current_r128_run_touched": false,
+    "rgb_reuploaded": false,
+    "studio_started": false,
+    "gpu_used": false,
+    "model_training_runs": 0,
+    "raw_video_included": false,
+    "loose_crops_included": false,
+    "revoked_d890_included": false
+  }
+}

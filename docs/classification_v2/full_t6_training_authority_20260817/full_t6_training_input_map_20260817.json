@@ -1,0 +1,50 @@
+{
+  "schema": "classification_v2.full_t6_training_input_map.v1",
+  "package_version": "full_t6_training_authority_20260817",
+  "teamspace": "ironheart211224/pig-project",
+  "cloud_account": "gcp-lightning-public-prod",
+  "remote_package_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817",
+  "experiment_scope": {
+    "target_view": "T6",
+    "total_targets": 33287,
+    "train_targets": 27834,
+    "validation_targets": 5453,
+    "rgb_resolution": 128,
+    "feature_width": 46,
+    "active_46d_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "temporal_v2_binding": "PASS"
+  },
+  "rgb_input": {
+    "reuse_existing": true,
+    "cloud_account": "gcp-lightning-public-prod",
+    "remote_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache",
+    "tensor": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache/packed_rgb_128_letterbox.npy",
+    "index": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache/packed_image_cache_index.csv",
+    "coverage": "33287/33287",
+    "required_contexts": 199722,
+    "missing_contexts": 0,
+    "duplicate_contexts": 0,
+    "remote_hash_status": "HASH_PENDING_REMOTE_READ"
+  },
+  "feature_input": {
+    "tensor": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/full_t6_canonical_46d.npz",
+    "row_manifest": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/full_t6_row_manifest.csv",
+    "authority": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/full_t6_46d_final_authority_20260817.json",
+    "independent_audit": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/independent_audit_20260817.json"
+  },
+  "temporal_authority": {
+    "authority": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/temporal_semantics_authority_v2.json",
+    "release_manifest": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/full_temporal_window_manifest_release.csv",
+    "split_roles": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/target_split_roles_release.csv",
+    "artifact_hash_manifest": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817/temporal_v2_artifact_hash_manifest.json"
+  },
+  "non_actions": {
+    "current_r128_run_touched": false,
+    "rgb_reuploaded_by_this_package": false,
+    "studio_started_for_data_preparation": false,
+    "training_run": false,
+    "raw_video_required": false,
+    "loose_crops_required": false,
+    "d890_included": false
+  }
+}

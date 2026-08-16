@@ -1,0 +1,33 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "DTP-02-LOCAL-UPLOAD-MANIFEST",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/upload_manifest_20260817.json",
+      "sha256": "ac6ba3a44716435926c60ff649eb95a1be6778f1175e90e64112339b345854a4",
+      "status": "PASS",
+      "supports": ["DRIVE-PACKAGE"]
+    },
+    {
+      "evidence_id": "DTP-02-REMOTE-PACKAGE-SIZE-AND-CLOUD",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/remote_package_verification_20260817.json",
+      "sha256": "cf36be3502e88a6cf6ab1850f0223812ffd4d4b0f6f58db00f3b333c8d8469cc",
+      "status": "PASS",
+      "supports": ["DRIVE-PACKAGE"],
+      "notes": "13/13 remote files exist; byte sizes match; clusterId is gcp-lightning-public-prod; API exposes no SHA256."
+    },
+    {
+      "evidence_id": "DTP-02-TRAINING-MAP",
+      "kind": "artifact",
+      "locator": "docs/classification_v2/full_t6_training_authority_20260817/full_t6_training_input_map_20260817.json",
+      "sha256": "fe71737f2e0b6952903111c7b8c94b21699a041134080619f0e13333083f79b8",
+      "status": "PASS",
+      "supports": ["DRIVE-PACKAGE"]
+    }
+  ],
+  "remote_hash_status": "HASH_PENDING_REMOTE_READ",
+  "current_r128_run_touched": false,
+  "gpu_used": false,
+  "model_training_runs": 0
+}
