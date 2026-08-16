@@ -102,15 +102,18 @@ def run_trial() -> dict:
     report["RESOLUTION"] = f"R{RESOLUTION}"
     report["SEED"] = SEED
 
-    # Normalize any backslash paths from Windows upload
-    for root_dir in [repo_root, repo_root / "outputs"]:
-        if root_dir.exists():
-            for item in list(root_dir.iterdir()):
-                if "\\" in item.name:
-                    target_path = root_dir.joinpath(*item.name.split("\\"))
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    print(f"Normalizing backslash artifact: {item.name} -> {target_path}")
-                    shutil.move(str(item), str(target_path))
+    # Normalize any backslash paths from Windows upload across the entire repository
+    for root, _dirs, files in os.walk(str(repo_root)):
+        for f in files:
+            if "\\" in f:
+                src_f = Path(root) / f
+                dest_f = repo_root / f.replace("\\", "/")
+                dest_f.parent.mkdir(parents=True, exist_ok=True)
+                print(f"Normalizing backslash artifact: {f} -> {dest_f}")
+                try:
+                    shutil.move(str(src_f), str(dest_f))
+                except Exception as move_err:
+                    print(f"Warning moving {src_f}: {move_err}")
 
     # 2. Locate outputs and cache
     outputs_root = repo_root / "outputs"
