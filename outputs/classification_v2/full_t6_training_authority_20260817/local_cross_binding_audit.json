@@ -1,0 +1,282 @@
+{
+  "active_46d_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+  "authority_evidence": {
+    "existing_cvat_recomputed": false,
+    "final_authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\docs\\classification_v2\\full_t6_46d_final_authority_20260817.json",
+    "independent_audit": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\independent_audit_20260817.json",
+    "independent_audit_status": "PASS",
+    "legacy_rows_zero_filled": false
+  },
+  "current_r128_run_touched": false,
+  "d890_included": false,
+  "feature_width": 46,
+  "gpu_used": false,
+  "group_order": "6/12/18/10",
+  "local_hashes": {
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\docs\\classification_v2\\full_t6_46d_final_authority_20260817.json": {
+      "bytes": 3505,
+      "sha256": "a37f75041c8bec71386c35844718556c648c37c9755e4d5b1a7ab0de3575db54"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\build_evidence.json": {
+      "bytes": 36464,
+      "sha256": "96b6dc65ebfd41ff3e2ed512dc3ea47547c3d4b94911d1a1693196095763e61e"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_canonical_46d.npz": {
+      "bytes": 16822477,
+      "sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_row_manifest.csv": {
+      "bytes": 19218966,
+      "sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\independent_audit_20260817.json": {
+      "bytes": 2195,
+      "sha256": "efbf8d95d2acb2e410d0c04fbabb02586880f4acd61fcfebbca2e4063f973dee"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\full_temporal_window_manifest_release.csv": {
+      "bytes": 67504559,
+      "sha256": "c992568cb4e6fe5fe2486072bffd614d1419806b3430961af35d212a2e1c246a"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\target_split_roles_release.csv": {
+      "bytes": 38948758,
+      "sha256": "eb4a41753658c52910ff42de98b65a9aff542b89ae817761c07af78273820e80"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\temporal_semantics_authority_v2.json": {
+      "bytes": 3211,
+      "sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681"
+    },
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\temporal_v2_artifact_hash_manifest.json": {
+      "bytes": 3003,
+      "sha256": "fa4dfd10f891d8e69e5a2f96d5ca2bce1a4e816fecb4fc3b94eabd99ce3ace73"
+    }
+  },
+  "model_training_runs": 0,
+  "npz_arrays": {
+    "adjacent_motion_pair_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "bbox_rate_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "bbox_shape_n": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        2
+      ]
+    },
+    "bbox_xywh_n": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        4
+      ]
+    },
+    "direction_change_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "direction_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "frame_index_sequence": {
+      "dtype": "int32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "length_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "motion_delta": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        12
+      ]
+    },
+    "motion_feature_available_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "motion_feature_validity_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        12
+      ]
+    },
+    "observed_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "pen_validity_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "roi_class_relation": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        18
+      ]
+    },
+    "roi_validity_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        3
+      ]
+    },
+    "social_feature_validity_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        10
+      ]
+    },
+    "social_relation": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6,
+        10
+      ]
+    },
+    "social_validity_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "sparse_velocity_pair_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "spatial_quality_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "tangential_acceleration_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "valid_motion_pair_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "vector_acceleration_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    },
+    "velocity_valid_mask": {
+      "dtype": "float32",
+      "shape": [
+        33287,
+        6
+      ]
+    }
+  },
+  "parity": {
+    "labels": "PASS",
+    "masks": "PASS",
+    "order": "PASS",
+    "rgb_46d_target_id": "PASS",
+    "split": "PASS",
+    "temporal_v2_binding": "PASS"
+  },
+  "population": {
+    "cvat": 28748,
+    "legacy_recovered": 4539,
+    "total_targets": 33287,
+    "train": 27834,
+    "validation": 5453
+  },
+  "quarantined_artifact_included": false,
+  "rgb": {
+    "cache_rows": 245680,
+    "coverage_required_contexts": 199722,
+    "duplicate_context_ids": 0,
+    "missing_contexts": 0,
+    "preprocessing_parity": "PASS",
+    "remote": {
+      "entries": [
+        "packed_image_cache_index.csv",
+        "packed_rgb_128_letterbox.npy"
+      ],
+      "index_bytes": 47781243,
+      "index_sha256_local_verified": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68",
+      "path": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817/r128_cache",
+      "remote_sha256_status": "HASH_PENDING_REMOTE_READ",
+      "tensor_bytes": 12075663488,
+      "tensor_sha256_local_verified": "c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee"
+    },
+    "target_id_parity": "PASS"
+  },
+  "schema_version": "classification_v2.full_t6_downstream_cross_binding_audit.v1",
+  "scope": "local_read_only_package_readiness",
+  "split": {
+    "parity": "PASS",
+    "target_count": 33287
+  },
+  "status": "PASS",
+  "temporal_v2": {
+    "authority_sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681",
+    "binding": "PASS",
+    "release_manifest_sha256": "c992568cb4e6fe5fe2486072bffd614d1419806b3430961af35d212a2e1c246a",
+    "t6_frame_order_parity": "PASS",
+    "target_count": 33287
+  }
+}

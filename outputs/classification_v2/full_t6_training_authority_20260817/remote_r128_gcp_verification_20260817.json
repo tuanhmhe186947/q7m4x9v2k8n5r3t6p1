@@ -1,0 +1,40 @@
+{
+  "schema": "classification_v2.remote_r128_gcp_cache_verification.v1",
+  "observed_at": "2026-08-17T04:24:53+07:00",
+  "teamspace": "ironheart211224/pig-project",
+  "teamspace_id": "01kkjpg368znrn5jjxw57mvgqg",
+  "cloud_account": "gcp-lightning-public-prod",
+  "remote_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache",
+  "listing_count": 2,
+  "entries": [
+    {
+      "path": "packed_image_cache_index.csv",
+      "type": "blob",
+      "bytes": 47781243,
+      "cluster_id": "gcp-lightning-public-prod",
+      "size_status": "PASS"
+    },
+    {
+      "path": "packed_rgb_128_letterbox.npy",
+      "type": "blob",
+      "bytes": 12075663488,
+      "cluster_id": "gcp-lightning-public-prod",
+      "size_status": "PASS"
+    }
+  ],
+  "expected_local_hashes": {
+    "packed_image_cache_index.csv": {
+      "bytes": 47781243,
+      "sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68"
+    },
+    "packed_rgb_128_letterbox.npy": {
+      "bytes": 12075663488,
+      "sha256": "c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee"
+    }
+  },
+  "remote_sha256_status": "HASH_PENDING_REMOTE_READ",
+  "read_method": "Lightning SDK FilesystemApi.list_files; read-only",
+  "current_r128_run_touched": false,
+  "rgb_reuploaded": false,
+  "status": "PASS"
+}

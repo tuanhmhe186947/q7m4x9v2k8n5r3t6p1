@@ -1,0 +1,127 @@
+{
+  "schema": "classification_v2.full_t6_downstream_upload_manifest.v1",
+  "package_version": "full_t6_training_authority_20260817",
+  "teamspace": "ironheart211224/pig-project",
+  "cloud_account": "gcp-lightning-public-prod",
+  "remote_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817",
+  "scope": "final_non_rgb_full_t6_artifacts_only",
+  "local_hash_policy": "SHA256_AND_BYTE_SIZE_BEFORE_UPLOAD",
+  "remote_hash_policy": "REPORT_HASH_PENDING_REMOTE_READ_WHEN_NOT_EXPOSED",
+  "current_r128_run_touched": false,
+  "rgb_reuploaded": false,
+  "entries": [
+    {
+      "logical_role": "final_46d_tensor",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_canonical_46d.npz",
+      "remote_path": "full_t6_canonical_46d.npz",
+      "bytes": 16822477,
+      "sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "full_t6_row_manifest",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_row_manifest.csv",
+      "remote_path": "full_t6_row_manifest.csv",
+      "bytes": 19218966,
+      "sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "final_46d_authority",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\docs\\classification_v2\\full_t6_46d_final_authority_20260817.json",
+      "remote_path": "full_t6_46d_final_authority_20260817.json",
+      "bytes": 3505,
+      "sha256": "a37f75041c8bec71386c35844718556c648c37c9755e4d5b1a7ab0de3575db54",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "independent_46d_audit",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\independent_audit_20260817.json",
+      "remote_path": "independent_audit_20260817.json",
+      "bytes": 2195,
+      "sha256": "efbf8d95d2acb2e410d0c04fbabb02586880f4acd61fcfebbca2e4063f973dee",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "46d_build_evidence",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\build_evidence.json",
+      "remote_path": "build_evidence.json",
+      "bytes": 36464,
+      "sha256": "96b6dc65ebfd41ff3e2ed512dc3ea47547c3d4b94911d1a1693196095763e61e",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "legacy_4539_provenance_manifest",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\legacy_4539_row_manifest.csv",
+      "remote_path": "legacy_4539_row_manifest.csv",
+      "bytes": 2602329,
+      "sha256": "6b05b5ee82871e7b08550b29dde4edafca7e9c8243e21d7cfad49be7deff3dee",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "legacy_4539_provenance_tensor",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\legacy_4539_spatial_sequences.npz",
+      "remote_path": "legacy_4539_spatial_sequences.npz",
+      "bytes": 2447909,
+      "sha256": "5a861448ce5a8932ce78ff8c27c544ea603735e35034481823a3f256a3290534",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "temporal_v2_authority",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\temporal_semantics_authority_v2.json",
+      "remote_path": "temporal_semantics_authority_v2.json",
+      "bytes": 3211,
+      "sha256": "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "temporal_v2_full_release_manifest",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\full_temporal_window_manifest_release.csv",
+      "remote_path": "full_temporal_window_manifest_release.csv",
+      "bytes": 67504559,
+      "sha256": "c992568cb4e6fe5fe2486072bffd614d1419806b3430961af35d212a2e1c246a",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "target_split_role_authority",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\target_split_roles_release.csv",
+      "remote_path": "target_split_roles_release.csv",
+      "bytes": 38948758,
+      "sha256": "eb4a41753658c52910ff42de98b65a9aff542b89ae817761c07af78273820e80",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "temporal_v2_artifact_hash_manifest",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\temporal_v2_artifact_hash_manifest.json",
+      "remote_path": "temporal_v2_artifact_hash_manifest.json",
+      "bytes": 3003,
+      "sha256": "fa4dfd10f891d8e69e5a2f96d5ca2bce1a4e816fecb4fc3b94eabd99ce3ace73",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "temporal_v2_final_audit",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\temporal_v2_canonical_authority_v1\\temporal_v2_final_audit.json",
+      "remote_path": "temporal_v2_final_audit.json",
+      "bytes": 29921,
+      "sha256": "9abaecd44a881e86bf96b89d9d330b3927da8465fcd222826046e8c4be334d81",
+      "local_integrity": "PASS"
+    },
+    {
+      "logical_role": "future_training_input_map",
+      "source_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_full_t6_drive_package_20260817\\docs\\classification_v2\\full_t6_training_authority_20260817\\full_t6_training_input_map_20260817.json",
+      "remote_path": "full_t6_training_input_map_20260817.json",
+      "bytes": 2942,
+      "sha256": "fe71737f2e0b6952903111c7b8c94b21699a041134080619f0e13333083f79b8",
+      "local_integrity": "PASS"
+    }
+  ],
+  "forbidden_content_confirmed_absent": [
+    "raw videos",
+    "loose crops",
+    "d890 revoked authority",
+    "quarantined zero-mask artifact",
+    "old partial 28748-only 46D bundle",
+    ".git",
+    ".codex"
+  ]
+}

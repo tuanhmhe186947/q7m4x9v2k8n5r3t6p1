@@ -1,0 +1,30 @@
+{
+  "schema": "classification_v2.full_t6_downstream_remote_verification.v1",
+  "teamspace": "ironheart211224/pig-project",
+  "teamspace_id": "01kkjpg368znrn5jjxw57mvgqg",
+  "cloud_account": "gcp-lightning-public-prod",
+  "remote_prefix": "lit://ironheart211224/pig-project/uploads/classification_v2/full_t6_training_authority_20260817",
+  "remote_listing_count": 13,
+  "remote_listing_status": "PASS",
+  "remote_sha256_status": "HASH_PENDING_REMOTE_READ",
+  "entries": [
+    {"name":"build_evidence.json","bytes":36464,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"full_t6_46d_final_authority_20260817.json","bytes":3505,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"full_t6_canonical_46d.npz","bytes":16822477,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"full_t6_row_manifest.csv","bytes":19218966,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"full_t6_training_input_map_20260817.json","bytes":2942,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"full_temporal_window_manifest_release.csv","bytes":67504559,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"independent_audit_20260817.json","bytes":2195,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"legacy_4539_row_manifest.csv","bytes":2602329,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"legacy_4539_spatial_sequences.npz","bytes":2447909,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"target_split_roles_release.csv","bytes":38948758,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"temporal_semantics_authority_v2.json","bytes":3211,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"temporal_v2_artifact_hash_manifest.json","bytes":3003,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"},
+    {"name":"temporal_v2_final_audit.json","bytes":29921,"cluster_id":"gcp-lightning-public-prod","size_status":"PASS"}
+  ],
+  "local_upload_manifest_sha256": "ac6ba3a44716435926c60ff649eb95a1be6778f1175e90e64112339b345854a4",
+  "forbidden_content_in_package": "PASS",
+  "gpu_used": false,
+  "studio_started_for_data_preparation": false,
+  "current_r128_run_touched": false
+}

@@ -1,0 +1,131 @@
+{
+  "task_id": "CLASSIFICATION-V2-FULL-T6-DRIVE-PACKAGE-20260817-01",
+  "title": "Prepare immutable FULL-T6 downstream Teamspace Drive package",
+  "task_class": "classification_v2_scientific_experiment",
+  "risk_class": "high",
+  "worktree_mode": "exclusive",
+  "path_scope": [
+    "docs/classification_v2/full_t6_training_authority_20260817",
+    "outputs/classification_v2/full_t6_training_authority_20260817",
+    "docs/classification_v2/full_t6_downstream_drive_task_packet_20260817.json"
+  ],
+  "artifact_roots": [
+    {
+      "root": "docs/classification_v2/full_t6_training_authority_20260817",
+      "category": "authority",
+      "effects": ["artifact_write", "edit", "publication", "test"]
+    },
+    {
+      "root": "outputs/classification_v2/full_t6_training_authority_20260817",
+      "category": "evidence",
+      "effects": ["artifact_write", "audit", "generate", "publication", "test"]
+    },
+    {
+      "root": "docs/classification_v2/full_t6_downstream_drive_task_packet_20260817.json",
+      "category": "authority",
+      "effects": ["artifact_write", "edit", "test"]
+    }
+  ],
+  "authorities": [
+    {
+      "scope": "classification_v2.current_state",
+      "locator": "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T00:00:00+07:00",
+      "sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e",
+      "section_sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"
+    },
+    {
+      "scope": "memory.lifecycle",
+      "locator": ".agents/memory/03_PROJECT_RULES.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T00:00:00+07:00",
+      "sha256": "283ee01c7d9a210c6f7cab12bdddad7b6c55ec964d59a6cce1297db8c6de69f3",
+      "section_sha256": "283ee01c7d9a210c6f7cab12bdddad7b6c55ec964d59a6cce1297db8c6de69f3"
+    },
+    {
+      "scope": "agent.governance",
+      "locator": "docs/governance/AGENT_GOVERNANCE_V2.md",
+      "selector": "FULL_FILE",
+      "status": "CURRENT",
+      "read_at": "2026-08-17T00:00:00+07:00",
+      "sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab",
+      "section_sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab"
+    }
+  ],
+  "acceptance": [
+    {"acceptance_id": "LOCAL-AUTHORITY", "text": "The final local FULL-T6 46D authority, row manifest, Temporal-v2 binding, and source hashes are verified without mutation or training."},
+    {"acceptance_id": "RGB-REUSE", "text": "The existing remote R128 RGB cache and index are resolved and referenced; no second RGB upload occurs."},
+    {"acceptance_id": "DRIVE-PACKAGE", "text": "Only final non-RGB FULL-T6 46D and required authority artifacts are uploaded to one new immutable Teamspace Drive directory with verified byte sizes."},
+    {"acceptance_id": "CROSS-BINDING", "text": "RGB and 46D target IDs, T6 membership, labels, splits, masks, and ordering are cross-bound and pass locally."},
+    {"acceptance_id": "STORAGE-RULE", "text": "A minimal durable storage invariant records local construction, Drive reuse, and Studio compute-only boundaries."}
+  ],
+  "risks": [
+    "The current R128 session is owner-protected and must not be touched.",
+    "Remote Drive APIs may expose sizes but not SHA256; hash status must remain pending when unavailable.",
+    "A stale or revoked authority must never be uploaded or referenced as predictive semantics."
+  ],
+  "non_actions": [
+    "Do not start, stop, sleep, switch, or SSH into any Studio.",
+    "Do not train, benchmark, or run GPU code.",
+    "Do not upload or rebuild the existing RGB cache.",
+    "Do not upload raw videos, loose crops, source images, .git, .codex artifacts, or old/quarantined bundles.",
+    "Do not upload d890 or the invalid zero-mask artifact.",
+    "Do not modify the independent current R128 run or its open files."
+  ],
+  "required_target_artifacts": [],
+  "skills": [
+    {
+      "skill_id": "dataset-contract-leakage-guard",
+      "role": "data-guardrail",
+      "purpose": "Verify exact FULL-T6 membership, split, labels, frame order, masks, and RGB/46D parity.",
+      "selection_mode": "explicit",
+      "skill_sha256": "038f87efa803cd316e6b037b2e4daf0cad7a6c7c4f4a127dd09388774f1eab40"
+    },
+    {
+      "skill_id": "experiment-lineage-reproducibility",
+      "role": "lineage",
+      "purpose": "Hash-bind local sources, remote package files, authority identities, and immutable map references.",
+      "selection_mode": "explicit",
+      "skill_sha256": "847a17f5ebb4d3c44172f4f03486fcc9659808b48fefc948f0c45a39f306c158"
+    },
+    {
+      "skill_id": "scientific-ablation-controller",
+      "role": "scientific-control",
+      "purpose": "Keep downstream packaging separate from the independent RGB-only R128 experiment.",
+      "selection_mode": "explicit",
+      "skill_sha256": "1edbf69b8e25845b519051f2e7198d6bf2dfb44bda0928b8c4cfb2f98dec68b3"
+    },
+    {
+      "skill_id": "grouped-cv-evaluation",
+      "role": "evaluation",
+      "purpose": "Preserve native target, split, and coverage semantics without running metrics or training.",
+      "selection_mode": "explicit",
+      "skill_sha256": "0269750c9d0e416e2223d42caf5f1279085a1a43f77906961793bc5a15d161ff"
+    },
+    {
+      "skill_id": "agent-harness-construction",
+      "role": "reasoning",
+      "purpose": "Keep remote mutation bounded, observable, and fail-closed without lifecycle side effects.",
+      "selection_mode": "explicit",
+      "skill_sha256": "139f8fa249c74edebf117f03a258b23a228e9401fafc124a98059ebacec6deda"
+    },
+    {
+      "skill_id": "project-state-steward",
+      "role": "governance",
+      "purpose": "Maintain isolated ownership, evidence, and closeout while preserving other dirty worktrees.",
+      "selection_mode": "explicit",
+      "skill_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc"
+    }
+  ],
+  "plan": {
+    "steps": [
+      {"step_id": "DTP-01", "summary": "Verify final local authority, exact source paths and hashes, and RGB cache reuse binding.", "allowed_effects": ["artifact_write", "audit", "generate", "remote_read", "test"], "acceptance_ids": ["LOCAL-AUTHORITY", "RGB-REUSE"]},
+      {"step_id": "DTP-02", "summary": "Create one local upload manifest and upload only non-RGB final FULL-T6 artifacts to a new Drive prefix.", "allowed_effects": ["artifact_write", "audit", "generate", "publication", "remote_mutation", "remote_read", "test"], "acceptance_ids": ["DRIVE-PACKAGE"]},
+      {"step_id": "DTP-03", "summary": "Verify remote sizes/hashes where exposed, complete local RGB/46D cross-binding, and write the data input map.", "allowed_effects": ["artifact_write", "audit", "generate", "remote_read", "test"], "acceptance_ids": ["CROSS-BINDING", "DRIVE-PACKAGE"]},
+      {"step_id": "DTP-04", "summary": "Record the minimal storage invariant and close with preserved R128 isolation and evidence.", "allowed_effects": ["artifact_write", "closeout", "edit", "integrate", "test"], "acceptance_ids": ["STORAGE-RULE"]}
+    ]
+  }
+}

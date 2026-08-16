@@ -1,0 +1,12 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "DTP-01-LOCAL-CROSS-BINDING",
+      "kind": "artifact",
+      "locator": "outputs/classification_v2/full_t6_training_authority_20260817/local_cross_binding_audit.json",
+      "sha256": "5c30fe17ba1e24db74c765f545c9ca4d76ff621d91eed79af1707069f357ac96",
+      "supports": ["LOCAL-AUTHORITY", "RGB-REUSE"],
+      "status": "PASS"
+    }
+  ]
+}
