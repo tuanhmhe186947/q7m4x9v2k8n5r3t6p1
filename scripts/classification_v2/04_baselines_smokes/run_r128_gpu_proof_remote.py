@@ -13,10 +13,19 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 
 # Ensure local source tree is on sys.path
-repo_root = Path(__file__).resolve().parent.parent.parent.parent
+_current = Path(__file__).resolve().parent
+if (_current / "src/pig_behavior").exists():
+    repo_root = _current
+elif (_current.parent / "src/pig_behavior").exists():
+    repo_root = _current.parent
+elif (_current.parent.parent.parent.parent / "src/pig_behavior").exists():
+    repo_root = _current.parent.parent.parent.parent
+else:
+    repo_root = _current
+
+src_root = repo_root / "src"
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
-src_root = repo_root / "src"
 if str(src_root) not in sys.path:
     sys.path.insert(0, str(src_root))
 
