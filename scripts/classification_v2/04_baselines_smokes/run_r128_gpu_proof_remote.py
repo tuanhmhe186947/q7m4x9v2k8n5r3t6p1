@@ -173,15 +173,16 @@ def run_trial() -> dict:
         authority_path=base_s1_authority_path,
         repository_root=repo_root,
         outputs_root=s1_outputs,
-        permit_path=permit_path if permit_path.exists() else None,
-        requested_view=TEMPORAL_VIEW,
-        requested_seed=SEED,
+        execution_permit_path=permit_path if permit_path.exists() else None,
+        view=TEMPORAL_VIEW,
+        seed=SEED,
         device_name="cuda",
         output_dir=(
             outputs_root
             / f"classification_v2/post_s1_resolution_proof/R{RESOLUTION}_seed_{SEED}"
         ),
         engineering_smoke=False,
+        allow_existing_output=True,
     )
 
     hashes = stage1._verify_authority_hashes(s1_plan)
