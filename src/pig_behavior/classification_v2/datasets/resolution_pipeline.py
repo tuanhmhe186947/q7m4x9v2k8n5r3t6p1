@@ -51,8 +51,10 @@ class ResolutionIndependentRGBBinding:
         *,
         image_cache_size: int = 8192,
         video_capture_cache_size: int = 8,
+        packed_image_cache_npy: Path | None = None,
+        packed_image_cache_index_csv: Path | None = None,
     ) -> ClassificationV2ImageSequenceDataset:
-        """Build a source-backed runtime realization without a persistent cache."""
+        """Build a source-backed runtime realization or use packed persistent cache."""
 
         validate_runtime_resolution(input_resolution)
         return ClassificationV2ImageSequenceDataset(
@@ -64,6 +66,8 @@ class ResolutionIndependentRGBBinding:
                 image_cache_size=image_cache_size,
                 video_capture_cache_size=video_capture_cache_size,
                 media_root=self.media_root,
+                packed_image_cache_npy=packed_image_cache_npy,
+                packed_image_cache_index_csv=packed_image_cache_index_csv,
             )
         )
 

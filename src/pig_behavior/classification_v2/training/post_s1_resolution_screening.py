@@ -249,7 +249,33 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
         expected_window_count=len(selected),
         expected_observation_count=201792,
     )
-    dataset = binding.build_dataset(plan.input_resolution, image_cache_size=8192)
+    packed_npy = (
+        plan.rgb_source_root
+        / f"actor_rgb_{plan.input_resolution}_full"
+        / f"packed_rgb_{plan.input_resolution}_letterbox.npy"
+    )
+    packed_idx = (
+        plan.rgb_source_root
+        / f"actor_rgb_{plan.input_resolution}_full"
+        / "packed_image_cache_index.csv"
+    )
+    if not (packed_npy.exists() and packed_idx.exists()):
+        candidate_npy = (
+            plan.rgb_source_root
+            / f"packed_rgb_{plan.input_resolution}_letterbox.npy"
+        )
+        candidate_idx = plan.rgb_source_root / "packed_image_cache_index.csv"
+        if candidate_npy.exists() and candidate_idx.exists():
+            packed_npy, packed_idx = candidate_npy, candidate_idx
+        else:
+            packed_npy, packed_idx = None, None
+
+    dataset = binding.build_dataset(
+        plan.input_resolution,
+        image_cache_size=8192,
+        packed_image_cache_npy=packed_npy,
+        packed_image_cache_index_csv=packed_idx,
+    )
     lookup = {str(window_id): index for index, window_id in enumerate(dataset.windows["window_id"])}
 
     def load_batch(selected_rows: pd.DataFrame, device: torch.device) -> ModelBatch:
