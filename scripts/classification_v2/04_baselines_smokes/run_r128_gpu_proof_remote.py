@@ -2,32 +2,35 @@
 
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Subset
+# Explicitly ensure /teamspace/studios/this_studio and /teamspace/studios/this_studio/src are in sys.path
+_this_dir = Path(__file__).resolve().parent
+_src_dir = _this_dir / "src"
+if not _src_dir.exists() and (_this_dir.parent / "src").exists():
+    _this_dir = _this_dir.parent
+    _src_dir = _this_dir / "src"
 
-# Ensure local source tree is on sys.path
-_current = Path(__file__).resolve().parent
-if (_current / "src/pig_behavior").exists():
-    repo_root = _current
-elif (_current.parent / "src/pig_behavior").exists():
-    repo_root = _current.parent
-elif (_current.parent.parent.parent.parent / "src/pig_behavior").exists():
-    repo_root = _current.parent.parent.parent.parent
-else:
-    repo_root = _current
+repo_root = _this_dir
+src_root = _src_dir
 
-src_root = repo_root / "src"
-if str(repo_root) not in sys.path:
-    sys.path.insert(0, str(repo_root))
-if str(src_root) not in sys.path:
-    sys.path.insert(0, str(src_root))
+for p in [str(repo_root), str(src_root), "/teamspace/studios/this_studio", "/teamspace/studios/this_studio/src"]:
+    if p not in sys.path and os.path.exists(p):
+        sys.path.insert(0, p)
+
+print(f"DEBUG: repo_root={repo_root}, src_root={src_root}")
+print(f"DEBUG: sys.path[:5]={sys.path[:5]}")
+if src_root.exists():
+    print(f"DEBUG: src_root contents={os.listdir(src_root)}")
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import torch  # noqa: E402
+import torch.nn as nn  # noqa: E402
+from torch.utils.data import DataLoader, Subset  # noqa: E402
 
 from pig_behavior.classification_v2.datasets.resolution_pipeline import (  # noqa: E402
     build_inner_resolution_binding_from_dataframes,
