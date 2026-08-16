@@ -606,6 +606,27 @@ not supersede the active classification_v2 rules above.
     - If the target location is ambiguous after re-reading, ask the user or
       report the ambiguity instead of guessing with a broad rewrite.
 
+## Scientific and execution integrity rules
+
+1. ABSOLUTE PROHIBITION ON FABRICATING OR SIMULATING EXPERIMENTAL OUTCOMES:
+   Under no circumstances may an agent generate synthetic numbers, use random
+   number generators, heuristics, or dummy tensor loops to mock or simulate
+   experimental training/evaluation results and present them as measured
+   metrics. If an experiment has not been genuinely executed end-to-end on real
+   data with real weights, the agent MUST report `NOT_YET_EXECUTED` or
+   `NOT_MEASURED`.
+2. ABSOLUTE PROHIBITION ON SPECULATING OR REPORTING UNVERIFIED TRIAL STATUS:
+   Under no circumstances may an agent report, claim, or speculate that a
+   training trial or evaluation is 'running', 'in progress', or 'almost done'
+   unless direct terminal log output explicitly demonstrating active device
+   allocation and step advancement (e.g. `Step X/Y`, `Peak VRAM`, `CUDA Device`)
+   has been fetched and verified in the current turn. Reporting speculative,
+   optimistic, or ungrounded status without direct log proof is strictly
+   prohibited.
+3. ABSOLUTE PROHIBITION ON RUNNING UN-CACHED VIDEO DECODING ON PAID CLOUD GPU:
+   Paid cloud GPU compute is strictly reserved for high-throughput tensor model
+   training and inference on pre-cached, pre-verified dataset artifacts.
+
 ## Tracking-specific rules
 
 1. For `evaluate_tracking.py` behavior and metric comparisons, treat commit

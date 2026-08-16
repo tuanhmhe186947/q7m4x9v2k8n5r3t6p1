@@ -88,6 +88,13 @@ Rules:
   executed end-to-end on real data with real weights and saved checkpoints, the
   agent MUST report `NOT_YET_EXECUTED` or `NOT_MEASURED`. Presenting simulated
   values as real evidence is a catastrophic breach of scientific integrity.
+- ABSOLUTE PROHIBITION ON SPECULATING OR REPORTING UNVERIFIED TRIAL STATUS:
+  Under no circumstances may an agent report, claim, or speculate that a training
+  trial or evaluation is 'running', 'in progress', or 'almost done' unless direct
+  terminal log output explicitly demonstrating active device allocation and step
+  advancement (e.g. `Step X/Y`, `Peak VRAM`, `CUDA Device: ...`) has been fetched
+  and verified in the current turn. Reporting speculative, optimistic, or ungrounded
+  status without direct log proof is strictly prohibited.
 - ABSOLUTE PROHIBITION ON RUNNING UN-CACHED VIDEO DECODING ON PAID CLOUD GPU:
   Under no circumstances may an agent boot or run a paid cloud GPU instance
   to perform un-cached raw MP4 frame decoding or CPU-bound crop extraction
