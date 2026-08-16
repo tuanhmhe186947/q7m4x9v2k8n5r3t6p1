@@ -89,6 +89,22 @@
    persisted checkpoint (`.pt`), raw predictions, and reproducible logs from
    actual execution on real data.
 
+## Prohibition on un-cached video decoding on paid cloud GPU (2026-08-16)
+
+1. Ban on un-cached video decoding on cloud GPU: Under no circumstances may an
+   agent boot, run, or keep running a paid cloud GPU instance (e.g. Lightning
+   Studio L4/A100) to perform un-cached raw MP4 frame decoding or CPU-bound crop
+   extraction loops.
+2. Local preprocessing and crop caching mandate: All video frame decoding,
+   spatial cropping, and dataset tensor caching MUST be executed, validated,
+   and packaged on the local machine / local GPU first.
+3. Cloud GPU admission gate: Paid cloud GPU compute is strictly reserved for
+   high-throughput tensor training and inference on pre-cached, pre-verified
+   dataset artifacts.
+4. Immediate shutdown rule: Whenever an un-cached run is identified or cloud
+   execution completes, the remote Studio must be verified STOPPED immediately
+   with zero lingering paid runtime.
+
 ## Thesis reader-facing prose rule (2026-08-03)
 
 

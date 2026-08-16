@@ -88,6 +88,15 @@ Rules:
   executed end-to-end on real data with real weights and saved checkpoints, the
   agent MUST report `NOT_YET_EXECUTED` or `NOT_MEASURED`. Presenting simulated
   values as real evidence is a catastrophic breach of scientific integrity.
+- ABSOLUTE PROHIBITION ON RUNNING UN-CACHED VIDEO DECODING ON PAID CLOUD GPU:
+  Under no circumstances may an agent boot or run a paid cloud GPU instance
+  to perform un-cached raw MP4 frame decoding or CPU-bound crop extraction
+  loops. All video frame extraction, cropping, and dataset caching MUST be
+  executed, validated, and packaged locally on the local machine / local GPU
+  first. Paid cloud GPU compute is strictly reserved for high-throughput
+  tensor model training and inference on pre-cached, pre-verified dataset
+  artifacts. Whenever an un-cached run is identified or cloud execution ends,
+  the remote Studio must be verified STOPPED immediately.
 - When asked to audit, do not modify code.
 - When asked to patch, keep the patch small and reversible.
 - Before executing a user issue, prompt, or requested workflow, inspect the

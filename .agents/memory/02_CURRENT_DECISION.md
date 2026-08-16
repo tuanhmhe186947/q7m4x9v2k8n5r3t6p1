@@ -1,5 +1,17 @@
 # Current Decision
 
+## 2026-08-16 Cloud GPU compute waste prohibition & mandatory local preprocessing
+
+- Running un-cached raw video decoding loops on paid cloud GPUs (e.g. L4) is
+  strictly forbidden.
+- All video frame decoding, spatial bounding box cropping, and dataset caching
+  (such as 128x128 letterbox RGB crops for T6) MUST be extracted, validated,
+  and packaged locally on the local machine / local GPU first.
+- Paid cloud GPU instances are reserved strictly for high-throughput tensor
+  training and evaluation over pre-cached, verified artifacts.
+- Remote Studio `pig-gpu-l4-gcp` must remain `STOPPED` until all dataset caches
+  are built and verified locally.
+
 ## 2026-08-13 Lightning operational authority and resume rules
 
 - `TEAMSPACE=ironheart211224/pig-project` exactly.
