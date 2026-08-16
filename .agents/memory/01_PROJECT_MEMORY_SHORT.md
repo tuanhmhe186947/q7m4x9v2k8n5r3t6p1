@@ -4,8 +4,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-14`.
-- Expires: `2026-08-15T00:00:00+07:00`.
+- Opened: `2026-08-16`.
+- Expires: `2026-08-17T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -887,15 +887,14 @@
 
 ## Previous-Day Closeout
 
-- Source date: `2026-08-13`.
-- Completed: C2V2-20260812-02, GOVERNANCE-20260813-01, C2V2-CONT-20260813-01, AGENT-
-  REFORM-20260813-01
+- Source date: `2026-08-15`.
+- Completed: CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260815-01
 - Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
   CLASSIFICATION-20260807-01, C2V2-20260807-03, C2V2-20260807-04, C2V2-20260807-05,
   C2V2-20260809-03, C2V2-20260809-04, S1-POSTCLOSURE-20260809-01, S1-B-20260809-01,
   GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01,
   C2V2-CONT-20260813-02; active tasks remain resume capsules in short memory
-- Purge after: `2026-08-15T00:00:00+07:00`.
+- Purge after: `2026-08-17T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 

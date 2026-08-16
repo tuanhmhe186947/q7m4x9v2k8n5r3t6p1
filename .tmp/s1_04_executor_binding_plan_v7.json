@@ -1,0 +1,40 @@
+{
+  "steps": [
+    {
+      "step_id": "S1-01",
+      "summary": "Verify the frozen Stage-1 scientific and data contract before local execution.",
+      "acceptance_ids": ["S1-CPU"],
+      "allowed_effects": ["generate", "test"]
+    },
+    {
+      "step_id": "S1-02",
+      "summary": "Implement and authority-bind the bounded canonical B1 adapter, then rerun the real-loader and CPU-forward gates.",
+      "acceptance_ids": ["S1-CPU"],
+      "allowed_effects": ["generate", "test"]
+    },
+    {
+      "step_id": "S1-03",
+      "summary": "Build immutable local launch descriptors and complete CPU gate six.",
+      "acceptance_ids": ["S1-CPU"],
+      "allowed_effects": ["generate"]
+    },
+    {
+      "step_id": "S1-04",
+      "summary": "Repair the executor/parser binding to resolve the current twelve immutable S1 descriptors, test it on CPU, and deploy only that binding correction to the existing CPU Studio for remote dry resolution and real-loader preflight.",
+      "acceptance_ids": ["S1-REMOTE"],
+      "allowed_effects": ["artifact_write", "edit", "generate", "remote_mutation", "remote_preflight", "remote_read", "test"]
+    },
+    {
+      "step_id": "S1-05",
+      "summary": "Execute the registered twelve-trial S1 campaign and evaluate each trial under the explicitly owner-authorized same-Studio lifecycle.",
+      "acceptance_ids": ["S1-RUNS"],
+      "allowed_effects": ["artifact_write", "evaluation", "lifecycle_mutation", "remote_preflight", "remote_read", "training"]
+    },
+    {
+      "step_id": "S1-06",
+      "summary": "Release paid GPU, apply retention, publish final S1 authority, and close S1.",
+      "acceptance_ids": ["S1-PUBLICATION"],
+      "allowed_effects": ["artifact_write", "closeout", "evaluation", "integrate", "lifecycle_mutation", "publication"]
+    }
+  ]
+}
