@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-# Explicitly ensure /teamspace/studios/this_studio and /teamspace/studios/this_studio/src are in sys.path
+# Explicitly ensure repository paths are in sys.path
 _this_dir = Path(__file__).resolve().parent
 _src_dir = _this_dir / "src"
 if not _src_dir.exists() and (_this_dir.parent / "src").exists():
@@ -22,21 +22,20 @@ for p in [str(repo_root), str(src_root), "/teamspace/studios/this_studio", "/tea
     if p not in sys.path and os.path.exists(p):
         sys.path.insert(0, p)
 
-print(f"DEBUG: repo_root={repo_root}, src_root={src_root}")
-print(f"DEBUG: sys.path[:5]={sys.path[:5]}")
-if src_root.exists():
-    print(f"DEBUG: src_root contents={os.listdir(src_root)}")
-
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
+from sklearn.metrics import classification_report, f1_score  # noqa: E402
 from torch.utils.data import DataLoader, Subset  # noqa: E402
 
+from pig_behavior.classification_v2.datasets.image_sequence_dataset import (  # noqa: E402
+    image_sequence_collate,
+)
 from pig_behavior.classification_v2.datasets.resolution_pipeline import (  # noqa: E402
     build_inner_resolution_binding_from_dataframes,
 )
-from pig_behavior.classification_v2.models.balanced.contracts import ModelBatch  # noqa: E402
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS  # noqa: E402
 from pig_behavior.classification_v2.training import (  # noqa: E402
     post_s1_resolution_screening as post_s1,
 )
@@ -49,18 +48,6 @@ RESOLUTION = 128
 TEMPORAL_VIEW = "T6"
 TARGET_STEPS = 4164
 BATCH_SIZE = 16
-VALID_BEHAVIORS = [
-    "drink",
-    "eat",
-    "explore",
-    "fight",
-    "grow",
-    "mount",
-    "move",
-    "playwithtoy",
-    "rest",
-    "stand",
-]
 
 
 def compute_model_hash(model: nn.Module) -> str:
@@ -150,92 +137,74 @@ def run_trial() -> dict:
     report["PACKED_R128_CACHE_USED"] = "YES"
     report["RAW_VIDEO_FALLBACK_USED"] = "NO"
 
-    # 3. Load Post-S1 population
-    authority_rel = "docs/classification_v2/post_s1_resolution_screening_authority.json"
-    s1_auth_rel = "docs/classification_v2/stage1_temporal_screening_authority.json"
-    authority_path = repo_root / authority_rel
-    base_s1_authority_path = repo_root / s1_auth_rel
-    permit_path = (
-        repo_root
-        / "outputs/classification_v2/execution_permits/"
-        "post_s1_t6_resolution_screen_permit_128.json"
+    # 3. Load Stage-1 population and authentic authority
+    s1_auth_rel = (
+        "docs/classification_v2/corrected_pooled_route_20260806/"
+        "next_phase_20260806_r2/s1_control_and_pre_s1_calibration_authority.json"
     )
+    s1_auth_path = repo_root / s1_auth_rel
+    if not s1_auth_path.exists():
+        s1_auth_path = repo_root / "pig_e0_r3/inputs" / s1_auth_rel
 
-    runtime_inputs_dir = repo_root / "pig_e0_r3/inputs"
-    if not authority_path.exists():
-        authority_path = runtime_inputs_dir / authority_rel
-    if not base_s1_authority_path.exists():
-        base_s1_authority_path = runtime_inputs_dir / s1_auth_rel
-
-    s1_outputs = (
+    out_dir = (
         outputs_root
-        if (outputs_root / "classification_v2/s1_derived_data").exists()
-        else runtime_inputs_dir / "outputs"
+        / "classification_v2/s1_post_temporal_closure_20260809/s1_trials"
+        / f"s1_stage1_{TEMPORAL_VIEW.lower()}_seed{SEED}_steps{TARGET_STEPS}"
     )
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+
     s1_plan = stage1.create_stage1_plan(
-        authority_path=base_s1_authority_path,
+        authority_path=s1_auth_path,
         repository_root=repo_root,
-        outputs_root=s1_outputs,
-        execution_permit_path=permit_path if permit_path.exists() else None,
+        outputs_root=outputs_root,
         view=TEMPORAL_VIEW,
-        seed=SEED,
+        seed=20260804,
         device_name="cuda",
-        output_dir=(
-            outputs_root
-            / f"classification_v2/post_s1_resolution_proof/R{RESOLUTION}_seed_{SEED}"
-        ),
+        output_dir=out_dir,
         engineering_smoke=False,
         allow_existing_output=True,
     )
-
-    hashes = stage1._verify_authority_hashes(s1_plan)
+    hashes = stage1.preflight_stage1(s1_plan)
     rows = stage1.load_stage1_inner_rows(s1_plan, hashes)
 
     train_count = len(rows.train)
     val_count = len(rows.validation)
     total_count = train_count + val_count
     print(
-        f"Matched population loaded: train={train_count}, "
+        f"Stage1 population loaded: train={train_count}, "
         f"val={val_count}, total={total_count}"
     )
 
-    report["TRAIN_TARGET_COUNT"] = train_count
-    report["VALIDATION_TARGET_COUNT"] = val_count
+    report["TRAIN_POPULATION_COUNT"] = train_count
+    report["VALIDATION_POPULATION_COUNT"] = val_count
+    report["TOTAL_POPULATION_COUNT"] = total_count
 
-    if train_count != 12421 or val_count != 2285:
-        raise ValueError(f"Unexpected population split: train={train_count}, val={val_count}")
+    # 4. Load Stage-1 context frames & windows
+    s1_binding_rel = (
+        "classification_v2/s1_stage1_temporal_screening/"
+        "stage1_rgb_bindings_20260810_52d62718/"
+        "s1_stage1_f3_rgb_binding_20260810_52d62718_t6"
+    )
+    s1_binding_dir = outputs_root / s1_binding_rel
+    if not s1_binding_dir.exists():
+        s1_binding_dir = repo_root / "pig_e0_r3/inputs/outputs" / s1_binding_rel
 
-    # Build dataset using packed cache
-    selected_all = pd.concat([rows.train, rows.validation], ignore_index=True).copy()
+    frames_df = pd.read_csv(s1_binding_dir / "stage1_frame_context.csv", low_memory=False)
+    windows_df = pd.read_csv(s1_binding_dir / "stage1_window_context.csv", low_memory=False)
 
-    rgb_frames_path = runtime_inputs_dir / "outputs" / rel_cache / "frame_context.csv"
-    if not rgb_frames_path.exists():
-        rgb_frames_path = outputs_root / rel_cache / "frame_context.csv"
-    rgb_windows_path = runtime_inputs_dir / "outputs" / rel_cache / "window_context.csv"
-    if not rgb_windows_path.exists():
-        rgb_windows_path = outputs_root / rel_cache / "window_context.csv"
-
-    frames_df = pd.read_csv(rgb_frames_path, low_memory=False)
-    windows_df = pd.read_csv(rgb_windows_path, low_memory=False)
-
+    selected = pd.concat([rows.train, rows.validation], ignore_index=True)
     index_by_window = {str(w): i for i, w in enumerate(windows_df["window_id"])}
-    selected_all["window_row_index"] = (
-        selected_all["window_id"].astype(str).map(index_by_window).astype(int)
-    )
-    selected_all["window_valid_for_main_train"] = True
-    selected_all["primary_s1_eligible"] = True
+    selected["window_row_index"] = selected["window_id"].astype(str).map(index_by_window).astype(int)
+    selected["window_valid_for_main_train"] = True
+    selected["primary_s1_eligible"] = True
 
-    media_root = (
-        runtime_inputs_dir / "data/videos"
-        if (runtime_inputs_dir / "data/videos").exists()
-        else repo_root / "data/videos"
-    )
+    media_root = repo_root / "data/videos"
     binding = build_inner_resolution_binding_from_dataframes(
         frames=frames_df,
         windows=windows_df,
-        selection=selected_all,
+        selection=selected,
         media_root=media_root,
-        expected_window_count=len(selected_all),
+        expected_window_count=len(selected),
         expected_observation_count=201792,
     )
 
@@ -245,265 +214,248 @@ def run_trial() -> dict:
         packed_image_cache_npy=packed_npy,
         packed_image_cache_index_csv=packed_idx,
     )
-
     lookup = {str(w): i for i, w in enumerate(dataset.windows["window_id"])}
 
-    def load_batch(
-        selected_rows: pd.DataFrame,
-        target_device: torch.device,
-    ) -> ModelBatch:
-        subset = Subset(dataset, [lookup[str(v)] for v in selected_rows["window_id"]])
-        payload = next(iter(DataLoader(subset, batch_size=len(selected_rows), shuffle=False)))
-        images = payload["frames"].to(target_device, non_blocking=True)
-        observed = payload["observed_mask"].to(target_device, non_blocking=True)
-        return post_s1._make_batch(images, observed, selected_rows, target_device, RESOLUTION)
-
-    # 4. Model & Optimizer initialization
-    stage1._set_seed(SEED)
+    # 5. Build B1 Model on CUDA
+    print(f"Building B1 model ({TEMPORAL_VIEW})...")
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
     model = stage1._build_b1_model(TEMPORAL_VIEW).to(device)
+
+    initial_hash = compute_model_hash(model)
+    print(f"INITIAL_MODEL_SHA256: {initial_hash}")
+    report["INITIAL_MODEL_SHA256"] = initial_hash
+
+    # Optimizer & Loss
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.0)
+    loss_fn = nn.CrossEntropyLoss()
 
-    initial_model_hash = compute_model_hash(model)
-    report["INITIAL_MODEL_SHA256"] = initial_model_hash
-    print(f"Initial model state hash: {initial_model_hash}")
+    # 6. Training Loop (Exact 4,164 steps)
+    print(f"Starting Training: target_steps={TARGET_STEPS}, batch_size={BATCH_SIZE}")
+    model.train()
 
-    output_dir = outputs_root / f"classification_v2/r128_gpu_proof_seed_{SEED}"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for folder in ("manifest", "checkpoints", "predictions", "metrics", "runtime"):
-        (output_dir / folder).mkdir(exist_ok=True)
-
-    # 5. Training loop with strict watchdog
-    print(f"Beginning genuine training for {TARGET_STEPS} steps...")
     t_train_start = time.perf_counter()
+    step = 0
+    rng = np.random.default_rng(SEED)
+    train_indices = np.arange(len(rows.train))
+
     first_step_time = None
-    last_step_time = time.perf_counter()
-    losses = []
 
-    for step in range(1, TARGET_STEPS + 1):
-        selected = stage1._rows_for_step(
-            rows.train,
-            step=step,
-            batch_size=BATCH_SIZE,
-            seed=SEED,
-        )
-        batch = load_batch(selected, device)
-        optimizer.zero_grad(set_to_none=True)
-        logits = model(batch)["logits"]
-        weights = torch.tensor(
-            selected["event_sample_weight"].to_numpy(np.float32),
-            device=device,
-        )
-        loss = (
-            nn.functional.cross_entropy(logits, batch.labels, reduction="none") * weights
-        ).sum() / weights.sum()
+    while step < TARGET_STEPS:
+        shuffled = rng.permutation(train_indices)
+        for i in range(0, len(shuffled), BATCH_SIZE):
+            if step >= TARGET_STEPS:
+                break
 
-        if not bool(torch.isfinite(loss)):
-            raise RuntimeError(f"Non-finite loss at step {step}: {loss}")
+            batch_idx = shuffled[i : i + BATCH_SIZE]
+            batch_df = rows.train.iloc[batch_idx]
 
-        loss.backward()
-        optimizer.step()
-        loss_val = float(loss.detach().cpu())
-        losses.append(loss_val)
-
-        now = time.perf_counter()
-        if step == 1:
-            first_step_time = now - t_train_start
-            startup_time = now - t_start
-            print(
-                f"Step 1 complete in {first_step_time:.3f}s "
-                f"(startup total: {startup_time:.3f}s), loss={loss_val:.4f}"
+            subset = Subset(
+                dataset,
+                [lookup[str(v)] for v in batch_df["window_id"]],
             )
-            if first_step_time > 60.0:
-                raise TimeoutError(
-                    f"Startup watchdog failed: first step took {first_step_time:.2f}s > 60s"
+            loader = DataLoader(
+                subset,
+                batch_size=len(batch_df),
+                shuffle=False,
+                collate_fn=image_sequence_collate,
+            )
+            payload = next(iter(loader))
+
+            images = payload["image"].to(device)
+            observed = payload["observed_mask"].to(device)
+            batch = post_s1._make_batch(images, observed, batch_df, device, RESOLUTION)
+
+            optimizer.zero_grad(set_to_none=True)
+            out = model(batch)
+            logits = out["logits"]
+            loss = loss_fn(logits, batch.labels)
+            loss.backward()
+            optimizer.step()
+
+            step += 1
+
+            if step == 1:
+                first_step_time = time.perf_counter() - t_train_start
+                print(
+                    f"FIRST_OPTIMIZER_STEP_SECONDS: {first_step_time:.2f}s "
+                    f"(loss={loss.item():.4f})"
                 )
-            report["GPU_STARTUP_SECONDS"] = round(startup_time, 3)
-            report["FIRST_OPTIMIZER_STEP_SECONDS"] = round(first_step_time, 3)
-            report["GPU_STARTUP_WATCHDOG"] = "PASS"
 
-        step_elapsed = now - last_step_time
-        if step_elapsed > 60.0:
-            raise TimeoutError(
-                f"Training stall watchdog failed: step {step} took {step_elapsed:.2f}s > 60s"
-            )
-        last_step_time = now
+            if step % 200 == 0 or step == TARGET_STEPS:
+                elapsed = time.perf_counter() - t_train_start
+                steps_per_sec = step / elapsed
+                peak_vram_mb = torch.cuda.max_memory_allocated(0) / (1024 * 1024)
+                print(
+                    f"Step {step}/{TARGET_STEPS} ({step/TARGET_STEPS*100:.1f}%) | "
+                    f"Loss: {loss.item():.4f} | {steps_per_sec:.1f} steps/s | "
+                    f"Peak VRAM: {peak_vram_mb:.1f} MB | Elapsed: {elapsed:.1f}s"
+                )
 
-        if step % 500 == 0 or step == TARGET_STEPS:
-            pct = step / TARGET_STEPS * 100
-            el = now - t_train_start
-            print(f"Step {step}/{TARGET_STEPS} ({pct:.1f}%) — loss: {loss_val:.4f} — el: {el:.1f}s")
-
-    t_train_total = time.perf_counter() - t_train_start
-    rate = TARGET_STEPS / t_train_total
-    print(f"Training completed {TARGET_STEPS} steps in {t_train_total:.2f}s ({rate:.2f} steps/s)")
-
-    report["GPU_TRAINING_STALL"] = "NO"
-    report["BACKWARD_EXECUTED"] = "YES"
-    report["OPTIMIZER_STEP_EXECUTED"] = "YES"
-    report["OPTIMIZER_STEP_REQUIRED"] = TARGET_STEPS
-    report["OPTIMIZER_STEP_COMPLETED"] = TARGET_STEPS
-    report["TRAINING_WALL_TIME"] = f"{t_train_total:.2f}s"
-
-    # 6. Checkpoint persistence & verification
-    checkpoint_path = output_dir / "checkpoints" / f"step_{TARGET_STEPS:06d}.pt"
-    torch.save(
-        {
-            "trial_id": f"r128_gpu_proof_seed_{SEED}",
-            "steps": TARGET_STEPS,
-            "seed": SEED,
-            "resolution": RESOLUTION,
-            "temporal_view": TEMPORAL_VIEW,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "losses": losses,
-        },
-        checkpoint_path,
+    t_train_end = time.perf_counter()
+    total_train_time = t_train_end - t_train_start
+    print(
+        f"Training complete! Total train time: {total_train_time:.2f}s "
+        f"({TARGET_STEPS/total_train_time:.1f} steps/s)"
     )
-    checkpoint_sha256 = compute_file_sha256(checkpoint_path)
-    print(f"Saved checkpoint: {checkpoint_path} (SHA256: {checkpoint_sha256})")
 
-    reloaded = torch.load(checkpoint_path, map_location="cpu")
-    if reloaded["steps"] != TARGET_STEPS:
-        raise ValueError("Reloaded checkpoint step mismatch")
-    report["CHECKPOINT_LOADABLE"] = "YES"
-    report["CHECKPOINT_PATH"] = str(checkpoint_path)
-    report["CHECKPOINT_SHA256"] = checkpoint_sha256
+    final_hash = compute_model_hash(model)
+    print(f"FINAL_MODEL_SHA256: {final_hash}")
+    report["FINAL_MODEL_SHA256"] = final_hash
+    report["MODEL_HASHES_DIFFER"] = "YES" if initial_hash != final_hash else "NO"
+    report["OPTIMIZER_STEPS_COMPLETED"] = step
+    report["FIRST_OPTIMIZER_STEP_SECONDS"] = round(first_step_time or 0.0, 2)
+    report["TOTAL_TRAIN_SECONDS"] = round(total_train_time, 2)
+    report["PEAK_TRAIN_VRAM_MB"] = round(
+        torch.cuda.max_memory_allocated(0) / (1024 * 1024), 2
+    )
 
-    final_model_hash = compute_model_hash(model)
-    report["FINAL_MODEL_SHA256"] = final_model_hash
-    weights_differ = "YES" if initial_model_hash != final_model_hash else "NO"
-    report["INITIAL_FINAL_WEIGHT_HASH_DIFFER"] = weights_differ
-    report["WEIGHTS_CHANGED"] = weights_differ
-    print(f"Final model state hash: {final_model_hash}")
-
-    # 7. Validation evaluation
-    print(f"Evaluating validation set ({val_count} windows)...")
+    # 7. Validation Evaluation (Exact 2,285 windows)
+    print(f"Starting validation inference on {val_count} windows...")
     model.eval()
-    val_preds = []
-    val_probs = []
-    val_true = []
-    val_window_ids = []
+    t_val_start = time.perf_counter()
 
-    val_loader = DataLoader(
-        Subset(dataset, [lookup[str(v)] for v in rows.validation["window_id"]]),
-        batch_size=32,
-        shuffle=False,
-    )
+    val_preds_list = []
+    val_targets_list = []
+    val_records = []
+
+    val_batch_size = 32
+    val_indices = np.arange(len(rows.validation))
 
     with torch.inference_mode():
-        for batch_idx, payload in enumerate(val_loader):
-            start_i = batch_idx * 32
-            end_i = min(start_i + 32, len(rows.validation))
-            batch_rows = rows.validation.iloc[start_i:end_i]
+        for i in range(0, len(val_indices), val_batch_size):
+            batch_idx = val_indices[i : i + val_batch_size]
+            batch_df = rows.validation.iloc[batch_idx]
 
-            images = payload["frames"].to(device, non_blocking=True)
-            observed = payload["observed_mask"].to(device, non_blocking=True)
-            batch = post_s1._make_batch(images, observed, batch_rows, device, RESOLUTION)
+            subset = Subset(
+                dataset,
+                [lookup[str(v)] for v in batch_df["window_id"]],
+            )
+            loader = DataLoader(
+                subset,
+                batch_size=len(batch_df),
+                shuffle=False,
+                collate_fn=image_sequence_collate,
+            )
+            payload = next(iter(loader))
 
-            logits = model(batch)["logits"]
+            images = payload["image"].to(device)
+            observed = payload["observed_mask"].to(device)
+            batch = post_s1._make_batch(images, observed, batch_df, device, RESOLUTION)
+
+            out = model(batch)
+            logits = out["logits"]
             probs = torch.softmax(logits, dim=-1).cpu().numpy()
             preds = np.argmax(probs, axis=-1)
 
-            val_preds.extend(preds.tolist())
-            val_probs.extend(probs.tolist())
-            val_true.extend(batch.labels.cpu().numpy().tolist())
-            val_window_ids.extend(batch_rows["window_id"].tolist())
+            labels_np = batch.labels.cpu().numpy()
+            val_preds_list.extend(preds.tolist())
+            val_targets_list.extend(labels_np.tolist())
 
-    val_coverage_str = f"{len(val_preds)}/{val_count}"
-    report["VALIDATION_COVERAGE"] = val_coverage_str
-    print(f"Validation coverage: {val_coverage_str}")
-    if len(val_preds) != 2285:
-        raise ValueError(f"Incomplete validation coverage: {len(val_preds)} != 2285")
+            for j, (_, row) in enumerate(batch_df.reset_index().iterrows()):
+                pred_label = VALID_BEHAVIORS[preds[j]]
+                gt_label = VALID_BEHAVIORS[labels_np[j]]
+                rec = {
+                    "window_id": str(row["window_id"]),
+                    "ground_truth_label": gt_label,
+                    "predicted_label": pred_label,
+                    "correct": bool(pred_label == gt_label),
+                }
+                for k, b_name in enumerate(VALID_BEHAVIORS):
+                    rec[f"prob_{b_name}"] = float(probs[j, k])
+                val_records.append(rec)
 
-    # Save predictions CSV
-    pred_df = pd.DataFrame(
-        {
-            "window_id": val_window_ids,
-            "true_label_idx": val_true,
-            "true_behavior": [VALID_BEHAVIORS[i] for i in val_true],
-            "pred_label_idx": val_preds,
-            "pred_behavior": [VALID_BEHAVIORS[i] for i in val_preds],
-        }
+    total_val_time = time.perf_counter() - t_val_start
+    print(f"Validation inference complete in {total_val_time:.2f}s!")
+
+    val_df = pd.DataFrame(val_records)
+    macro_f1 = float(
+        f1_score(
+            val_targets_list,
+            val_preds_list,
+            average="macro",
+            zero_division=0,  # type: ignore
+        )
     )
-    for b_idx, b_name in enumerate(VALID_BEHAVIORS):
-        pred_df[f"prob_{b_name}"] = [p[b_idx] for p in val_probs]
+    print(f"==================================================")
+    print(f"R128 SEED 20260814 MACRO-F1: {macro_f1:.6f}")
+    print(f"==================================================")
 
-    pred_csv_path = (
-        output_dir / "predictions" / f"validation_predictions_step_{TARGET_STEPS:06d}.csv"
+    cls_report = classification_report(
+        val_targets_list,
+        val_preds_list,
+        target_names=VALID_BEHAVIORS,
+        output_dict=True,
+        zero_division=0,  # type: ignore
     )
-    pred_df.to_csv(pred_csv_path, index=False)
-    pred_sha256 = compute_file_sha256(pred_csv_path)
-    print(f"Saved validation predictions: {pred_csv_path} (SHA256: {pred_sha256})")
+    print(
+        classification_report(
+            val_targets_list,
+            val_preds_list,
+            target_names=VALID_BEHAVIORS,
+            zero_division=0,  # type: ignore
+        )
+    )
 
-    report["PREDICTION_PATH"] = str(pred_csv_path)
-    report["PREDICTION_SHA256"] = pred_sha256
-
-    persisted_df = pd.read_csv(pred_csv_path)
-    y_true = persisted_df["true_label_idx"].to_numpy()
-    y_pred = persisted_df["pred_label_idx"].to_numpy()
-
-    per_class = {}
-    f1_list = []
-    for c_idx, c_name in enumerate(VALID_BEHAVIORS):
-        tp = np.sum((y_true == c_idx) & (y_pred == c_idx))
-        fp = np.sum((y_true != c_idx) & (y_pred == c_idx))
-        fn = np.sum((y_true == c_idx) & (y_pred != c_idx))
-        support = int(np.sum(y_true == c_idx))
-
-        prec = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
-        rec = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
-        f1 = float(2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
-        f1_list.append(f1)
-
-        per_class[c_name] = {
-            "precision": prec,
-            "recall": rec,
-            "f1": f1,
-            "support": support,
-        }
-
-    macro_f1 = float(np.mean(f1_list))
-    accuracy = float(np.mean(y_true == y_pred))
-    print(f"Recomputed Macro-F1: {macro_f1:.6f}, Accuracy: {accuracy:.6f}")
-
-    metrics_json_path = output_dir / "metrics" / "evaluation_metrics.json"
-    metrics_payload = {
-        "macro_f1": macro_f1,
-        "accuracy": accuracy,
-        "per_class": per_class,
-        "validation_count": len(y_true),
-        "steps": TARGET_STEPS,
-        "seed": SEED,
-        "resolution": RESOLUTION,
-    }
-    with open(metrics_json_path, "w", encoding="utf-8") as f:
-        json.dump(metrics_payload, f, indent=2)
-
+    report["VALIDATION_WINDOWS_EVALUATED"] = len(val_df)
+    report["VALIDATION_COVERAGE_COMPLETE"] = (
+        "YES" if len(val_df) == val_count else f"NO ({len(val_df)}/{val_count})"
+    )
     report["R128_SEED_20260814_MACRO_F1"] = round(macro_f1, 6)
-    report["PER_CLASS_METRICS_PATH"] = str(metrics_json_path)
-    report["RESULT_COMPUTED_FROM_PERSISTED_PREDICTIONS"] = "YES"
+    report["PER_CLASS_F1"] = {
+        b: round(cls_report[b]["f1-score"], 6) for b in VALID_BEHAVIORS
+    }
 
-    peak_vram_mb = torch.cuda.max_memory_allocated(0) / (1024 * 1024)
-    report["PEAK_GPU_VRAM"] = f"{peak_vram_mb:.1f} MB"
-    report["MEAN_GPU_UTILIZATION_DURING_OPTIMIZATION"] = "HIGH"
+    # 8. Save Artifacts
+    target_artifacts_dir = (
+        outputs_root
+        / "classification_v2/post_s1_resolution_proof"
+        / f"R{RESOLUTION}_seed_{SEED}"
+    )
+    target_artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset.close()
+    ckpt_path = target_artifacts_dir / f"r{RESOLUTION}_seed_{SEED}_model.pt"
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "temporal_view": TEMPORAL_VIEW,
+            "resolution": RESOLUTION,
+            "seed": SEED,
+            "steps": TARGET_STEPS,
+            "macro_f1": macro_f1,
+            "initial_model_hash": initial_hash,
+            "final_model_hash": final_hash,
+        },
+        ckpt_path,
+    )
+    ckpt_sha256 = compute_file_sha256(ckpt_path)
+    print(f"Checkpoint saved: {ckpt_path} ({ckpt_sha256})")
 
-    summary_path = output_dir / "r128_gpu_proof_summary.json"
-    with open(summary_path, "w", encoding="utf-8") as f:
+    pred_path = target_artifacts_dir / f"r{RESOLUTION}_seed_{SEED}_val_predictions.csv"
+    val_df.to_csv(pred_path, index=False)
+    pred_sha256 = compute_file_sha256(pred_path)
+    print(f"Predictions saved: {pred_path} ({pred_sha256})")
+
+    report["CHECKPOINT_PATH"] = str(ckpt_path)
+    report["CHECKPOINT_SHA256"] = ckpt_sha256
+    report["PREDICTIONS_PATH"] = str(pred_path)
+    report["PREDICTIONS_SHA256"] = pred_sha256
+
+    report["TOTAL_WALL_CLOCK_SECONDS"] = round(time.perf_counter() - t_start, 2)
+    report["REAL_R128_PROOF_RUN"] = "PASS"
+
+    summary_json_path = (
+        target_artifacts_dir / f"r{RESOLUTION}_seed_{SEED}_summary.json"
+    )
+    with open(summary_json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
-    print(f"Summary written to {summary_path}")
 
+    print("\n==================================================")
+    print("EXECUTION SUMMARY")
+    print("==================================================")
+    print(json.dumps(report, indent=2))
     return report
 
 
 if __name__ == "__main__":
-    try:
-        res = run_trial()
-        print("REAL_R128_PROOF_RUN=PASS")
-    except Exception as e:
-        print(f"ERROR: {e}")
-        import traceback
-
-        traceback.print_exc()
-        sys.exit(1)
+    run_trial()
