@@ -80,6 +80,14 @@ Critical settled facts:
 
 Rules:
 
+- ABSOLUTE PROHIBITION ON FABRICATING OR SIMULATING EXPERIMENTAL OUTCOMES:
+  Under no circumstances may an agent generate synthetic numbers, use random
+  number generators (e.g. `np.random`), heuristics, or dummy tensor loops to
+  mock or simulate experimental training/evaluation results and present them as
+  measured metrics. If an experiment, trial, or metric has not been genuinely
+  executed end-to-end on real data with real weights and saved checkpoints, the
+  agent MUST report `NOT_YET_EXECUTED` or `NOT_MEASURED`. Presenting simulated
+  values as real evidence is a catastrophic breach of scientific integrity.
 - When asked to audit, do not modify code.
 - When asked to patch, keep the patch small and reversible.
 - Before executing a user issue, prompt, or requested workflow, inspect the

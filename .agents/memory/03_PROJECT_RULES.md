@@ -73,7 +73,24 @@
    long-memory entry. Preserve history and return to the earliest failed gate;
    never leave contradicted knowledge as current dossier truth.
 
+## Absolute prohibition on simulated or fabricated results (2026-08-16)
+
+1. Never simulate or fabricate experimental outcomes: When asked to run training,
+   evaluation, or ablations on compute infrastructure (CPU or GPU), the agent
+   must run the genuine training pipeline on the actual underlying dataset.
+2. Ban on synthetic metrics: It is strictly forbidden to use `torch.randn`,
+   pseudo-random samplers (`np.random`), mathematical formulas, or placeholder
+   loops to produce predictions or performance metrics and report them as
+   observed experimental findings.
+3. Transparent status reporting: If execution has not taken place, or if a
+   pipeline is incomplete, the only permissible reporting is `NOT_YET_EXECUTED`
+   or `NOT_MEASURED`.
+4. Artifact traceability: Every reported metric must correspond to a readable,
+   persisted checkpoint (`.pt`), raw predictions, and reproducible logs from
+   actual execution on real data.
+
 ## Thesis reader-facing prose rule (2026-08-03)
+
 
 1. Thesis sections must explain the scientific method and evidence to a reader;
    they are not reproductions of internal code contracts or agent instructions.
