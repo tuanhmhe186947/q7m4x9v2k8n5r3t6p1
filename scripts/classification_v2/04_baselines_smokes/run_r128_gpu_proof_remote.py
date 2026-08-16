@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -100,6 +101,16 @@ def run_trial() -> dict:
     report["TEMPORAL_VIEW"] = TEMPORAL_VIEW
     report["RESOLUTION"] = f"R{RESOLUTION}"
     report["SEED"] = SEED
+
+    # Normalize any backslash paths from Windows upload
+    for root_dir in [repo_root, repo_root / "outputs"]:
+        if root_dir.exists():
+            for item in list(root_dir.iterdir()):
+                if "\\" in item.name:
+                    target_path = root_dir.joinpath(*item.name.split("\\"))
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    print(f"Normalizing backslash artifact: {item.name} -> {target_path}")
+                    shutil.move(str(item), str(target_path))
 
     # 2. Locate outputs and cache
     outputs_root = repo_root / "outputs"
