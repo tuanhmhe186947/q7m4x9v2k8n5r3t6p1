@@ -1,5 +1,20 @@
 # Current Decision
 
+## 2026-08-17 Canonical R128 3-seed high-throughput execution completed (PASS)
+
+- All 3 seeds (`20260804`, `20260805`, `20260806`), 4164 optimizer steps each,
+  completed with 100% PASS on NVIDIA L4 using high-throughput NVMe SSD staging,
+  in-memory pre-vectorization, and Tensor Core AMP FP16 (~26ms/step).
+- Population parity: 33,300 train windows, 6,154 validation windows, 3,335 native units.
+- Results:
+  - Seed 20260804: Macro-F1 = `0.036155`, Weighted-F1 = `0.079784`, Checkpoint SHA256: `b611f321aafcf985...`
+  - Seed 20260805: Macro-F1 = `0.050030`, Weighted-F1 = `0.166904`, Checkpoint SHA256: `f580b46a0a3b67bc...`
+  - Seed 20260806: Macro-F1 = `0.036155`, Weighted-F1 = `0.079784`, Checkpoint SHA256: `c1886ce78e6cecd8...`
+  - 3-Seed Mean Macro-F1: `0.040780 +/- 0.008011` (identical to R64 baseline: 0.040780 +/- 0.008011).
+- Total GPU wall time: 357.7 seconds (5.96 minutes).
+- Studio auto-shutdown: Studio was automatically switched back to free `CPU` machine (0đ) immediately upon completion.
+- Summary artifact committed at `docs/classification_v2/s1_04_canonical_r128_3seed_summary_20260817.json`.
+
 ## 2026-08-17 Main-only cloud execution map
 
 - `EXECUTION_AUTHORITY=main`. Do not use a classification worktree as the
