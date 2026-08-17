@@ -1,0 +1,117 @@
+{
+  "schema": "classification_v2.cloud_r128_canonical_gpu_gate.v1",
+  "status": "PASS",
+  "gpu_gate": "PASS",
+  "studio": "training-pig-project-L4",
+  "gpu_device": "NVIDIA L4",
+  "steps_completed": 20,
+  "elapsed_seconds": 178.61479770200003,
+  "seconds_per_step": 8.930739885100001,
+  "peak_vram_mb": 181.36962890625,
+  "initial_loss": 2.4057209491729736,
+  "final_loss": 1.7853467464447021,
+  "loss_finite": true,
+  "checkpoint_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/gpu_gate_s1_t6_r128_seed20260804_steps20/checkpoint/gpu_gate_step_000020.pt",
+  "step_logs": [
+    {
+      "step": 1,
+      "loss": 2.4057209491729736,
+      "vram_mb": 180.84130859375
+    },
+    {
+      "step": 2,
+      "loss": 2.203530788421631,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 3,
+      "loss": 2.0722665786743164,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 4,
+      "loss": 1.8164223432540894,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 5,
+      "loss": 1.721132755279541,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 6,
+      "loss": 1.7149994373321533,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 7,
+      "loss": 1.8591010570526123,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 8,
+      "loss": 1.970755696296692,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 9,
+      "loss": 1.8300894498825073,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 10,
+      "loss": 2.4247946739196777,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 11,
+      "loss": 1.5348775386810303,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 12,
+      "loss": 2.170485019683838,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 13,
+      "loss": 2.3867692947387695,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 14,
+      "loss": 1.6917790174484253,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 15,
+      "loss": 2.171450614929199,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 16,
+      "loss": 2.134652853012085,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 17,
+      "loss": 1.7880018949508667,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 18,
+      "loss": 2.1548659801483154,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 19,
+      "loss": 2.0246169567108154,
+      "vram_mb": 181.36962890625
+    },
+    {
+      "step": 20,
+      "loss": 1.7853467464447021,
+      "vram_mb": 181.36962890625
+    }
+  ]
+}
