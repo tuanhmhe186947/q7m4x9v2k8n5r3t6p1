@@ -1,5 +1,21 @@
 # Repository Hygiene Ledger
 
+## 2026-08-17 R128 evidence preservation and worktree audit
+
+- `PROTECTED`: the real seed-04 result JSON and transfer bundle were moved,
+  not deleted, to
+  `C:\Users\ironh\Downloads\PIG_Behavior_Project_R128_EVIDENCE\seed20260804`.
+  The six artifact hashes in `artifact_manifest.json` match after the move;
+  the result JSON hash is `EBF00C78A1231D78366E8E24753076C8DD89A...`.
+- `PROTECTED`: registered worktrees with active tasks, dirty evidence, or no
+  manager retirement proof remain untouched. Worktree removal and branch
+  deletion were not performed.
+- `REVIEW_REQUIRED`: unregistered `.codex_worktrees/s1_*` directories remain
+  because they were touched within the protected recent-change window and
+  their ownership/lineage is not proven disposable.
+- `PROTECTED`: `.codex_tmp/worktrees/*` entries are reparse points targeting
+  `C:\PigProjectStorage`; no recursive operation was attempted.
+
 ## 2026-07-31 governance harness cleanup
 
 - `REMOVED`: two `__pycache__` directories created by this session's
