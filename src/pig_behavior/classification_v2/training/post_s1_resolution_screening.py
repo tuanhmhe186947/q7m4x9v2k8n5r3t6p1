@@ -13,7 +13,7 @@ import json
 import os
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -114,10 +114,10 @@ class _R128PackedArrayReader:
             )
         return payload
 
-    def read_rows(self, packed_rows: list[int]) -> np.ndarray:
+    def read_rows(self, packed_rows: Sequence[int]) -> np.ndarray:
         """Return rows in requested order while coalescing contiguous reads."""
 
-        if not packed_rows:
+        if len(packed_rows) == 0:
             return np.empty((0, *self.shape[1:]), dtype=self.dtype)
         row_ids = [int(row) for row in packed_rows]
         if any(row < 0 or row >= self.shape[0] for row in row_ids):
@@ -308,6 +308,7 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
         confirmation_authority_path=plan.confirmation_authority_path,
         trial_id=f"s1_stage1_t6_seed{plan.seed}_steps{MAX_STEPS}",
         device_name=plan.device_name,
+        engineering_smoke=True,
     )
     hashes = stage1.preflight_stage1(base)
     rows = stage1.load_stage1_inner_rows(base, hashes)
