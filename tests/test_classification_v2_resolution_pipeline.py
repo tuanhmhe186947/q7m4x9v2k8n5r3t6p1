@@ -512,3 +512,129 @@ def test_full_resolution_arm_delegates_to_inherited_stage1_executor(
     inherited_population = captured["population"]
     assert inherited_population.load_batch is population.load_batch
     assert inherited_population.data_hashes == population.data_hashes
+
+
+def test_resolution_plan_validates_matched_seeds(tmp_path: Path) -> None:
+    media_root = tmp_path / "inputs"
+    media_root.mkdir()
+    contract_path = tmp_path / "remote-input-contract.json"
+    contract_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "classification_v2.remote_input_root.v1",
+                "status": "ACTIVE_RUNTIME_LOCATOR_CONTRACT",
+                "scientific_input_authority": {
+                    "authority_id": "synthetic-input-authority",
+                    "historical_parity_evidence": {"relative_path": "s.json", "sha256": "0" * 64},
+                    "expected_population": {"physical_file_count": 1, "total_bytes": 1},
+                    "registered_sentinels": {},
+                },
+                "runtime_input_locators": {
+                    "preferred": str(media_root),
+                    "registered": [str(media_root)],
+                    "parity_report_locator": "p.json",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    binding_path = tmp_path / "runtime-input-binding.json"
+    binding_path.write_text(
+        json.dumps(
+            {
+                "scientific_input_authority_id": "synthetic-input-authority",
+                "effective_remote_input_root": str(media_root),
+                "expected_file_count": 1,
+                "expected_total_bytes": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+    authority_path = tmp_path / "resolution-authority.json"
+    authority_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "classification_v2.post_s1_resolution_screen.v1",
+                "status": "USER_APPROVED_PRE_GPU_SCREEN",
+                "temporal_reference": "T6",
+                "arms": [64, 128, 160],
+                "fixed_controls": {
+                    "optimizer": "AdamW",
+                    "learning_rate": 0.003,
+                    "weight_decay": 0.0,
+                    "batch_size": 16,
+                    "precision": "FP32",
+                    "scheduler": "none",
+                },
+                "bound_stage1_authorities": {},
+                "runtime_input_authority": {
+                    "relative_segments": ["."],
+                    "filename": contract_path.name,
+                    "sha256": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
+                },
+                "cvat_source_registration": {
+                    "relative_segments": ["reg"],
+                    "filename": "cvat.json",
+                    "sha256": "0" * 64,
+                },
+                "outer_access_allowed": False,
+                "forbidden_families": [
+                    "backbone",
+                    "augmentation",
+                    "crop_margin",
+                    "geometry",
+                    "motion",
+                    "roi",
+                    "social",
+                    "h5",
+                    "posture",
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "reg").mkdir(parents=True, exist_ok=True)
+    cvat_reg = tmp_path / "reg" / "cvat.json"
+    cvat_reg.write_text("{}", encoding="utf-8")
+    authority_dict = json.loads(authority_path.read_text(encoding="utf-8"))
+    authority_dict["cvat_source_registration"]["sha256"] = hashlib.sha256(
+        cvat_reg.read_bytes()
+    ).hexdigest()
+    authority_path.write_text(json.dumps(authority_dict), encoding="utf-8")
+
+    common_kwargs = {
+        "authority_path": authority_path,
+        "repository_root": tmp_path,
+        "outputs_root": tmp_path / "outputs",
+        "stage1_data_bindings_path": tmp_path / "bindings.json",
+        "stage1_binding_bundle_path": tmp_path / "bundle.json",
+        "execution_permit_path": tmp_path / "permit.json",
+        "base_stage1_authority_path": tmp_path / "base_s1.json",
+        "host_binding_path": tmp_path / "host.json",
+        "canonical_code_sha": "0" * 40,
+        "rgb_source_root": tmp_path / "rgb",
+        "runtime_input_authority_path": contract_path,
+        "runtime_input_binding_path": binding_path,
+        "media_root": media_root,
+        "input_resolution": 128,
+        "device_name": "cpu",
+    }
+
+    for seed in (20260804, 20260805, 20260806):
+        plan = post_s1.create_resolution_plan(
+            output_dir=tmp_path / f"out_{seed}",
+            trial_id=f"post_s1_t6_r128_seed{seed}_steps4164",
+            seed=seed,
+            **common_kwargs,
+        )
+        assert plan.seed == seed
+        assert plan.trial_id == f"post_s1_t6_r128_seed{seed}_steps4164"
+
+    with pytest.raises(post_s1.PostS1ResolutionError, match="unregistered seed"):
+        post_s1.create_resolution_plan(
+            output_dir=tmp_path / "out_bad",
+            trial_id="post_s1_t6_r128_seed999999_steps4164",
+            seed=999999,
+            **common_kwargs,
+        )
+

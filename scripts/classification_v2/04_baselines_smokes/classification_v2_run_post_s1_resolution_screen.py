@@ -36,6 +36,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-resolution", required=True, type=int)
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
     parser.add_argument("--steps", type=int, default=MAX_STEPS)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=20260804,
+        choices=(20260804, 20260805, 20260806),
+        help="Registered matched seed for resolution screening.",
+    )
+    parser.add_argument(
+        "--confirmation-authority",
+        type=Path,
+        default=None,
+        help="Optional confirmation retention authority for confirmation seeds.",
+    )
     return parser.parse_args()
 
 
@@ -61,6 +74,8 @@ def main() -> None:
         trial_id=args.trial_id,
         input_resolution=args.input_resolution,
         device_name=args.device,
+        seed=args.seed,
+        confirmation_authority_path=args.confirmation_authority,
     )
     population = load_resolution_population(plan)
     result = run_resolution_arm(plan, population, steps=args.steps)
