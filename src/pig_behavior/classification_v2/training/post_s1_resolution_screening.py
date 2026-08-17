@@ -811,11 +811,7 @@ class DriveR128Dataset(Dataset[dict[str, object]]):
             raise R128RuntimeError("packed R128 index byte size drifted")
         # Keep the authoritative file on Drive while avoiding random-read
         # latency for every six-frame batch over the shared filesystem.
-        self.tensor = np.load(
-            self.packed_npy,
-            allow_pickle=False,
-            mmap_mode="r",
-        )
+        self.tensor = np.load(self.packed_npy, allow_pickle=False)
         expected_shape = (R128_CACHE_ROWS, R128_RESOLUTION, R128_RESOLUTION, 3)
         if self.tensor.dtype != np.uint8 or tuple(self.tensor.shape) != expected_shape:
             raise R128RuntimeError(
