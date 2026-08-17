@@ -68,6 +68,7 @@ R128_RUNTIME_SCHEMA = "classification_v2.cloud_r128_runtime.v1"
 R128_TEMPORAL_VIEW = "T6"
 R128_RESOLUTION = 128
 R128_SEED = 20260814
+R128_MATCHED_SEEDS = frozenset({20260804, 20260805, 20260806})
 R128_MAX_STEPS = 4164
 R128_BATCH_SIZE = 16
 R128_TRAIN_ROWS = 12421
@@ -1214,8 +1215,11 @@ def run_r128_trial(
     cache_uri: str,
     code_sha: str,
     runtime_bundle_sha: str,
+    seed: int = R128_SEED,
 ) -> dict[str, object]:
-    """Run exactly one production T6/R128/seed-20260814 trial."""
+    """Run one production T6/R128 trial for a registered matched seed."""
+    if seed not in R128_MATCHED_SEEDS:
+        raise R128RuntimeError(f"unregistered matched R128 seed: {seed}")
     if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise R128RuntimeError("R128 proof run requires exactly one visible CUDA device")
     if torch.cuda.get_device_name(0) != "NVIDIA L4":
@@ -1226,7 +1230,7 @@ def run_r128_trial(
     log_path = output_dir / "logs" / "training_log.jsonl"
     gpu_samples: list[int] = []
     try:
-        stage1._set_seed(R128_SEED)
+        stage1._set_seed(seed)
         torch.cuda.reset_peak_memory_stats(0)
         model = stage1._build_b1_model(R128_TEMPORAL_VIEW).to(device)
         initial_hash = _r128_model_hash(model)
@@ -1242,7 +1246,7 @@ def run_r128_trial(
                     train,
                     step=step,
                     batch_size=R128_BATCH_SIZE,
-                    seed=R128_SEED,
+                    seed=seed,
                 )
                 batch, weights = _r128_model_batch(selected, population, device)
                 optimizer.zero_grad(set_to_none=True)
@@ -1291,7 +1295,7 @@ def run_r128_trial(
                 "schema": R128_RUNTIME_SCHEMA,
                 "temporal_view": R128_TEMPORAL_VIEW,
                 "resolution": R128_RESOLUTION,
-                "seed": R128_SEED,
+                "seed": seed,
                 "optimizer_steps": completed_steps,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
@@ -1324,10 +1328,10 @@ def run_r128_trial(
         peak_vram_mb = round(torch.cuda.max_memory_allocated(0) / 2**20, 3)
         descriptor = {
             "schema": R128_RUNTIME_SCHEMA,
-            "trial_id": "T6_R128_seed20260814_steps4164",
+            "trial_id": f"T6_R128_seed{seed}_steps{R128_MAX_STEPS}",
             "temporal_view": R128_TEMPORAL_VIEW,
             "resolution": R128_RESOLUTION,
-            "seed": R128_SEED,
+            "seed": seed,
             "optimizer": "AdamW",
             "learning_rate": 0.003,
             "weight_decay": 0.0,
@@ -1389,6 +1393,7 @@ def _r128_cli() -> argparse.Namespace:
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
     parser.add_argument("--code-sha", default="UNSPECIFIED")
     parser.add_argument("--runtime-bundle-sha", default="UNSPECIFIED")
+    parser.add_argument("--seed", type=int, choices=sorted(R128_MATCHED_SEEDS))
     return parser.parse_args()
 
 
@@ -1407,6 +1412,8 @@ def main() -> None:
     else:
         if args.device != "cuda":
             raise R128RuntimeError("R128 proof trial must use --device cuda")
+        if args.seed is None:
+            raise R128RuntimeError("R128 proof trial requires --seed")
         result = run_r128_trial(
             manifest=args.manifest,
             packed_npy=args.packed_npy,
@@ -1415,6 +1422,7 @@ def main() -> None:
             cache_uri=args.cache_uri,
             code_sha=args.code_sha,
             runtime_bundle_sha=args.runtime_bundle_sha,
+            seed=args.seed,
         )
     print(json.dumps(result, indent=2, sort_keys=True, default=str), flush=True)
 
