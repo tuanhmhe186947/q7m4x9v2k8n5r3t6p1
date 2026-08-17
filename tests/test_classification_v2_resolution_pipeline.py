@@ -30,6 +30,7 @@ from pig_behavior.classification_v2.training import (
 )
 from pig_behavior.classification_v2.training.post_s1_resolution_screening import (
     PostS1ResolutionError,
+    _R128PackedArrayReader,
     _validate_runtime_input_binding,
 )
 from pig_behavior.classification_v2.training.remote_input_resolution import (
@@ -151,6 +152,22 @@ def _binding(tmp_path: Path):
         expected_window_count=2,
         expected_observation_count=12,
     )
+
+
+def test_r128_packed_reader_matches_mmap_rows(tmp_path: Path) -> None:
+    packed = np.arange(7 * 2 * 3 * 3, dtype=np.uint8).reshape(7, 2, 3, 3)
+    packed_path = tmp_path / "packed.npy"
+    np.save(packed_path, packed, allow_pickle=False)
+    mmap = np.load(packed_path, allow_pickle=False, mmap_mode="r")
+    reader = _R128PackedArrayReader(packed_path)
+    try:
+        for requested_rows in ([6, 2, 3, 0, 3], [0, 1, 2, 3], []):
+            actual = reader.read_rows(requested_rows)
+            expected = np.asarray(mmap[requested_rows])
+            np.testing.assert_array_equal(actual, expected)
+    finally:
+        reader.close()
+        del mmap
 
 
 def test_runtime_resolution_changes_only_spatial_realization(tmp_path: Path) -> None:

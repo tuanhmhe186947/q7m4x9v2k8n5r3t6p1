@@ -11,8 +11,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 import subprocess
+import threading
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -83,6 +85,95 @@ R128_FORBIDDEN_FALLBACKS = {
     "loose_crop_fallback_used": False,
     "cache_build_on_studio": False,
 }
+
+
+class _R128PackedArrayReader:
+    """Read exact packed rows without mmap random reads on Teamspace Drive."""
+
+    def __init__(self, packed_npy: Path) -> None:
+        self.path = Path(packed_npy)
+        self._handle = self.path.open("rb", buffering=0)
+        try:
+            version = np.lib.format.read_magic(self._handle)
+            header_reader = {
+                (1, 0): np.lib.format.read_array_header_1_0,
+                (2, 0): np.lib.format.read_array_header_2_0,
+            }.get(version)
+            if version == (3, 0):
+                header_reader = getattr(
+                    np.lib.format,
+                    "read_array_header_3_0",
+                    None,
+                )
+            if header_reader is None:
+                raise R128RuntimeError(f"unsupported packed NPY version: {version}")
+            shape, fortran_order, dtype = header_reader(self._handle)
+            self.shape = tuple(int(value) for value in shape)
+            self.fortran_order = bool(fortran_order)
+            self.dtype = np.dtype(dtype)
+            self.data_offset = int(self._handle.tell())
+            if self.fortran_order:
+                raise R128RuntimeError("packed R128 tensor must be C-contiguous")
+            if self.dtype != np.dtype(np.uint8):
+                raise R128RuntimeError(
+                    f"packed R128 tensor dtype drifted: {self.dtype}"
+                )
+            if len(self.shape) != 4:
+                raise R128RuntimeError("packed R128 tensor rank drifted")
+            self.row_bytes = int(np.prod(self.shape[1:], dtype=np.int64))
+            self._fd = self._handle.fileno()
+            self._seek_lock = threading.Lock()
+        except Exception:
+            self._handle.close()
+            raise
+
+    def _read_bytes(self, offset: int, count: int) -> bytes:
+        if hasattr(os, "pread"):
+            payload = os.pread(self._fd, count, offset)
+        else:
+            with self._seek_lock:
+                self._handle.seek(offset)
+                payload = self._handle.read(count)
+        if len(payload) != count:
+            raise R128RuntimeError(
+                f"short packed R128 read: expected {count}, got {len(payload)}"
+            )
+        return payload
+
+    def read_rows(self, packed_rows: list[int]) -> np.ndarray:
+        """Return rows in requested order while coalescing contiguous reads."""
+
+        if not packed_rows:
+            return np.empty((0, *self.shape[1:]), dtype=self.dtype)
+        row_ids = [int(row) for row in packed_rows]
+        if any(row < 0 or row >= self.shape[0] for row in row_ids):
+            raise R128RuntimeError("packed R128 row is outside the tensor")
+        output = np.empty((len(row_ids), *self.shape[1:]), dtype=self.dtype)
+        ordered = sorted(enumerate(row_ids), key=lambda item: item[1])
+        group_start = 0
+        while group_start < len(ordered):
+            group_end = group_start + 1
+            while (
+                group_end < len(ordered)
+                and ordered[group_end][1] == ordered[group_end - 1][1] + 1
+            ):
+                group_end += 1
+            first_row = ordered[group_start][1]
+            group_count = group_end - group_start
+            payload = self._read_bytes(
+                self.data_offset + first_row * self.row_bytes,
+                group_count * self.row_bytes,
+            )
+            block = np.frombuffer(payload, dtype=self.dtype).reshape(
+                group_count, *self.shape[1:]
+            )
+            for output_index, row_id in ordered[group_start:group_end]:
+                output[output_index] = block[row_id - first_row]
+            group_start = group_end
+        return output
+
+    def close(self) -> None:
+        self._handle.close()
 
 
 def load_canonical_resolution_temporal_target(
@@ -809,17 +900,12 @@ class DriveR128Dataset(Dataset[dict[str, object]]):
             raise R128RuntimeError("packed R128 tensor byte size drifted")
         if self.packed_index.stat().st_size != R128_INDEX_BYTES:
             raise R128RuntimeError("packed R128 index byte size drifted")
-        # Keep the authoritative file on Drive while avoiding random-read
-        # latency for every six-frame batch over the shared filesystem.
-        self.tensor = np.load(
-            self.packed_npy,
-            allow_pickle=False,
-            mmap_mode="r",
-        )
         expected_shape = (R128_CACHE_ROWS, R128_RESOLUTION, R128_RESOLUTION, 3)
-        if self.tensor.dtype != np.uint8 or tuple(self.tensor.shape) != expected_shape:
+        self.tensor_reader = _R128PackedArrayReader(self.packed_npy)
+        if self.tensor_reader.dtype != np.uint8 or self.tensor_reader.shape != expected_shape:
             raise R128RuntimeError(
-                f"packed R128 tensor contract drifted: {self.tensor.dtype} {self.tensor.shape}"
+                "packed R128 tensor contract drifted: "
+                f"{self.tensor_reader.dtype} {self.tensor_reader.shape}"
             )
         index = pd.read_csv(self.packed_index, low_memory=False)
         if not {"image_context_id", "packed_row"}.issubset(index.columns):
@@ -848,7 +934,7 @@ class DriveR128Dataset(Dataset[dict[str, object]]):
         row = self.rows.iloc[index]
         context_ids = _r128_split_sequence(row["image_context_id_sequence"], ";;")
         packed_rows = [self.context_to_row[context_id] for context_id in context_ids]
-        cached = np.asarray(self.tensor[packed_rows], dtype=np.uint8)
+        cached = self.tensor_reader.read_rows(packed_rows)
         if tuple(cached.shape) != (6, R128_RESOLUTION, R128_RESOLUTION, 3):
             raise R128RuntimeError(f"Drive cache batch shape drifted for {row['window_id']}")
         self.packed_reads += len(packed_rows)
@@ -880,7 +966,7 @@ class DriveR128Dataset(Dataset[dict[str, object]]):
         }
 
     def close(self) -> None:
-        self.tensor = None
+        self.tensor_reader.close()
 
 
 @dataclass(slots=True)
