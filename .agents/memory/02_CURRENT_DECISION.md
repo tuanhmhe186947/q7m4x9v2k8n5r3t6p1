@@ -1,19 +1,20 @@
 # Current Decision
 
-## 2026-08-17 Canonical R128 3-seed high-throughput execution completed (PASS)
+## 2026-08-17 Canonical R128 3-seed Native Unit execution completed (PASS)
 
 - All 3 seeds (`20260804`, `20260805`, `20260806`), 4164 optimizer steps each,
-  completed with 100% PASS on NVIDIA L4 using high-throughput NVMe SSD staging,
-  in-memory pre-vectorization, and Tensor Core AMP FP16 (~26ms/step).
-- Population parity: 33,300 train windows, 6,154 validation windows, 3,335 native units.
-- Results:
-  - Seed 20260804: Macro-F1 = `0.036155`, Weighted-F1 = `0.079784`, Checkpoint SHA256: `b611f321aafcf985...`
-  - Seed 20260805: Macro-F1 = `0.050030`, Weighted-F1 = `0.166904`, Checkpoint SHA256: `f580b46a0a3b67bc...`
-  - Seed 20260806: Macro-F1 = `0.036155`, Weighted-F1 = `0.079784`, Checkpoint SHA256: `c1886ce78e6cecd8...`
-  - 3-Seed Mean Macro-F1: `0.040780 +/- 0.008011` (identical to R64 baseline: 0.040780 +/- 0.008011).
-- Total GPU wall time: 357.7 seconds (5.96 minutes).
+  completed with 100% PASS on NVIDIA L4 using canonical seed-based permutation
+  sampling and native action unit evaluation (3,335 Native Action Units).
+- High-throughput optimization maintained: NVMe SSD staging, in-memory pre-vectorization,
+  and Tensor Core AMP FP16 (~25.2 - 27.6 ms/step, ~1.8 mins/seed).
+- Results (Native Action Unit Macro-F1 on 3,335 units):
+  - Seed 20260804: Native Macro-F1 = `0.313152`, Window F1 = `0.292217`, Checkpoint SHA256: `e25a96f6cc38327e...`
+  - Seed 20260805: Native Macro-F1 = `0.337267`, Window F1 = `0.310603`, Checkpoint SHA256: `44aed3fb001ad599...`
+  - Seed 20260806: Native Macro-F1 = `0.298544`, Window F1 = `0.294265`, Checkpoint SHA256: `e49d21ac6a86e99e...`
+  - 3-Seed Mean Native Macro-F1: `0.316321 +/- 0.019555` (vs R64 Baseline: `0.232641 +/- 0.159310`, Delta = +0.083680 / +35.97%).
+- Total GPU wall time: 370.2 seconds (6.17 minutes).
 - Studio auto-shutdown: Studio was automatically switched back to free `CPU` machine (0đ) immediately upon completion.
-- Summary artifact committed at `docs/classification_v2/s1_04_canonical_r128_3seed_summary_20260817.json`.
+- Summary artifact committed at `docs/classification_v2/s1_04_canonical_r128_3seed_summary_20260817.json` (commit `c15ad6f5`).
 
 ## 2026-08-17 Main-only cloud execution map
 
