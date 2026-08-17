@@ -1,0 +1,28 @@
+{
+  "schema": "classification_v2.cloud_r128_canonical_cpu_preflight.v1",
+  "status": "PASS",
+  "studio": "training-pig-project-L4",
+  "teamspace": "ironheart211224/pig-project",
+  "machine": "CPU",
+  "counts": {
+    "train_windows": 33300,
+    "val_windows": 6154,
+    "primary_native_units": 3335,
+    "common_cohort_units": 27378
+  },
+  "drive_cache": {
+    "packed_npy": "/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache/packed_rgb_128_letterbox.npy",
+    "packed_index": "/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache/packed_image_cache_index.csv",
+    "shape": [
+      245680,
+      128,
+      128,
+      3
+    ]
+  },
+  "sample_loss": 2.9844045639038086,
+  "model_output": [
+    16,
+    10
+  ]
+}
