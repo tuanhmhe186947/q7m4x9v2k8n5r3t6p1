@@ -43,19 +43,19 @@ unmerged branches are not completion evidence.
 
 ## Progressive delivery and worktree use
 
-- `main` is the continuous delivery branch. For ordinary linear work, use the
-  admitted `shared_main` mode and commit each verified bounded milestone to
-  local `main` immediately; that commit is the integration for the milestone.
-- Use an exclusive worktree only when concurrent owner work or a concrete
-  isolation risk requires it. Integrate each verified milestone into `main`
-  before starting another implementation milestone; do not accumulate a queue
-  of completed worktree changes for a later reconciliation task.
-- Outcome review and task closure record evidence after delivery; they are not
-  a reason to delay a verified integration. Create a reconciliation task only
-  for a real conflict, mixed ownership, or failed integration—not as routine
-  end-of-work bookkeeping.
-- Keep checks proportional to the changed milestone. Do not repeatedly reopen
-  previously accepted steps unless new evidence invalidates their authority.
+- STRICT PROHIBITION ON WORKTREE CREATION WITHOUT EXPLICIT USER REQUEST:
+  Under no circumstances may an agent create a new git worktree (`git worktree add`),
+  isolated worktree directory (e.g. in `.codex_worktrees/`), or separate branch workspace
+  on its own initiative.
+- All development, edits, tests, and commits MUST strictly execute in the primary
+  workspace root (`c:\Users\ironh\Downloads\PIG_Behavior_Project`) directly on `main`
+  (`shared_main` mode).
+- Creating a new worktree is PERMITTED ONLY when the USER EXPLICITLY COMMANDS it
+  in their prompt (e.g. "tạo worktree cho ...", "create a worktree for ...").
+- `main` is the continuous delivery branch. For all work, use `shared_main` mode
+  and commit each verified bounded milestone to local `main` immediately; that commit
+  is the integration for the milestone.
+- Do not accumulate a queue of completed worktree changes or unmerged branches.
 
 Before working on this repository, always read these files first:
 

@@ -392,12 +392,17 @@ ladder and model-selection decisions belong to frozen reviewed main data.
 
 ### Mandatory worktree routing
 
-Use the current main worktree by default. A different worktree or branch becomes
-binding only when the user explicitly assigns it to the current task or to one
-of two concurrent sessions. For example, if the user assigns
-`C:\Users\ironh\Downloads\PIG_task_model` to this session, all reads, edits,
-tests, audits, and generated outputs must use that worktree; otherwise remain
-in `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+1. STRICT PROHIBITION ON WORKTREE CREATION: Under no circumstances may an agent
+   create a new git worktree (`git worktree add`), isolated worktree, or branch
+   workspace on its own initiative.
+2. All development, reads, edits, tests, audits, and commits MUST strictly execute
+   in the primary main worktree (`C:\Users\ironh\Downloads\PIG_Behavior_Project`)
+   on `main` (`shared_main` mode).
+3. A different worktree or branch becomes binding ONLY when the user explicitly
+   assigns or requests it in their prompt (e.g. "tạo worktree", "use worktree X").
+   For example, if the user explicitly assigns `C:\Users\ironh\Downloads\PIG_task_model`
+   to this session, all actions use that worktree; otherwise remain in
+   `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
 
 Before the first command and before any edit, verify
 `git rev-parse --show-toplevel`, `git branch --show-current`, and
