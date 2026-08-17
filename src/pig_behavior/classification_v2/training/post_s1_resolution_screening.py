@@ -8,7 +8,11 @@ one explicitly declared runtime spatial resolution.
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
+import platform
+import subprocess
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -19,7 +23,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     image_sequence_collate,
@@ -55,6 +59,29 @@ SEED = 20260804
 MAX_STEPS = 4164
 BATCH_SIZE = 16
 RESOLUTION_ARMS = frozenset({64, 128, 160})
+
+# The historical post-S1 resolver above remains available for its existing
+# local regression tests.  The cloud recovery command below is a separate,
+# fail-closed production route with the newly registered trial seed.  It never
+# calls the historical media resolver.
+R128_RUNTIME_SCHEMA = "classification_v2.cloud_r128_runtime.v1"
+R128_TEMPORAL_VIEW = "T6"
+R128_RESOLUTION = 128
+R128_SEED = 20260814
+R128_MAX_STEPS = 4164
+R128_BATCH_SIZE = 16
+R128_TRAIN_ROWS = 12421
+R128_VALIDATION_ROWS = 2285
+R128_CACHE_ROWS = 245680
+R128_CACHE_BYTES = 12075663488
+R128_INDEX_BYTES = 47781243
+R128_CACHE_SHA256 = "c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee"
+R128_INDEX_SHA256 = "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68"
+R128_FORBIDDEN_FALLBACKS = {
+    "raw_video_fallback_used": False,
+    "loose_crop_fallback_used": False,
+    "cache_build_on_studio": False,
+}
 
 
 def load_canonical_resolution_temporal_target(
@@ -666,3 +693,731 @@ def _sha256_file(path: Path) -> str:
     import hashlib
 
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+class R128RuntimeError(RuntimeError):
+    """Raised when the cloud-only R128 route cannot prove its contract."""
+
+
+def _r128_split_sequence(value: object, delimiter: str) -> list[str]:
+    text = str(value)
+    if not text or text.lower() in {"nan", "none", "<na>"}:
+        return []
+    return [item for item in text.split(delimiter) if item]
+
+
+def _r128_strict_bool(series: pd.Series, name: str) -> pd.Series:
+    normalized = series.astype(str).str.strip().str.lower()
+    allowed = {"true", "false", "1", "0"}
+    if not normalized.isin(allowed).all():
+        raise R128RuntimeError(f"{name} contains non-boolean values")
+    return normalized.isin({"true", "1"})
+
+
+def _r128_bool_sequence(value: object, name: str) -> list[bool]:
+    values = _r128_split_sequence(value, ";;")
+    if len(values) != 6:
+        raise R128RuntimeError(f"{name} must contain six frame masks")
+    normalized = [item.strip().lower() for item in values]
+    allowed = {"true", "false", "1", "0"}
+    if not set(normalized).issubset(allowed):
+        raise R128RuntimeError(f"{name} contains non-boolean values")
+    return [item in {"true", "1"} for item in normalized]
+
+
+def _r128_load_manifest(path: Path) -> pd.DataFrame:
+    if not path.is_file():
+        raise R128RuntimeError(f"runtime manifest is unavailable: {path}")
+    rows = pd.read_csv(path, low_memory=False)
+    required = {
+        "window_id",
+        "view_type",
+        "window_length_frames",
+        "temporal_unit_keys_json",
+        "temporal_unit_key",
+        "behavior_window_label",
+        "primary_s1_role",
+        "primary_s1_eligible",
+        "window_valid_for_main_train",
+        "event_sample_weight",
+        "image_context_id_sequence",
+        "expected_frame_indices",
+        "observed_mask_sequence",
+        "source_type",
+    }
+    missing = sorted(required.difference(rows.columns))
+    if missing:
+        raise R128RuntimeError(f"runtime manifest columns missing: {missing}")
+    if rows.empty or rows["window_id"].astype(str).duplicated().any():
+        raise R128RuntimeError("runtime manifest is empty or has duplicate windows")
+    if not rows["view_type"].astype(str).eq("T6_contiguous").all():
+        raise R128RuntimeError("runtime manifest contains a non-T6 view")
+    lengths = pd.to_numeric(rows["window_length_frames"], errors="coerce")
+    if not lengths.eq(6).all():
+        raise R128RuntimeError("runtime manifest is not six frames per window")
+    rows["primary_s1_eligible"] = _r128_strict_bool(
+        rows["primary_s1_eligible"], "primary_s1_eligible"
+    )
+    rows["window_valid_for_main_train"] = _r128_strict_bool(
+        rows["window_valid_for_main_train"], "window_valid_for_main_train"
+    )
+    if not rows["primary_s1_eligible"].all():
+        raise R128RuntimeError("ineligible rows entered the runtime manifest")
+    if not rows["window_valid_for_main_train"].all():
+        raise R128RuntimeError("invalid rows entered the runtime manifest")
+    roles = rows["primary_s1_role"].astype(str)
+    if not roles.isin({"train", "validation"}).all():
+        raise R128RuntimeError("runtime manifest contains an outer/test role")
+    role_counts = roles.value_counts().to_dict()
+    if role_counts != {"train": R128_TRAIN_ROWS, "validation": R128_VALIDATION_ROWS}:
+        raise R128RuntimeError(f"matched-T6 role counts drifted: {role_counts}")
+    labels = rows["behavior_window_label"].astype(str)
+    if not labels.isin(VALID_BEHAVIORS).all():
+        raise R128RuntimeError("runtime manifest contains an unsupported label")
+    weights = pd.to_numeric(rows["event_sample_weight"], errors="coerce")
+    if not np.isfinite(weights).all() or (weights <= 0).any():
+        raise R128RuntimeError("runtime manifest contains invalid event weights")
+    for row in rows.itertuples(index=False):
+        context_ids = _r128_split_sequence(row.image_context_id_sequence, ";;")
+        frame_indices = _r128_split_sequence(row.expected_frame_indices, "|")
+        if len(context_ids) != 6 or len(frame_indices) != 6:
+            raise R128RuntimeError(f"T6 context/frame order is incomplete: {row.window_id}")
+        try:
+            numeric_frames = [int(value) for value in frame_indices]
+        except ValueError as error:
+            raise R128RuntimeError("runtime frame indices are not integers") from error
+        if numeric_frames != list(range(numeric_frames[0], numeric_frames[0] + 6)):
+            raise R128RuntimeError(f"T6 frame ordering drifted: {row.window_id}")
+        _r128_bool_sequence(row.observed_mask_sequence, "observed_mask_sequence")
+    return rows.reset_index(drop=True)
+
+
+class DriveR128Dataset(Dataset[dict[str, object]]):
+    """Read T6 sequences exclusively from the registered packed Drive cache."""
+
+    def __init__(self, rows: pd.DataFrame, packed_npy: Path, packed_index: Path) -> None:
+        self.rows = rows.reset_index(drop=True)
+        self.packed_npy = Path(packed_npy)
+        self.packed_index = Path(packed_index)
+        if self.packed_npy.stat().st_size != R128_CACHE_BYTES:
+            raise R128RuntimeError("packed R128 tensor byte size drifted")
+        if self.packed_index.stat().st_size != R128_INDEX_BYTES:
+            raise R128RuntimeError("packed R128 index byte size drifted")
+        self.tensor = np.load(self.packed_npy, mmap_mode="r")
+        expected_shape = (R128_CACHE_ROWS, R128_RESOLUTION, R128_RESOLUTION, 3)
+        if self.tensor.dtype != np.uint8 or tuple(self.tensor.shape) != expected_shape:
+            raise R128RuntimeError(
+                f"packed R128 tensor contract drifted: {self.tensor.dtype} {self.tensor.shape}"
+            )
+        index = pd.read_csv(self.packed_index, low_memory=False)
+        if not {"image_context_id", "packed_row"}.issubset(index.columns):
+            raise R128RuntimeError("packed R128 index required columns are missing")
+        if len(index) != R128_CACHE_ROWS:
+            raise R128RuntimeError("packed R128 index row count drifted")
+        context_ids = index["image_context_id"].astype(str)
+        if context_ids.duplicated().any():
+            raise R128RuntimeError("packed R128 index has duplicate context IDs")
+        packed_rows = pd.to_numeric(index["packed_row"], errors="coerce")
+        if packed_rows.isna().any() or (packed_rows < 0).any():
+            raise R128RuntimeError("packed R128 index has invalid packed rows")
+        if (packed_rows >= R128_CACHE_ROWS).any():
+            raise R128RuntimeError("packed R128 index points outside the tensor")
+        self.context_to_row = dict(zip(context_ids, packed_rows.astype(int), strict=True))
+        for row in self.rows.itertuples(index=False):
+            context_ids = _r128_split_sequence(row.image_context_id_sequence, ";;")
+            if any(context_id not in self.context_to_row for context_id in context_ids):
+                raise R128RuntimeError(f"Drive cache lacks a T6 context: {row.window_id}")
+        self.packed_reads = 0
+
+    def __len__(self) -> int:
+        return len(self.rows)
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        row = self.rows.iloc[index]
+        context_ids = _r128_split_sequence(row["image_context_id_sequence"], ";;")
+        packed_rows = [self.context_to_row[context_id] for context_id in context_ids]
+        cached = np.asarray(self.tensor[packed_rows], dtype=np.uint8)
+        if tuple(cached.shape) != (6, R128_RESOLUTION, R128_RESOLUTION, 3):
+            raise R128RuntimeError(f"Drive cache batch shape drifted for {row['window_id']}")
+        self.packed_reads += len(packed_rows)
+        images = np.transpose(cached.astype(np.float32) / 255.0, (0, 3, 1, 2)).copy()
+        label = VALID_BEHAVIORS.index(str(row["behavior_window_label"]))
+        observed_mask = torch.tensor(
+            _r128_bool_sequence(
+                row["observed_mask_sequence"],
+                "observed_mask_sequence",
+            ),
+            dtype=torch.float32,
+        )
+        return {
+            "image": torch.from_numpy(images),
+            "observed_mask": observed_mask,
+            "label": label,
+            "weight": float(row["event_sample_weight"]),
+            "window_id": str(row["window_id"]),
+            "native_unit_id": str(row["temporal_unit_key"]),
+        }
+
+    def audit(self) -> dict[str, object]:
+        return {
+            "packed_cache_configured": True,
+            "packed_cache_hits": self.packed_reads,
+            "source_image_loads": 0,
+            "observed_mask_source": "canonical_sequence_frame_features",
+            **R128_FORBIDDEN_FALLBACKS,
+        }
+
+    def close(self) -> None:
+        self.tensor = None
+
+
+@dataclass(slots=True)
+class R128Population:
+    rows: pd.DataFrame
+    dataset: DriveR128Dataset
+    row_by_window_id: dict[str, int]
+
+
+def _r128_population(
+    manifest: Path,
+    packed_npy: Path,
+    packed_index: Path,
+) -> R128Population:
+    rows = _r128_load_manifest(manifest)
+    dataset = DriveR128Dataset(rows, packed_npy, packed_index)
+    lookup = {
+        str(window_id): int(index)
+        for index, window_id in enumerate(rows["window_id"].astype(str))
+    }
+    return R128Population(rows, dataset, lookup)
+
+
+def _r128_model_batch(
+    selected: pd.DataFrame,
+    population: R128Population,
+    device: torch.device,
+) -> tuple[ModelBatch, torch.Tensor]:
+    window_ids = selected["window_id"].astype(str).tolist()
+    try:
+        indexes = [population.row_by_window_id[window_id] for window_id in window_ids]
+    except KeyError as error:
+        raise R128RuntimeError(
+            f"selected window is absent from the Drive manifest: {error}"
+        ) from error
+    loader = DataLoader(
+        Subset(population.dataset, indexes),
+        batch_size=len(indexes),
+        shuffle=False,
+        num_workers=0,
+        pin_memory=False,
+    )
+    payload = next(iter(loader))
+    images = payload["image"]
+    if tuple(images.shape[1:]) != (6, 3, R128_RESOLUTION, R128_RESOLUTION):
+        raise R128RuntimeError(f"ModelBatch image shape drifted: {tuple(images.shape)}")
+    observed = payload["observed_mask"].to(device)
+    batch_size = int(images.shape[0])
+    frame_offsets = torch.arange(-5, 1, device=device).repeat(batch_size, 1)
+    labels = payload["label"].to(device=device, dtype=torch.long)
+    batch = ModelBatch(
+        target=SequenceSegment(
+            images=images.to(device),
+            frame_offsets=frame_offsets,
+            valid_mask=observed,
+        ),
+        labels=labels,
+        window_id=payload["window_id"],
+        native_unit_id=payload["native_unit_id"],
+    )
+    weights = payload["weight"].to(device=device, dtype=torch.float32)
+    return batch, weights
+
+
+def _r128_logits(model: nn.Module, batch: ModelBatch) -> torch.Tensor:
+    outputs = model(batch)
+    if not isinstance(outputs, Mapping) or "logits" not in outputs:
+        raise R128RuntimeError("production model output must be a dict containing logits")
+    logits = outputs["logits"]
+    expected = (batch.target.batch_size, len(VALID_BEHAVIORS))
+    if not isinstance(logits, torch.Tensor) or tuple(logits.shape) != expected:
+        raise R128RuntimeError(
+            f"production model output contract drifted: {getattr(logits, 'shape', None)}"
+        )
+    return logits.float()
+
+
+def _r128_loss(
+    logits: torch.Tensor,
+    batch: ModelBatch,
+    weights: torch.Tensor,
+) -> torch.Tensor:
+    per_row = nn.functional.cross_entropy(logits, batch.labels, reduction="none")
+    if tuple(weights.shape) != tuple(per_row.shape):
+        raise R128RuntimeError("event-weight shape does not match the real batch")
+    loss = (per_row * weights).sum() / weights.sum()
+    if not bool(torch.isfinite(loss)):
+        raise R128RuntimeError("real-data loss is non-finite")
+    return loss
+
+
+def _r128_model_hash(model: nn.Module) -> str:
+    digest = hashlib.sha256()
+    for name, tensor in model.state_dict().items():
+        value = tensor.detach().cpu().contiguous()
+        digest.update(name.encode("utf-8"))
+        digest.update(str(value.dtype).encode("utf-8"))
+        digest.update(str(tuple(value.shape)).encode("utf-8"))
+        digest.update(value.numpy().tobytes())
+    return digest.hexdigest()
+
+
+def _r128_environment() -> dict[str, object]:
+    import importlib.metadata
+
+    packages: dict[str, object] = {}
+    for name in ("numpy", "pandas", "scipy", "scikit-learn", "torch"):
+        try:
+            packages[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            packages[name] = None
+    return {
+        "python": platform.python_version(),
+        "packages": packages,
+        "torch_cuda_available": bool(torch.cuda.is_available()),
+        "torch_cuda_version": torch.version.cuda,
+    }
+
+
+def _r128_gpu_sample() -> dict[str, object]:
+    if not torch.cuda.is_available():
+        return {"gpu_utilization_percent": None, "allocated_vram_mb": 0.0}
+    utilization: int | None = None
+    try:
+        completed = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=5,
+        )
+        utilization = int(completed.stdout.strip().splitlines()[0])
+    except (OSError, ValueError, subprocess.SubprocessError):
+        utilization = None
+    return {
+        "gpu_utilization_percent": utilization,
+        "allocated_vram_mb": round(torch.cuda.memory_allocated(0) / 2**20, 3),
+        "reserved_vram_mb": round(torch.cuda.memory_reserved(0) / 2**20, 3),
+        "gpu_device": torch.cuda.get_device_name(0),
+    }
+
+
+def _r128_cache_descriptor(
+    packed_npy: Path,
+    packed_index: Path,
+    manifest: Path,
+    cache_uri: str,
+) -> dict[str, object]:
+    return {
+        "source": "teamspace_drive_shared_training_storage",
+        "cache_uri": cache_uri,
+        "packed_npy_path": str(packed_npy),
+        "packed_index_path": str(packed_index),
+        "packed_npy_bytes": R128_CACHE_BYTES,
+        "packed_index_bytes": R128_INDEX_BYTES,
+        "packed_npy_sha256": R128_CACHE_SHA256,
+        "packed_index_sha256": R128_INDEX_SHA256,
+        "manifest_path": str(manifest),
+        "manifest_sha256": _sha256_file(manifest),
+        **R128_FORBIDDEN_FALLBACKS,
+    }
+
+
+def _r128_prepare_output(output_dir: Path) -> None:
+    if output_dir.exists():
+        raise R128RuntimeError(f"refusing to overwrite output directory: {output_dir}")
+    for name in ("checkpoint", "predictions", "metrics", "logs", "runtime"):
+        (output_dir / name).mkdir(parents=True, exist_ok=False)
+
+
+def run_r128_cpu_preflight(
+    *,
+    manifest: Path,
+    packed_npy: Path,
+    packed_index: Path,
+    output_dir: Path,
+    cache_uri: str,
+) -> dict[str, object]:
+    """Run one disposable real-data CPU step; never save its model."""
+    _r128_prepare_output(output_dir)
+    population = _r128_population(manifest, packed_npy, packed_index)
+    try:
+        train = population.rows.loc[
+            population.rows["primary_s1_role"].eq("train")
+        ].head(R128_BATCH_SIZE)
+        device = torch.device("cpu")
+        model = stage1._build_b1_model(R128_TEMPORAL_VIEW).to(device)
+        batch, weights = _r128_model_batch(train, population, device)
+        batch_shape = tuple(batch.target.images.shape)
+        if batch_shape != (
+            R128_BATCH_SIZE,
+            6,
+            3,
+            R128_RESOLUTION,
+            R128_RESOLUTION,
+        ):
+            raise R128RuntimeError(f"real batch shape failed: {batch_shape}")
+        logits = _r128_logits(model, batch)
+        loss = _r128_loss(logits, batch, weights)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.0)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        if not all(
+            parameter.grad is None or bool(torch.isfinite(parameter.grad).all())
+            for parameter in model.parameters()
+        ):
+            raise R128RuntimeError("CPU backward produced a non-finite gradient")
+        optimizer.step()
+        report = {
+            "schema": R128_RUNTIME_SCHEMA,
+            "status": "PASS",
+            "cpu_preflight": "PASS",
+            "real_data_batch": "PASS",
+            "real_labels": "PASS",
+            "model_forward": "PASS",
+            "loss_finite": "PASS",
+            "backward": "PASS",
+            "throwaway_optimizer_step": "PASS",
+            "optimizer_steps": 1,
+            "model_output_contract": {
+                "type": "dict",
+                "key": "logits",
+                "shape": list(logits.shape),
+            },
+            "batch_shape": list(batch_shape),
+            "counts": {
+                "total": len(population.rows),
+                "train": int(population.rows["primary_s1_role"].eq("train").sum()),
+                "validation": int(
+                    population.rows["primary_s1_role"].eq("validation").sum()
+                ),
+            },
+            "cache": _r128_cache_descriptor(
+                packed_npy, packed_index, manifest, cache_uri
+            ),
+            "cache_audit": population.dataset.audit(),
+            "environment": _r128_environment(),
+            "throwaway_model_discarded": True,
+            "synthetic_result_path_used": False,
+        }
+        _write_json(output_dir / "runtime" / "cpu_preflight.json", report)
+        return report
+    finally:
+        population.dataset.close()
+
+
+def _r128_predict_validation(
+    model: nn.Module,
+    population: R128Population,
+    device: torch.device,
+) -> pd.DataFrame:
+    validation = population.rows.loc[
+        population.rows["primary_s1_role"].eq("validation")
+    ].reset_index(drop=True)
+    records: list[dict[str, object]] = []
+    model.eval()
+    with torch.no_grad():
+        for start in range(0, len(validation), R128_BATCH_SIZE):
+            selected = validation.iloc[start : start + R128_BATCH_SIZE]
+            batch, _ = _r128_model_batch(selected, population, device)
+            probabilities = torch.softmax(_r128_logits(model, batch), dim=1)
+            values = probabilities.cpu().numpy()
+            for offset, row in enumerate(selected.itertuples(index=False)):
+                predicted_index = int(values[offset].argmax())
+                records.append(
+                    {
+                        "window_id": str(row.window_id),
+                        "temporal_unit_key": str(row.temporal_unit_key),
+                        "true_behavior": str(row.behavior_window_label),
+                        "predicted_behavior": VALID_BEHAVIORS[predicted_index],
+                        "confidence": float(values[offset, predicted_index]),
+                    }
+                )
+    predictions = pd.DataFrame(records)
+    expected_ids = set(validation["window_id"].astype(str))
+    actual_ids = set(predictions["window_id"].astype(str))
+    if len(predictions) != R128_VALIDATION_ROWS:
+        raise R128RuntimeError(f"validation prediction count drifted: {len(predictions)}")
+    if expected_ids != actual_ids or predictions["window_id"].duplicated().any():
+        raise R128RuntimeError("validation prediction coverage is incomplete")
+    return predictions
+
+
+def _r128_per_class_metrics(prediction_path: Path, output_path: Path) -> dict[str, object]:
+    from sklearn.metrics import precision_recall_fscore_support
+
+    persisted = pd.read_csv(prediction_path, low_memory=False)
+    if len(persisted) != R128_VALIDATION_ROWS:
+        raise R128RuntimeError("persisted validation prediction count drifted")
+    precision, recall, f1, support = precision_recall_fscore_support(
+        persisted["true_behavior"],
+        persisted["predicted_behavior"],
+        labels=list(VALID_BEHAVIORS),
+        zero_division=0,
+    )
+    metrics = pd.DataFrame(
+        {
+            "behavior": list(VALID_BEHAVIORS),
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "support": support,
+        }
+    )
+    metrics.to_csv(output_path, index=False)
+    return {
+        "macro_f1": float(metrics["f1"].mean()),
+        "per_class_metrics_path": str(output_path),
+        "per_class_metrics_sha256": _sha256_file(output_path),
+    }
+
+
+def _r128_artifact_manifest(output_dir: Path) -> dict[str, object]:
+    artifacts: list[dict[str, object]] = []
+    for path in sorted(output_dir.rglob("*")):
+        if path.is_file() and path.name != "artifact_manifest.json":
+            artifacts.append(
+                {
+                    "relative_path": str(path.relative_to(output_dir)),
+                    "bytes": path.stat().st_size,
+                    "sha256": _sha256_file(path),
+                }
+            )
+    manifest = {
+        "schema": "classification-v2.r128.artifact-manifest.v1",
+        "status": "PASS",
+        "artifacts": artifacts,
+    }
+    _write_json(output_dir / "artifact_manifest.json", manifest)
+    return manifest
+
+
+def run_r128_trial(
+    *,
+    manifest: Path,
+    packed_npy: Path,
+    packed_index: Path,
+    output_dir: Path,
+    cache_uri: str,
+    code_sha: str,
+    runtime_bundle_sha: str,
+) -> dict[str, object]:
+    """Run exactly one production T6/R128/seed-20260814 trial."""
+    if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
+        raise R128RuntimeError("R128 proof run requires exactly one visible CUDA device")
+    if torch.cuda.get_device_name(0) != "NVIDIA L4":
+        raise R128RuntimeError("R128 proof run requires NVIDIA L4")
+    _r128_prepare_output(output_dir)
+    population = _r128_population(manifest, packed_npy, packed_index)
+    device = torch.device("cuda")
+    log_path = output_dir / "logs" / "training_log.jsonl"
+    gpu_samples: list[int] = []
+    try:
+        stage1._set_seed(R128_SEED)
+        torch.cuda.reset_peak_memory_stats(0)
+        model = stage1._build_b1_model(R128_TEMPORAL_VIEW).to(device)
+        initial_hash = _r128_model_hash(model)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.0)
+        started = time.perf_counter()
+        completed_steps = 0
+        train = population.rows.loc[
+            population.rows["primary_s1_role"].eq("train")
+        ]
+        with log_path.open("w", encoding="utf-8") as log:
+            for step in range(1, R128_MAX_STEPS + 1):
+                selected = stage1._rows_for_step(
+                    train,
+                    step=step,
+                    batch_size=R128_BATCH_SIZE,
+                    seed=R128_SEED,
+                )
+                batch, weights = _r128_model_batch(selected, population, device)
+                optimizer.zero_grad(set_to_none=True)
+                loss = _r128_loss(_r128_logits(model, batch), batch, weights)
+                loss.backward()
+                if not all(
+                    parameter.grad is None
+                    or bool(torch.isfinite(parameter.grad).all())
+                    for parameter in model.parameters()
+                ):
+                    raise R128RuntimeError(f"non-finite gradient at step {step}")
+                optimizer.step()
+                completed_steps += 1
+                sample = None
+                if step == 1 or step % 25 == 0 or step == R128_MAX_STEPS:
+                    sample = _r128_gpu_sample()
+                    if sample["gpu_utilization_percent"] is not None:
+                        gpu_samples.append(int(sample["gpu_utilization_percent"]))
+                    print(
+                        json.dumps(
+                            {
+                                "event": "optimizer_step",
+                                "step": step,
+                                "total_steps": R128_MAX_STEPS,
+                                "loss": float(loss.detach().cpu()),
+                                **sample,
+                            },
+                            sort_keys=True,
+                        ),
+                        flush=True,
+                    )
+                entry: dict[str, object] = {
+                    "step": step,
+                    "total_steps": R128_MAX_STEPS,
+                    "loss": float(loss.detach().cpu()),
+                }
+                if sample is not None:
+                    entry["gpu"] = sample
+                log.write(json.dumps(entry, sort_keys=True) + "\n")
+                log.flush()
+        elapsed = time.perf_counter() - started
+        final_hash = _r128_model_hash(model)
+        checkpoint_path = output_dir / "checkpoint" / "r128_step_004164.pt"
+        torch.save(
+            {
+                "schema": R128_RUNTIME_SCHEMA,
+                "temporal_view": R128_TEMPORAL_VIEW,
+                "resolution": R128_RESOLUTION,
+                "seed": R128_SEED,
+                "optimizer_steps": completed_steps,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "initial_model_sha256": initial_hash,
+                "final_model_sha256": final_hash,
+            },
+            checkpoint_path,
+        )
+        checkpoint_sha = _sha256_file(checkpoint_path)
+        checkpoint_payload = torch.load(checkpoint_path, map_location="cpu")
+        reload_cpu = stage1._build_b1_model(R128_TEMPORAL_VIEW).cpu()
+        reload_cpu.load_state_dict(checkpoint_payload["model_state_dict"])
+        loaded_hash = _r128_model_hash(reload_cpu)
+        checkpoint_loadable = loaded_hash == final_hash
+        if not checkpoint_loadable:
+            raise R128RuntimeError("checkpoint reload hash differs from final model")
+        del reload_cpu, checkpoint_payload, model, optimizer
+        torch.cuda.empty_cache()
+        loaded_model = stage1._build_b1_model(R128_TEMPORAL_VIEW).to(device)
+        loaded_model.load_state_dict(
+            torch.load(checkpoint_path, map_location=device)["model_state_dict"]
+        )
+        predictions_path = output_dir / "predictions" / "validation_predictions.csv"
+        predictions = _r128_predict_validation(loaded_model, population, device)
+        predictions.to_csv(predictions_path, index=False)
+        prediction_sha = _sha256_file(predictions_path)
+        metrics_path = output_dir / "metrics" / "per_class_metrics.csv"
+        metrics = _r128_per_class_metrics(predictions_path, metrics_path)
+        mean_gpu = float(sum(gpu_samples) / len(gpu_samples)) if gpu_samples else None
+        peak_vram_mb = round(torch.cuda.max_memory_allocated(0) / 2**20, 3)
+        descriptor = {
+            "schema": R128_RUNTIME_SCHEMA,
+            "trial_id": "T6_R128_seed20260814_steps4164",
+            "temporal_view": R128_TEMPORAL_VIEW,
+            "resolution": R128_RESOLUTION,
+            "seed": R128_SEED,
+            "optimizer": "AdamW",
+            "learning_rate": 0.003,
+            "weight_decay": 0.0,
+            "scheduler": "none",
+            "batch_size": R128_BATCH_SIZE,
+            "precision": "FP32",
+            "optimizer_steps_required": R128_MAX_STEPS,
+            "optimizer_steps_completed": completed_steps,
+            "architecture": "B1_STAGE1_UNCHANGED",
+            "loss": "event_weighted_cross_entropy",
+            "outer_examples_accessed": False,
+            "code_sha": code_sha,
+            "runtime_bundle_sha256": runtime_bundle_sha,
+            "cache": _r128_cache_descriptor(
+                packed_npy, packed_index, manifest, cache_uri
+            ),
+            "initial_model_sha256": initial_hash,
+            "final_model_sha256": final_hash,
+            "weights_changed": initial_hash != final_hash,
+            "checkpoint_path": str(checkpoint_path),
+            "checkpoint_sha256": checkpoint_sha,
+            "checkpoint_loadable": checkpoint_loadable,
+            "prediction_path": str(predictions_path),
+            "prediction_sha256": prediction_sha,
+            "validation_coverage": f"{len(predictions)}/{R128_VALIDATION_ROWS}",
+            "synthetic_result_path_used": False,
+            "environment": _r128_environment(),
+        }
+        descriptor_path = output_dir / "runtime" / "descriptor.json"
+        _write_json(descriptor_path, descriptor)
+        result = {
+            **descriptor,
+            **metrics,
+            "status": "PASS",
+            "result_computed_from_persisted_predictions": True,
+            "training_log_path": str(log_path),
+            "training_wall_seconds": elapsed,
+            "mean_gpu_utilization_during_optimization": mean_gpu,
+            "peak_gpu_vram_mb": peak_vram_mb,
+            "gpu_device": torch.cuda.get_device_name(0),
+            "per_class_metrics_path": str(metrics_path),
+            "artifact_manifest_path": str(output_dir / "artifact_manifest.json"),
+        }
+        _write_json(output_dir / "runtime" / "result.json", result)
+        _r128_artifact_manifest(output_dir)
+        return result
+    finally:
+        population.dataset.close()
+
+
+def _r128_cli() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the fail-closed R128 route.")
+    parser.add_argument("--mode", choices=("cpu_preflight", "trial"), required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--packed-npy", type=Path, required=True)
+    parser.add_argument("--packed-index", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--cache-uri", required=True)
+    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
+    parser.add_argument("--code-sha", default="UNSPECIFIED")
+    parser.add_argument("--runtime-bundle-sha", default="UNSPECIFIED")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = _r128_cli()
+    if args.mode == "cpu_preflight":
+        if args.device != "cpu":
+            raise R128RuntimeError("CPU preflight must use --device cpu")
+        result = run_r128_cpu_preflight(
+            manifest=args.manifest,
+            packed_npy=args.packed_npy,
+            packed_index=args.packed_index,
+            output_dir=args.output_dir,
+            cache_uri=args.cache_uri,
+        )
+    else:
+        if args.device != "cuda":
+            raise R128RuntimeError("R128 proof trial must use --device cuda")
+        result = run_r128_trial(
+            manifest=args.manifest,
+            packed_npy=args.packed_npy,
+            packed_index=args.packed_index,
+            output_dir=args.output_dir,
+            cache_uri=args.cache_uri,
+            code_sha=args.code_sha,
+            runtime_bundle_sha=args.runtime_bundle_sha,
+        )
+    print(json.dumps(result, indent=2, sort_keys=True, default=str), flush=True)
+
+
+if __name__ == "__main__":
+    main()
