@@ -297,12 +297,17 @@ def load_resolution_population(plan: ResolutionPlan) -> ResolutionPopulation:
             packed_npy, packed_idx = candidate_npy, candidate_idx
         else:
             packed_npy, packed_idx = None, None
+    if packed_npy is None or packed_idx is None:
+        raise PostS1ResolutionError(
+            "prepared packed RGB cache is unavailable; source-media fallback is forbidden"
+        )
 
     dataset = binding.build_dataset(
         plan.input_resolution,
         image_cache_size=8192,
         packed_image_cache_npy=packed_npy,
         packed_image_cache_index_csv=packed_idx,
+        require_packed_cache=True,
     )
     lookup = {str(window_id): index for index, window_id in enumerate(dataset.windows["window_id"])}
 

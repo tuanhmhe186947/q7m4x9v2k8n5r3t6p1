@@ -53,10 +53,17 @@ class ResolutionIndependentRGBBinding:
         video_capture_cache_size: int = 8,
         packed_image_cache_npy: Path | None = None,
         packed_image_cache_index_csv: Path | None = None,
+        require_packed_cache: bool = False,
     ) -> ClassificationV2ImageSequenceDataset:
         """Build a source-backed runtime realization or use packed persistent cache."""
 
         validate_runtime_resolution(input_resolution)
+        if require_packed_cache and (
+            packed_image_cache_npy is None or packed_image_cache_index_csv is None
+        ):
+            raise FileNotFoundError(
+                "required packed RGB cache is unavailable; source-media fallback is forbidden"
+            )
         return ClassificationV2ImageSequenceDataset(
             ImageSequenceDatasetConfig(
                 frame_context_dataframe=self.frames,
@@ -68,6 +75,7 @@ class ResolutionIndependentRGBBinding:
                 media_root=self.media_root,
                 packed_image_cache_npy=packed_image_cache_npy,
                 packed_image_cache_index_csv=packed_image_cache_index_csv,
+                require_cached_images=require_packed_cache,
             )
         )
 
