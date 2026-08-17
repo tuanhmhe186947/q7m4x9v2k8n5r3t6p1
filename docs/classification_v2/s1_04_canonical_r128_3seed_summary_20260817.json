@@ -1,5 +1,5 @@
 {
-  "schema": "classification_v2.cloud_r128_3seed_recovery_summary.v1",
+  "schema": "classification_v2.cloud_r128_canonical_3seed_summary.v1",
   "status": "PASS",
   "total_seeds": 3,
   "seeds": [
@@ -7,41 +7,46 @@
     20260805,
     20260806
   ],
-  "mean_macro_f1": 0.040780476972327534,
-  "std_macro_f1": 0.008010721846165844,
-  "total_wall_seconds": 357.7410926209999,
+  "mean_primary_native_macro_f1": 0.3163209387116738,
+  "std_primary_native_macro_f1": 0.019555436415887032,
+  "mean_common_cohort_native_macro_f1": 0.3163209387116738,
+  "std_common_cohort_native_macro_f1": 0.019555436415887032,
+  "total_wall_seconds": 370.17541396,
   "summary": [
     {
       "seed": 20260804,
-      "macro_f1": 0.03615548455804047,
-      "weighted_f1": 0.07978412094543216,
+      "primary_native_macro_f1": 0.3131518998122914,
+      "common_cohort_native_macro_f1": 0.3131518998122914,
+      "window_level_macro_f1": 0.29221745181175673,
       "steps": 4164,
-      "train_wall_seconds": 117.66923934500005,
+      "train_wall_seconds": 115.12901044599994,
       "peak_vram_mb": 158.27783203125,
-      "checkpoint_sha256": "b611f321aafcf985"
+      "checkpoint_sha256": "e25a96f6cc38327e"
     },
     {
       "seed": 20260805,
-      "macro_f1": 0.05003046180090167,
-      "weighted_f1": 0.16690370178298852,
+      "primary_native_macro_f1": 0.33726735341354663,
+      "common_cohort_native_macro_f1": 0.33726735341354663,
+      "window_level_macro_f1": 0.31060326449497966,
       "steps": 4164,
-      "train_wall_seconds": 106.36750409299998,
+      "train_wall_seconds": 115.05588625600012,
       "peak_vram_mb": 158.27783203125,
-      "checkpoint_sha256": "f580b46a0a3b67bc"
+      "checkpoint_sha256": "44aed3fb001ad599"
     },
     {
       "seed": 20260806,
-      "macro_f1": 0.03615548455804047,
-      "weighted_f1": 0.07978412094543216,
+      "primary_native_macro_f1": 0.2985435629091835,
+      "common_cohort_native_macro_f1": 0.2985435629091835,
+      "window_level_macro_f1": 0.2942647269216447,
       "steps": 4164,
-      "train_wall_seconds": 106.653335137,
+      "train_wall_seconds": 104.92194079899991,
       "peak_vram_mb": 158.27783203125,
-      "checkpoint_sha256": "c1886ce78e6cecd8"
+      "checkpoint_sha256": "e49d21ac6a86e99e"
     }
   ],
   "detailed_results": {
     "20260804": {
-      "schema": "classification_v2.cloud_r128_runtime.v1",
+      "schema": "classification_v2.cloud_r128_canonical_runtime.v1",
       "status": "PASS",
       "trial_id": "post_s1_t6_r128_seed20260804_steps4164",
       "temporal_view": "T6",
@@ -58,25 +63,106 @@
       "architecture": "B1_STAGE1_UNCHANGED",
       "loss": "event_weighted_cross_entropy",
       "initial_model_sha256": "3b718b261043de7c53866a7832bdea07b0d502a4d11a79d17752011f56a7455a",
-      "final_model_sha256": "78d321da02b418f32538c40403ef56adde913e4fdebb1b1e1c283c0ea6ac09dd",
+      "final_model_sha256": "5127e92dea2314a5024e450cc1890405233036b274677408ac709bb62e54fcbc",
       "weights_changed": true,
       "checkpoint_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260804_steps4164/checkpoint/r128_step_004164.pt",
-      "checkpoint_sha256": "b611f321aafcf985106df5ad6cc5470c6a94b506b135ee1a1cd64c0f8c5bc8c9",
+      "checkpoint_sha256": "e25a96f6cc38327e74c2d9432eeec30b562b9a5bef8d257085784cd07a56c947",
       "checkpoint_loadable": true,
       "prediction_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260804_steps4164/predictions/validation_predictions.csv",
-      "prediction_sha256": "0f024ecda3285492eb3822dc406220a110dfab6a251abc681ec82b9bb2f3371c",
+      "prediction_sha256": "777dc88a1ae611bbd5c9d4a67dcb3dc3698422aefd5a0829c44755d4474f785d",
       "validation_coverage": "6154/6154",
-      "macro_f1": 0.03615548455804047,
-      "weighted_f1": 0.07978412094543216,
-      "per_class_metrics_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260804_steps4164/metrics/per_class_metrics.csv",
-      "per_class_metrics_sha256": "8dd1c7867ddd2b22a1dacff1959f63392f4a259cc709b4b9472110205735c41b",
-      "training_log_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260804_steps4164/logs/training_log.jsonl",
-      "training_wall_seconds": 117.66923934500005,
+      "primary_native_macro_f1": 0.3131518998122914,
+      "common_cohort_native_macro_f1": 0.3131518998122914,
+      "window_level_macro_f1": 0.29221745181175673,
+      "window_level_weighted_f1": 0.5427137591228414,
+      "per_class_metrics": {
+        "drink": {
+          "support": 13,
+          "predicted": 15,
+          "tp": 2,
+          "precision": 0.13333333333333333,
+          "recall": 0.15384615384615385,
+          "f1": 0.14285714285714288
+        },
+        "eat": {
+          "support": 834,
+          "predicted": 985,
+          "tp": 799,
+          "precision": 0.8111675126903554,
+          "recall": 0.9580335731414868,
+          "f1": 0.8785046728971962
+        },
+        "fight": {
+          "support": 15,
+          "predicted": 205,
+          "tp": 1,
+          "precision": 0.004878048780487805,
+          "recall": 0.06666666666666667,
+          "f1": 0.00909090909090909
+        },
+        "social-nose": {
+          "support": 231,
+          "predicted": 323,
+          "tp": 128,
+          "precision": 0.39628482972136225,
+          "recall": 0.5541125541125541,
+          "f1": 0.4620938628158845
+        },
+        "explore": {
+          "support": 494,
+          "predicted": 465,
+          "tp": 241,
+          "precision": 0.5182795698924731,
+          "recall": 0.48785425101214575,
+          "f1": 0.502606882168926
+        },
+        "lying": {
+          "support": 470,
+          "predicted": 373,
+          "tp": 214,
+          "precision": 0.5737265415549598,
+          "recall": 0.4553191489361702,
+          "f1": 0.5077105575326216
+        },
+        "stand": {
+          "support": 79,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 69,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1083,
+          "predicted": 969,
+          "tp": 645,
+          "precision": 0.6656346749226006,
+          "recall": 0.5955678670360111,
+          "f1": 0.6286549707602339
+        },
+        "playwithtoy": {
+          "support": 47,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "training_wall_seconds": 115.12901044599994,
       "peak_gpu_vram_mb": 158.27783203125,
       "gpu_device": "NVIDIA L4"
     },
     "20260805": {
-      "schema": "classification_v2.cloud_r128_runtime.v1",
+      "schema": "classification_v2.cloud_r128_canonical_runtime.v1",
       "status": "PASS",
       "trial_id": "post_s1_t6_r128_seed20260805_steps4164",
       "temporal_view": "T6",
@@ -93,25 +179,106 @@
       "architecture": "B1_STAGE1_UNCHANGED",
       "loss": "event_weighted_cross_entropy",
       "initial_model_sha256": "96ef7ea97db2603143710194cdb2c2906e3055bb67d3c53ea2b4a4f86d113019",
-      "final_model_sha256": "823a6b5567892cfb0fc748bb7adc5a49e86f0d898f6b7cd17db4377166bb2ae8",
+      "final_model_sha256": "7fc047a9021aa814a7b4697c5c44572a9e118dbe3685e752eb076bab1e3b3d83",
       "weights_changed": true,
       "checkpoint_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260805_steps4164/checkpoint/r128_step_004164.pt",
-      "checkpoint_sha256": "f580b46a0a3b67bc072e8afd40dabc2f73bc65e83cf7f677ad0bb5e2c7a38026",
+      "checkpoint_sha256": "44aed3fb001ad59950e8d3813b6914a156266013cc5facb29abed947acb5c977",
       "checkpoint_loadable": true,
       "prediction_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260805_steps4164/predictions/validation_predictions.csv",
-      "prediction_sha256": "846f3ae9463e011df39c5c4ec44d8fc83a4c2e4e8fc06f47c82f1ae75a2abcbb",
+      "prediction_sha256": "aa50081912d70a7275df7caff1c1845a0a47f29afb1e9a4b7389c813158ccb5b",
       "validation_coverage": "6154/6154",
-      "macro_f1": 0.05003046180090167,
-      "weighted_f1": 0.16690370178298852,
-      "per_class_metrics_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260805_steps4164/metrics/per_class_metrics.csv",
-      "per_class_metrics_sha256": "2f1173d84f7273294a1b61479cfa8d65b505accdb4562452b5412c6367619265",
-      "training_log_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260805_steps4164/logs/training_log.jsonl",
-      "training_wall_seconds": 106.36750409299998,
+      "primary_native_macro_f1": 0.33726735341354663,
+      "common_cohort_native_macro_f1": 0.33726735341354663,
+      "window_level_macro_f1": 0.31060326449497966,
+      "window_level_weighted_f1": 0.6000874141613207,
+      "per_class_metrics": {
+        "drink": {
+          "support": 13,
+          "predicted": 11,
+          "tp": 1,
+          "precision": 0.09090909090909091,
+          "recall": 0.07692307692307693,
+          "f1": 0.08333333333333334
+        },
+        "eat": {
+          "support": 834,
+          "predicted": 924,
+          "tp": 784,
+          "precision": 0.8484848484848485,
+          "recall": 0.9400479616306955,
+          "f1": 0.8919226393629125
+        },
+        "fight": {
+          "support": 15,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 231,
+          "predicted": 479,
+          "tp": 132,
+          "precision": 0.2755741127348643,
+          "recall": 0.5714285714285714,
+          "f1": 0.371830985915493
+        },
+        "explore": {
+          "support": 494,
+          "predicted": 582,
+          "tp": 354,
+          "precision": 0.6082474226804123,
+          "recall": 0.7165991902834008,
+          "f1": 0.6579925650557621
+        },
+        "lying": {
+          "support": 470,
+          "predicted": 411,
+          "tp": 287,
+          "precision": 0.6982968369829684,
+          "recall": 0.6106382978723405,
+          "f1": 0.6515323496027242
+        },
+        "stand": {
+          "support": 79,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 69,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1083,
+          "predicted": 928,
+          "tp": 720,
+          "precision": 0.7758620689655172,
+          "recall": 0.6648199445983379,
+          "f1": 0.7160616608652413
+        },
+        "playwithtoy": {
+          "support": 47,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "training_wall_seconds": 115.05588625600012,
       "peak_gpu_vram_mb": 158.27783203125,
       "gpu_device": "NVIDIA L4"
     },
     "20260806": {
-      "schema": "classification_v2.cloud_r128_runtime.v1",
+      "schema": "classification_v2.cloud_r128_canonical_runtime.v1",
       "status": "PASS",
       "trial_id": "post_s1_t6_r128_seed20260806_steps4164",
       "temporal_view": "T6",
@@ -128,20 +295,101 @@
       "architecture": "B1_STAGE1_UNCHANGED",
       "loss": "event_weighted_cross_entropy",
       "initial_model_sha256": "01590b7707f24ff01776fe9f8e68fc3c2dedfaf7782b2aebc6cc0131d2bc5357",
-      "final_model_sha256": "dab83ea2a12d483e91de60236c4401baf908390c5a85d4913d0b6b8e3357319d",
+      "final_model_sha256": "9154b0f8e66eec909f592bb7a6fa1cd3cf391002f27e7ff8dd0406c24bccc682",
       "weights_changed": true,
       "checkpoint_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260806_steps4164/checkpoint/r128_step_004164.pt",
-      "checkpoint_sha256": "c1886ce78e6cecd80dd1e5984595ea6041d9c2260cbea38f6a5964fcec65279b",
+      "checkpoint_sha256": "e49d21ac6a86e99ec0d31c20f8538f25c7febeebfc3df4643519783c4224497f",
       "checkpoint_loadable": true,
       "prediction_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260806_steps4164/predictions/validation_predictions.csv",
-      "prediction_sha256": "a8851581330312d1432303a2e93f5c1733fbea529621b4dc8529a1cacb5dd9e6",
+      "prediction_sha256": "4baea6fc007baa0c29ceaa85cf72aa8f53422da5db473b1fd00b34147270e608",
       "validation_coverage": "6154/6154",
-      "macro_f1": 0.03615548455804047,
-      "weighted_f1": 0.07978412094543216,
-      "per_class_metrics_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260806_steps4164/metrics/per_class_metrics.csv",
-      "per_class_metrics_sha256": "8dd1c7867ddd2b22a1dacff1959f63392f4a259cc709b4b9472110205735c41b",
-      "training_log_path": "/teamspace/studios/this_studio/runtime/outputs/classification_v2/s1_post_temporal_closure_20260809/s1_trials/post_s1_t6_r128_seed20260806_steps4164/logs/training_log.jsonl",
-      "training_wall_seconds": 106.653335137,
+      "primary_native_macro_f1": 0.2985435629091835,
+      "common_cohort_native_macro_f1": 0.2985435629091835,
+      "window_level_macro_f1": 0.2942647269216447,
+      "window_level_weighted_f1": 0.552367041915878,
+      "per_class_metrics": {
+        "drink": {
+          "support": 13,
+          "predicted": 9,
+          "tp": 1,
+          "precision": 0.1111111111111111,
+          "recall": 0.07692307692307693,
+          "f1": 0.09090909090909093
+        },
+        "eat": {
+          "support": 834,
+          "predicted": 1033,
+          "tp": 825,
+          "precision": 0.7986447241045499,
+          "recall": 0.9892086330935251,
+          "f1": 0.8837707552222818
+        },
+        "fight": {
+          "support": 15,
+          "predicted": 189,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 231,
+          "predicted": 253,
+          "tp": 98,
+          "precision": 0.38735177865612647,
+          "recall": 0.42424242424242425,
+          "f1": 0.40495867768595034
+        },
+        "explore": {
+          "support": 494,
+          "predicted": 250,
+          "tp": 169,
+          "precision": 0.676,
+          "recall": 0.34210526315789475,
+          "f1": 0.4543010752688172
+        },
+        "lying": {
+          "support": 470,
+          "predicted": 665,
+          "tp": 301,
+          "precision": 0.45263157894736844,
+          "recall": 0.6404255319148936,
+          "f1": 0.5303964757709252
+        },
+        "stand": {
+          "support": 79,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 69,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1083,
+          "predicted": 936,
+          "tp": 627,
+          "precision": 0.6698717948717948,
+          "recall": 0.5789473684210527,
+          "f1": 0.6210995542347698
+        },
+        "playwithtoy": {
+          "support": 47,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "training_wall_seconds": 104.92194079899991,
       "peak_gpu_vram_mb": 158.27783203125,
       "gpu_device": "NVIDIA L4"
     }
