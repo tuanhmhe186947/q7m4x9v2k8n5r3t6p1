@@ -27,6 +27,22 @@ For `pig-project` / `training-pig-project-L4`:
     `20260806`, 4164 steps each, on the same authorized Studio. Inspect the
     active task/permit/worktree once, then resume from its checkpoint.
 
+## MAIN-ONLY RESUME CONTRACT (2026-08-17)
+
+- `C:\Users\ironh\Downloads\PIG_Behavior_Project` on local `main` is the
+  sole source of truth for this recovery. Commit verified source, config, and
+  memory corrections on `main` before any later cloud action.
+- Do not create, select, or resume from a classification worktree for this
+  recovery. Existing worktree task records are historical/protected state, not
+  a reason to move execution away from `main`.
+- A passed stage is a completed stage: do not repeat Drive upload/hash checks,
+  CPU preflight, R64, full-T6 preparation, or the already completed
+  `T6/R128/20260804` trial. First inspect its checkpoint and copy it to Drive
+  if durable publication is still pending.
+- Continue only `T6/R128` seeds `20260805` and `20260806`, sequentially, with
+  the existing runtime, Drive cache, and 4164-step contract. Persist and verify
+  each result before starting the next seed.
+
 ## V2 governance activation
 
 New material tasks start with `.agents/memory/00_AGENT_BOOTSTRAP.md` and the

@@ -58,6 +58,13 @@
 - Before launch, bind each trial's durable result directory on Teamspace Drive
   explicitly; checkpoints, predictions, logs, descriptors, and metrics must
   never accumulate under `this_studio`.
+- Resume checkpoint: `T6/R128/seed20260804` has already completed its required
+  4164-step execution in this same Studio; its temporary output must be copied
+  to Drive and verified before any new seed is launched. Do not rerun it.
+- The only remaining scientific actions are `T6/R128/seed20260805` followed by
+  `T6/R128/seed20260806`, each exactly 4164 steps, with durable publication
+  between them. No upload, preflight, R64, full-T6 preparation, seed 20260814,
+  or Studio recreation is permitted.
 
 ## 2026-08-16 Cloud GPU compute waste prohibition & mandatory local preprocessing
 

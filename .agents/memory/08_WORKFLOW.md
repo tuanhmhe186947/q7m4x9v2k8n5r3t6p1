@@ -43,6 +43,20 @@ clean, stash, or restore unrelated owner work. Use short incremental prompts by
 default; use a long campaign prompt only when explicitly requested. Persist a
 confirmed correction before continuing.
 
+## 2026-08-17 Main-only no-repeat resume gate
+
+Before any continuation command, work from the primary repository on `main`
+and read the current decision once. Do not move to an existing classification
+worktree or create a new one. Treat every recorded PASS and completed trial as
+an idempotent checkpoint: inspect its output and durable publication state,
+then continue from the first incomplete step.
+
+For the active R128 recovery, the first incomplete action is to publish and
+verify the existing seed `20260804` result on Drive. Then run only seeds
+`20260805` and `20260806`, one at a time, for 4164 optimizer steps each, using
+the same Studio, runtime, and Drive cache. Never repeat upload, CPU preflight,
+R64, full-T6 preparation, seed `20260814`, or Studio creation.
+
 ## 2026-08-11 Classification V2 canonical remote code deployment
 
 This workflow is not permission to mutate remote storage during inventory or

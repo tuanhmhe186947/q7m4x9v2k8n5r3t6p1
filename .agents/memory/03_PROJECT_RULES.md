@@ -21,6 +21,23 @@
   seeds `20260804`, `20260805`, and `20260806`, exactly 4164 steps each, and
   resume from the active task/permit/worktree checkpoint.
 
+## Main-only cloud recovery correction (2026-08-17)
+
+- Root cause: execution corrections and resume knowledge were left attached to
+  separate worktrees, so a later agent could miss the accepted `main` state and
+  repeat completed work.
+- Validated correction: `main` is the sole implementation, memory, and commit
+  authority for this recovery. Integrate each verified milestone immediately;
+  do not create or use another worktree unless the user explicitly requests it.
+- Resume rule: treat Drive readiness, CPU preflight, R64/full-T6 preparation,
+  and completed R128 seeds as DONE when their recorded evidence is present.
+  Inspect the checkpoint and durable publication state before any rerun.
+- Current boundary: continue only the remaining T6/R128 seeds `20260805` and
+  `20260806`, 4164 steps each, on the same Studio/runtime/cache; publish each
+  result to Drive before the next seed.
+- Do not reuse this correction for a new experiment with a different authority,
+  hardware, dataset, seed set, or an explicit user-requested worktree.
+
 ## Memory lifecycle policy (2026-08-03)
 
 1. Short memory is daily state plus bounded active-task resume capsules, not

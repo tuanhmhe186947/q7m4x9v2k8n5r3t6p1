@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## Main-only R128 resume checkpoint (2026-08-17)
+
+- The active cloud recovery is executed and committed from the primary
+  repository on `main`; no classification worktree is an execution authority.
+- Drive cache, runtime, CPU preflight, and R64/full-T6 preparation are already
+  accepted. Do not upload, rebuild, or rerun those stages.
+- `T6/R128/seed20260804` already completed 4164 steps in the same Studio. Its
+  temporary output is at
+  `/teamspace/studios/this_studio/runtime/r128_trial_t6_r128_seed20260804_steps4164`;
+  publish and verify it on Drive before launching another seed.
+- The only remaining runs are `T6/R128/seed20260805` and
+  `T6/R128/seed20260806`, sequentially, 4164 steps each, using the existing
+  Studio/runtime/cache. Do not rerun seed `20260804`.
+
 ## Lifecycle
 
 - Scope: daily state plus bounded active managed resume capsules in
