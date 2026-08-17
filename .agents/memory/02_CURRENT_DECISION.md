@@ -17,9 +17,11 @@
   --option RemoteCommand=bash`. The local installed executable used for this
   connection is
   `C:\Users\ironh\AppData\Local\uv\cache\archive-v0\ORHJMKmEugGFY9IW\Scripts\lightning.exe`.
-- The current live probe in this session reported `NOT_RUNNING`; SSH was not
-  reachable because the Studio was stopped. This is not evidence of a trial
-  running or completed. Start only this existing Studio before continuing.
+- The first live probe reported `NOT_RUNNING`; the existing Studio was then
+  started and switched in place. The latest control-plane probe reports
+  `status=Running` and `machine=L4` for `training-pig-project-l4`. SSH runtime
+  reachability is still unverified after the switch; no trial process or
+  scientific progress is claimed.
 - Teamspace Drive mount is `/teamspace/uploads`. Join these adjacent fragments
   without a separator for the verified R128 cache namespace:
   `/teamspace/uploads/classification_v2/`
