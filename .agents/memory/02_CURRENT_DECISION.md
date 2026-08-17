@@ -1,5 +1,62 @@
 # Current Decision
 
+## 2026-08-17 Main-only cloud execution map
+
+- `EXECUTION_AUTHORITY=main`. Do not use a classification worktree as the
+  source of truth for this recovery, and do not leave a completed change only
+  in a worktree.
+- `TEAMSPACE_SHORT=pig-project`; the verified namespace is
+  `ironheart211224/pig-project`.
+- `STUDIO=training-pig-project-L4` (the CLI may display the normalized
+  lowercase form `training-pig-project-l4`). The deleted
+  `pig-gpu-l4-gcp` is historical only and must never be inspected, started,
+  restored, recreated, or used.
+- The persistent Studio URI is
+  `lit://ironheart211224/pig-project/studios/training-pig-project-L4/`.
+- SSH connection is `lightning studio ssh --name training-pig-project-L4
+  --option RemoteCommand=bash`. The local installed executable used for this
+  connection is
+  `C:\Users\ironh\AppData\Local\uv\cache\archive-v0\ORHJMKmEugGFY9IW\Scripts\lightning.exe`.
+- The current live probe in this session reported `NOT_RUNNING`; SSH was not
+  reachable because the Studio was stopped. This is not evidence of a trial
+  running or completed. Start only this existing Studio before continuing.
+- Teamspace Drive mount is `/teamspace/uploads`. Join these adjacent fragments
+  without a separator for the verified R128 cache namespace:
+  `/teamspace/uploads/classification_v2/`
+  `cloud_r128_recovery_20260817_gcp/r128_cache`.
+- Packed tensor:
+  join `/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/`
+  `r128_cache/packed_rgb_128_letterbox.npy`,
+  `12075663488` bytes, SHA256
+  `c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee`.
+- Index:
+  join `/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/`
+  `r128_cache/packed_image_cache_index.csv`,
+  `47781243` bytes, SHA256
+  `9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68`.
+- Runtime root is `/teamspace/studios/this_studio/runtime`; Python is
+  `/teamspace/studios/this_studio/runtime/.venv/bin/python`; source root is
+  `/teamspace/studios/this_studio/runtime/src`.
+- The production launcher is
+  join `/teamspace/studios/this_studio/runtime/scripts/classification_v2/`
+  `04_baselines_smokes/classification_v2_run_post_s1_resolution_screen.py`.
+  Runtime bundle data is under
+  `/teamspace/studios/this_studio/runtime/r128_recovery_20260817`; bulk data
+  and claim-grade outputs must not be stored in `this_studio`.
+- CPU preflight evidence is
+  `docs/classification_v2/s1_04_remote_cpu_preflight_20260817.json` and is
+  already PASS: counts `14706/12421/2285`, real batch
+  `[16,6,3,128,128]`, forward/loss/backward/throwaway step PASS, cache bound,
+  no raw-video or loose-crop fallback, and no cache build on Studio.
+- Do not repeat upload, hash, CPU preflight, R64, or full-T6 preparation.
+  Run only `T6/R128` seeds `20260804`, `20260805`, and `20260806`, exactly
+  `4164` optimizer steps per seed, using the existing runtime and Drive cache.
+  The three-seed R64 results and full-T6 data are already inputs for the next
+  stage, not work to rerun.
+- Before launch, bind each trial's durable result directory on Teamspace Drive
+  explicitly; checkpoints, predictions, logs, descriptors, and metrics must
+  never accumulate under `this_studio`.
+
 ## 2026-08-16 Cloud GPU compute waste prohibition & mandatory local preprocessing
 
 - Running un-cached raw video decoding loops on paid cloud GPUs (e.g. L4) is
