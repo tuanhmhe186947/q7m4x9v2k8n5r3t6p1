@@ -1,0 +1,76 @@
+{
+  "active_executable_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+  "artifact_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816",
+  "authority_id": "FULL-T6-CANONICAL-46D-20260817",
+  "build_evidence": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\build_evidence.json",
+    "sha256": "96b6dc65ebfd41ff3e2ed512dc3ea47547c3d4b94911d1a1693196095763e61e"
+  },
+  "independent_audit": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\independent_audit_20260817.json",
+    "sha256": "EFBF8D95D2ACB2E410D0C04FBABB02586880F4ACD61FCFEBBCA2E4063F973DEE"
+  },
+  "d890_revoked": true,
+  "final_artifact": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_canonical_46d.npz",
+    "sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7",
+    "size_bytes": 16822477
+  },
+  "legacy_artifact": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\legacy_4539_spatial_sequences.npz",
+    "sha256": "5a861448ce5a8932ce78ff8c27c544ea603735e35034481823a3f256a3290534",
+    "size_bytes": 2447909
+  },
+  "legacy_manifest": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\legacy_4539_row_manifest.csv",
+    "sha256": "6b05b5ee82871e7b08550b29dde4edafca7e9c8243e21d7cfad49be7deff3dee",
+    "size_bytes": 2602329
+  },
+  "parity": {
+    "duplicate_targets": 0,
+    "existing_cvat_value_parity": "PASS",
+    "extra_targets": 0,
+    "feature_width": 46,
+    "group_order": "6/12/18/10",
+    "group_order_detail": "4/2/12/18/10",
+    "mask_alignment": "PASS",
+    "missing_targets": 0,
+    "source_count_parity": "PASS",
+    "t6_frame_order_parity": "PASS",
+    "target_id_parity": "PASS"
+  },
+  "population": {
+    "cvat_count": 28748,
+    "legacy_recovered_count": 4539,
+    "name": "FULL-T6",
+    "pool": "FULL_NONOVERLAP_VIEW_POOL",
+    "total_targets": 33287
+  },
+  "producer": {
+    "function": "export_spatial_sequences",
+    "git_head": "0c8a5a2add271b6d3dab63ba022959b735b4011d",
+    "module": "pig_behavior.classification_v2.spatial_sequence_export",
+    "producer_path": "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+  },
+  "executor": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\tests\\test_classification_v2_full_t6_46d_binding.py",
+    "sha256": "4990c0a291f8405f455576cb05c979acfd043b40625abde8a4f95bbbd9919886",
+    "scientific_contract_changed": false
+  },
+  "row_manifest": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_row_manifest.csv",
+    "sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0",
+    "size_bytes": 19218966
+  },
+  "schema_version": "pig.classification_v2.full_t6_46d_authority.v1",
+  "scientific_boundaries": {
+    "existing_cvat_recomputed": false,
+    "gpu_used": false,
+    "labels_or_membership_changed": false,
+    "legacy_rows_zero_filled": false,
+    "model_training_runs": 0,
+    "studio_started": false,
+    "temporal_v2_mutated": false
+  },
+  "status": "PASS"
+}

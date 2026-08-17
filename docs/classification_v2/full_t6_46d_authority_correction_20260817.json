@@ -1,0 +1,38 @@
+{
+  "schema_version": "pig.classification_v2.46d-authority-correction.v1",
+  "correction_id": "FULL-T6-46D-AUTHORITY-CORRECTION-20260817",
+  "scope": "classification_v2.full_t6_canonical_46d",
+  "effective_at": "2026-08-17T00:01:48+07:00",
+  "active_predictive_schema": {
+    "sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "status": "ACTIVE_EXECUTABLE_SCHEMA",
+    "semantic_contract": "geometry=6; motion=12; ROI=18; social=10; width=46"
+  },
+  "revoked_predictive_schema_authority": {
+    "sha256": "d89067979b8a27065a8bf4d031e5f4d5ccefb3583a8f2727e6c7502966151a62",
+    "status": "REVOKED_INVALID_ORPHAN_AUTHORITY",
+    "reason": [
+      "Declarative-only authority from the revoked synthetic execution lineage.",
+      "It has no executable predictive formulas or tensor producer."
+    ],
+    "use_for_predictive_features": false
+  },
+  "historical_preservation": {
+    "historical_files_and_commits_preserved": true,
+    "history_rewritten": false,
+    "historical_d890_references_are_non_authoritative": true
+  },
+  "scientific_effect": {
+    "scientific_result_created": false,
+    "feature_values_changed": false,
+    "population_changed": false,
+    "training_run": false,
+    "gpu_used": false,
+    "studio_started": false
+  },
+  "next_authorized_scope": [
+    "Compute exactly the 4,539 missing legacy_recovered FULL-T6 rows",
+    "with the executable 18377 producer, then merge without mutating the",
+    "existing 28,748 CVAT rows."
+  ]
+}

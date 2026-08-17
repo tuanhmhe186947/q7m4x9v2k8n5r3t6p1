@@ -1,0 +1,106 @@
+{
+  "task_id": "CLASSIFICATION-V2-FULL-T6-46D-20260816-02",
+  "title": "Complete FULL-T6 canonical 46D binding from executable 18377 schema",
+  "task_class": "classification_v2_scientific_experiment",
+  "risk_class": "high",
+  "worktree_mode": "shared_main",
+  "path_scope": [
+    "docs/classification_v2",
+    "tests/test_classification_v2_full_t6_46d_binding.py",
+    "tests/test_classification_v2_manifests_readiness.py",
+    "outputs/classification_v2/full_t6_canonical_46d_20260816"
+  ],
+  "artifact_roots": [
+    {
+      "root": "docs/classification_v2",
+      "category": "authority",
+      "effects": ["artifact_write", "edit", "test", "publication"]
+    },
+    {
+      "root": "tests/test_classification_v2_full_t6_46d_binding.py",
+      "category": "test",
+      "effects": ["artifact_write", "edit", "test"]
+    },
+    {
+      "root": "tests/test_classification_v2_manifests_readiness.py",
+      "category": "test",
+      "effects": ["artifact_write", "edit", "test"]
+    },
+    {
+      "root": "outputs/classification_v2/full_t6_canonical_46d_20260816",
+      "category": "artifact",
+      "effects": ["artifact_write", "generate", "test", "publication"]
+    }
+  ],
+  "authorities": [
+    {"scope": "classification_v2.current_state", "locator": "docs/CLASSIFICATION_V2_CURRENT_STATE.md", "selector": "FULL_FILE", "status": "CURRENT", "read_at": "2026-08-16T04:30:00+07:00", "sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e", "section_sha256": "ad9338895f81ecb11007fc16bbba56d76069db45db955c5a670dde139441492e"},
+    {"scope": "governance.current_state", "locator": ".agents/memory/02_CURRENT_DECISION.md", "selector": "FULL_FILE", "status": "CURRENT", "read_at": "2026-08-16T04:30:00+07:00", "sha256": "e9b951aa695dcbf0865b0a6cd232b2912c316807dc9dff0dca95c3314410e55b", "section_sha256": "e9b951aa695dcbf0865b0a6cd232b2912c316807dc9dff0dca95c3314410e55b"},
+    {"scope": "permission.halt", "locator": ".agents/memory/16_HALT_CONDITIONS.json", "selector": "FULL_FILE", "status": "CURRENT", "read_at": "2026-08-16T04:30:00+07:00", "sha256": "1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34", "section_sha256": "1567a3a1b7762ce5c9a3c41545d0de2b60006608a98415aa59dab129638ccc34"},
+    {"scope": "agent.governance", "locator": "docs/governance/AGENT_GOVERNANCE_V2.md", "selector": "FULL_FILE", "status": "CURRENT", "read_at": "2026-08-16T04:30:00+07:00", "sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab", "section_sha256": "de127b97ddf74c20ad3fd4d586a0a26bb8e45ae4d65fac184cf8f0a78204c3ab"}
+  ],
+  "acceptance": [
+    {"acceptance_id": "F46D-REVOCATION", "text": "d890 is explicitly revoked as predictive-schema authority and 18377 is active; historical files remain preserved."},
+    {"acceptance_id": "F46D-SOURCE", "text": "The exact 4,539 legacy_recovered FULL-T6 targets and all required source evidence are resolved without changing membership or ordering."},
+    {"acceptance_id": "F46D-COMPUTE", "text": "Exactly 4,539 legacy rows are computed by the existing executable 18377 production path with zero placeholders and zero unresolved targets."},
+    {"acceptance_id": "F46D-MERGE", "text": "The final binding has 33,287 targets, preserves all existing CVAT values, and passes target/frame/mask/schema parity."},
+    {"acceptance_id": "F46D-PUBLISH", "text": "Final artifact and authority are hash-bound, reproducible, and explicitly marked local-only with no training or GPU."}
+  ],
+  "risks": [
+    "Legacy source evidence may be incomplete; fail closed per target.",
+    "Existing CVAT values must remain byte/numerically unchanged.",
+    "A stale declarative d890 reference must not become predictive semantics."
+  ],
+  "non_actions": [
+    "Do not train or evaluate a model.",
+    "Do not start Studio or use GPU.",
+    "Do not recompute the 28,748 CVAT rows unless parity fails.",
+    "Do not regenerate FULL-T6 membership or T6 frame ordering.",
+    "Do not zero-fill, invent source evidence, rewrite history, or use d890 formulas."
+  ],
+  "skills": [
+    {
+      "skill_id": "scientific-ablation-controller",
+      "role": "scientific-control",
+      "purpose": "Keep the schema correction and legacy completion isolated from model or experiment changes.",
+      "selection_mode": "explicit",
+      "skill_sha256": "1edbf69b8e25845b519051f2e7198d6bf2dfb44bda0928b8c4cfb2f98dec68b3"
+    },
+    {
+      "skill_id": "dataset-contract-leakage-guard",
+      "role": "data-guardrail",
+      "purpose": "Verify exact FULL-T6 membership, source counts, frame order, masks, and no silent row changes.",
+      "selection_mode": "explicit",
+      "skill_sha256": "038f87efa803cd316e6b037b2e4daf0cad7a6c7c4f4a127dd09388774f1eab40"
+    },
+    {
+      "skill_id": "experiment-lineage-reproducibility",
+      "role": "lineage",
+      "purpose": "Bind producer, source artifacts, hashes, merge evidence, and final authority without overwrite.",
+      "selection_mode": "explicit",
+      "skill_sha256": "847a17f5ebb4d3c44172f4f03486fcc9659808b48fefc948f0c45a39f306c158"
+    },
+    {
+      "skill_id": "grouped-cv-evaluation",
+      "role": "evaluation",
+      "purpose": "Preserve native-unit and source-boundary semantics even though no metrics or training are run.",
+      "selection_mode": "explicit",
+      "skill_sha256": "0269750c9d0e416e2223d42caf5f1279085a1a43f77906961793bc5a15d161ff"
+    },
+    {
+      "skill_id": "agent-harness-construction",
+      "role": "reasoning",
+      "purpose": "Keep each materialization and verification action bounded, observable, and fail-closed.",
+      "selection_mode": "explicit",
+      "skill_sha256": "139f8fa249c74edebf117f03a258b23a228e9401fafc124a98059ebacec6deda"
+    }
+  ],
+  "plan": {
+    "steps": [
+      {"step_id": "F46D-01", "summary": "Publish the narrow d890 revocation and bind active authority to executable schema 18377.", "allowed_effects": ["artifact_write", "edit", "test"], "acceptance_ids": ["F46D-REVOCATION"]},
+      {"step_id": "F46D-02", "summary": "Resolve the exact missing legacy target set and validate all required source evidence without changing population.", "allowed_effects": ["artifact_write", "generate", "test"], "acceptance_ids": ["F46D-SOURCE"]},
+      {"step_id": "F46D-03", "summary": "Run the existing executable 18377 producer only for the 4,539 missing legacy targets and validate row-level outputs.", "allowed_effects": ["artifact_write", "generate", "test"], "acceptance_ids": ["F46D-COMPUTE"]},
+      {"step_id": "F46D-04", "summary": "Merge the unchanged CVAT rows with computed legacy rows, run complete parity audits, and publish the final authority.", "allowed_effects": ["artifact_write", "generate", "publication", "test"], "acceptance_ids": ["F46D-MERGE", "F46D-PUBLISH"]},
+      {"step_id": "F46D-05", "summary": "Close with lineage, memory, and protected-path review after the verified local milestone.", "allowed_effects": ["closeout", "integrate", "test"], "acceptance_ids": ["F46D-PUBLISH"]}
+    ]
+  }
+}

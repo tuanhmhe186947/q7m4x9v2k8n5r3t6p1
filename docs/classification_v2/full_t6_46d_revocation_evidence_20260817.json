@@ -1,0 +1,20 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "F46D-D890-REVOCATION-AUTHORITY",
+      "kind": "artifact",
+      "locator": "docs/classification_v2/full_t6_46d_authority_correction_20260817.json",
+      "sha256": "a181567f0cf7ba4cabde880c13d33bcf8ad2fb5b7509c446123fd7a575d554dc",
+      "status": "PASS",
+      "supports": ["F46D-REVOCATION"]
+    }
+  ],
+  "decision": {
+    "d890_revoked": true,
+    "active_executable_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "historical_files_preserved": true,
+    "scientific_result_created": false,
+    "gpu_used": false,
+    "studio_started": false
+  }
+}

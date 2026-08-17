@@ -1,0 +1,44 @@
+{
+  "schema_version": "classification_v2.s1_04_remote_cpu_preflight.v1",
+  "status": "PASS",
+  "supports": ["S1-CPU", "S1-REMOTE"],
+  "task_id": "CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260814-01",
+  "step_id": "S1-04",
+  "studio": "training-pig-project-L4",
+  "teamspace": "ironheart211224/pig-project",
+  "machine_at_observation": "CPU",
+  "drive_mount": "/teamspace/uploads",
+  "drive_namespace": "/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache",
+  "packed_r128_npy": {
+    "bytes": 12075663488,
+    "sha256": "c352a74cade4587e9dcbb8c3eead0c095c992306549b53da6d8b2a361691f5ee"
+  },
+  "packed_index_csv": {
+    "bytes": 47781243,
+    "sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68"
+  },
+  "counts": {"total": 14706, "train": 12421, "validation": 2285},
+  "real_batch_shape": [16, 6, 3, 128, 128],
+  "model_output": {"type": "dict", "key": "logits", "shape": [16, 10]},
+  "real_data_batch": "PASS",
+  "real_labels": "PASS",
+  "model_forward": "PASS",
+  "loss_finite": "PASS",
+  "backward": "PASS",
+  "throwaway_optimizer_step": "PASS",
+  "throwaway_optimizer_steps": 1,
+  "throwaway_model_discarded": true,
+  "environment": {
+    "python": "3.11.15",
+    "torch": "2.12.1",
+    "numpy": "1.26.4",
+    "pandas": "3.0.3",
+    "scipy": "1.17.1",
+    "scikit_learn": "1.9.0"
+  },
+  "raw_video_fallback_used": false,
+  "loose_crop_fallback_used": false,
+  "cache_build_on_studio": false,
+  "bulk_data_in_this_studio": false,
+  "synthetic_result_path_used": false
+}
