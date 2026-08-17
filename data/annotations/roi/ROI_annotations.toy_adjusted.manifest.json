@@ -1,6 +1,6 @@
 {
-  "schema_version": "classification_v2.toy_roi_future_canonical_candidate.v1",
-  "status": "FUTURE_CANONICAL_CANDIDATE_NOT_ACTIVE",
+  "schema_version": "classification_v2.toy_roi_canonical_manifest.v1",
+  "status": "ACTIVE_CANONICAL",
   "candidate_roi_file": "ROI_annotations.toy_adjusted.coco.json",
   "candidate_sha256": "d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e",
   "source_draft_root_components": [
@@ -11,10 +11,12 @@
   ],
   "source_draft_manifest_name": "toy_roi_adjustment_draft.json",
   "source_draft_coco_name": "ROI_annotations.toy_draft.coco.json",
-  "active_canonical_file": "ROI_annotations.coco.json",
-  "active_canonical_sha256": "3fbcc2d44987df089845d73a99636d1a9ff9edb0428f7ec069525de582acbfd7",
-  "candidate_is_active": false,
-  "intended_future_use": "PROMOTE_TO_CANONICAL_BEFORE_NEXT_ROI_FEATURE_REBUILD",
+  "active_canonical_file": "ROI_annotations.toy_adjusted.coco.json",
+  "active_canonical_sha256": "d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e",
+  "candidate_is_active": true,
+  "superseded_canonical_file": "ROI_annotations.coco.json",
+  "superseded_canonical_sha256": "3fbcc2d44987df089845d73a99636d1a9ff9edb0428f7ec069525de582acbfd7",
+  "intended_future_use": "ACTIVE_FOR_ROI_FEATURE_REBUILD",
   "image_size": [
     1280,
     720
