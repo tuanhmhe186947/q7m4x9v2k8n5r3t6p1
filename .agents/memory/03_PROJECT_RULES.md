@@ -1,5 +1,26 @@
 # Project Rules
 
+## CLOUD EXECUTION CONTRACT (PERMANENT)
+
+- Use only `pig-project` / `training-pig-project-L4`; never use the deleted
+  `pig-gpu-l4-gcp`.
+- Keep raw videos, loose crops, and preprocessing local. Keep train-ready bulk
+  tensors in Teamspace Drive, never in `this_studio`.
+- Studio contains runtime, environment, configs, and small logs only. Do not
+  upload `.git`, `.codex*`, notebooks, historical outputs, raw videos, loose
+  crops, or packed datasets into it.
+- Debug on CPU first, then switch the same Studio to L4. Fix small errors in
+  place; no arbitrary timeout and no unconditional stop in `finally`.
+- Report only verified live optimizer logs and real persisted outputs. Never
+  simulate results; optimize wall-clock time to a valid result.
+- R128 Drive data is already PASS at
+  `/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache`.
+  Do not re-upload, re-hash, rediscover, or repeat CPU preflight while that
+  evidence remains valid.
+- R64 three-seed results and full-T6 data are frozen inputs. Run only T6/R128
+  seeds `20260804`, `20260805`, and `20260806`, exactly 4164 steps each, and
+  resume from the active task/permit/worktree checkpoint.
+
 ## Memory lifecycle policy (2026-08-03)
 
 1. Short memory is daily state plus bounded active-task resume capsules, not
@@ -104,6 +125,23 @@
 4. Immediate shutdown rule: Whenever an un-cached run is identified or cloud
    execution completes, the remote Studio must be verified STOPPED immediately
    with zero lingering paid runtime.
+
+## Train-ready data storage boundary (2026-08-17)
+
+1. Construct, validate, and materialize source data, derived caches, and other
+   train-ready bulk artifacts locally before any cloud execution.
+2. Store final reusable train-ready bulk artifacts and claim-grade outputs in
+   Teamspace Drive; upload each immutable artifact package once and reuse it
+   across model trials.
+3. Treat Studio as a compute-only runtime over pre-verified Drive artifacts.
+   Dataset construction, cache building, debugging, profiling, and bulk data
+   materialization do not belong on Studio.
+4. Do not upload raw videos, loose crops, or dataset-building intermediates to
+   Studio unless a future authority explicitly proves that exception necessary.
+
+The operational sequence is: PREPARE DATA LOCALLY -> VERIFY -> UPLOAD FINAL
+TRAIN-READY ARTIFACT ONCE -> REUSE FROM TEAMSPACE DRIVE -> USE STUDIO FOR
+COMPUTE ONLY.
 
 ## Thesis reader-facing prose rule (2026-08-03)
 

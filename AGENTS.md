@@ -1,5 +1,32 @@
 # Agent Instructions for PIG_Behavior_Project
 
+## CLOUD EXECUTION CONTRACT (PERMANENT)
+
+For `pig-project` / `training-pig-project-L4`:
+
+1. Raw videos, loose crops, and bulk preprocessing stay LOCAL.
+2. Train-ready bulk tensors stay in Teamspace Drive, never in
+   `/teamspace/studios/this_studio`.
+3. Studio contains runtime code, environment, configs, and small logs only.
+4. Never upload `.git`, `.codex*`, tracking projects, notebooks, historical
+   outputs, raw videos, loose crops, or packed datasets into `this_studio`.
+5. Debug on CPU before switching the same Studio to GPU; fix small errors in
+   place and do not stop/start for them.
+6. No arbitrary startup timeout and no unconditional `finally: studio.stop()`.
+7. Report progress only from live logs and optimizer-step evidence; never
+   simulate a scientific result.
+8. Optimize wall-clock time to a valid result.
+9. Deleted `pig-gpu-l4-gcp` is never inspected, started, restored, or recreated.
+10. The current R128 Drive checkpoint is already PASS at
+    `/teamspace/uploads/classification_v2/cloud_r128_recovery_20260817_gcp/r128_cache`.
+    If its recorded evidence remains valid, do not re-upload, re-hash, or
+    rediscover it.
+11. R64 three-seed results and full-T6 data are existing inputs; do not rerun
+    R64, rebuild full-T6, or repeat a passed CPU preflight.
+12. The active recovery runs only T6/R128 seeds `20260804`, `20260805`, and
+    `20260806`, 4164 steps each, on the same authorized Studio. Inspect the
+    active task/permit/worktree once, then resume from its checkpoint.
+
 ## V2 governance activation
 
 New material tasks start with `.agents/memory/00_AGENT_BOOTSTRAP.md` and the
