@@ -73,6 +73,23 @@
       "conflict_resolution": "halt_reconcile_review_lineage"
     },
     {
+      "scope": "classification_v2.full_t6_remote_training_input",
+      "workstream": "classification_v2",
+      "current_authority": "docs/classification_v2/full_t6_remote_training_input_status_20260818.md",
+      "supporting_authorities": [
+        "docs/classification_v2/full_t6_46d_final_authority_20260817.json",
+        "docs/classification_v2/full_t6_training_authority_20260817/full_t6_training_input_map_20260817.json",
+        "outputs/classification_v2/full_t6_training_authority_20260817/upload_manifest_20260817.json",
+        "outputs/classification_v2/full_t6_training_authority_20260817/local_cross_binding_audit.json"
+      ],
+      "historical_authorities": [
+        "outputs/classification_v2/full_t6_training_authority_20260817/remote_package_verification_20260817.json"
+      ],
+      "valid_from": "2026-08-18",
+      "supersedes": "HASH_PENDING_REMOTE_READ metadata for unchanged remote input paths",
+      "conflict_resolution": "halt_revalidate_remote_parity"
+    },
+    {
       "scope": "tracking.current_state",
       "workstream": "tracking",
       "current_authority": "docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json",
