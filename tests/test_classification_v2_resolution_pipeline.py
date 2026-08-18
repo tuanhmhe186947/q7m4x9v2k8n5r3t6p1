@@ -620,7 +620,7 @@ def test_resolution_plan_validates_matched_seeds(tmp_path: Path) -> None:
         "device_name": "cpu",
     }
 
-    for seed in (20260804, 20260805, 20260806):
+    for seed in (20260814, 20260815, 20260816, 20260804, 20260805, 20260806):
         plan = post_s1.create_resolution_plan(
             output_dir=tmp_path / f"out_{seed}",
             trial_id=f"post_s1_t6_r128_seed{seed}_steps4164",

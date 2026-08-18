@@ -54,11 +54,14 @@ from pig_behavior.classification_v2.training.temporal_v2_consumer import (
 AUTHORITY_SCHEMA = "classification_v2.post_s1_resolution_screen.v1"
 RUN_KIND = "POST_S1_T6_PURE_RESOLUTION_SCREEN"
 TEMPORAL_VIEW = "T6"
-SEED = 20260804
+SEED = 20260814
 MAX_STEPS = 4164
 BATCH_SIZE = 16
 RESOLUTION_ARMS = frozenset({64, 128, 160})
-R128_MATCHED_SEEDS = frozenset({20260804, 20260805, 20260806})
+CANONICAL_S1_SEEDS = (20260814, 20260815, 20260816)
+R128_MATCHED_SEEDS = frozenset(
+    {20260814, 20260815, 20260816, 20260804, 20260805, 20260806}
+)
 
 
 class _R128PackedArrayReader:
@@ -782,6 +785,7 @@ def _sha256_file(path: Path) -> str:
 __all__ = [
     "AUTHORITY_SCHEMA",
     "BATCH_SIZE",
+    "CANONICAL_S1_SEEDS",
     "MAX_STEPS",
     "PostS1ResolutionError",
     "R128_MATCHED_SEEDS",
