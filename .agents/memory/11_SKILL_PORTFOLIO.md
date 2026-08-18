@@ -1,5 +1,26 @@
 # Skill Portfolio Ledger
 
+## 2026-08-18 M0 FULL-T6 fast-path mask repair
+
+- `dataset-contract-leakage-guard`: kept canonical feature-validity arrays as
+  the only active mask authority and left the historical seed path fail-closed.
+- `safe-refactor-test-guardian`: constrained the patch to the fast batch method
+  and verified the CPU batch/model gate, focused tests, Ruff, compile, and diff.
+- `project-state-steward`: recorded H4 historical-path uncertainty, preserved
+  the unusable seed-1 decision, and kept ignored output/user dirty paths out of
+  the source commit.
+- Root cause: the active fast builder read obsolete aggregate mask names and
+  emitted obsolete social mask keys instead of canonical group masks.
+- Validated correction: derive `spatial_feature_validity_masks` from
+  `SPATIAL_FEATURE_VALIDITY_MASKS`, yielding the canonical motion and social
+  feature dimensions without compatibility aliases.
+- Evidence: commit `b533d9b`, CPU 2-sample parity and finite forward/loss/
+  backward gate PASS, and 15 focused tests PASS with Ruff/compile/diff PASS.
+- Reuse when: the current canonical spatial schema and fast batch contract are
+  unchanged.
+- Do not reuse when: historical launch provenance is required; seed 240494961
+  remains H4 and must not be declared usable from this repair alone.
+
 ## 2026-08-12 task manager compaction identity correction
 
 - Root cause: compacted continuations dropped the date/sequence portion of a
