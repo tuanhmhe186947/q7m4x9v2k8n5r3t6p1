@@ -40,6 +40,74 @@ class ValidationSelectionScore:
     tiebreaker: float
 
 
+def resolve_source_aware_native_unit_key(
+    row: pd.Series | dict[str, Any],
+) -> str:
+    """Derive canonical native evaluation unit key for CVAT and Legacy."""
+    raw_unit = (
+        row.get("temporal_unit_key", "")
+        if "temporal_unit_key" in row and pd.notna(row["temporal_unit_key"])
+        else ""
+    )
+    unit_key = str(raw_unit).strip()
+    if "temporal_unit_key" in row and str(row["temporal_unit_key"]).strip() == "":
+        return ""
+
+    source_type = str(
+        row.get("source_type", "")
+        if "source_type" in row and pd.notna(row["source_type"])
+        else ""
+    ).strip()
+
+    if source_type == "cvat_tracking_xml":
+        # Each CVAT 6-frame anchor interval is uniquely identified by its window_id / target_id
+        # ensuring multiple 6-frame windows in a continuous behavior run are not collapsed.
+        anchor_key = (
+            row.get("native_anchor_interval_id")
+            or row.get("window_id")
+            or row.get("target_id")
+        )
+        if anchor_key and (
+            "run=" in unit_key
+            or "run_" in unit_key
+            or "cvat" in str(anchor_key).lower()
+            or "ordinal=" in str(anchor_key)
+            or not unit_key
+        ):
+            return str(anchor_key).strip()
+        return unit_key if unit_key else str(anchor_key).strip()
+
+    if source_type == "legacy_recovered":
+        # Each Legacy 16-frame burst is uniquely identified by its native_unit_id (burst sequence)
+        burst_key = (
+            row.get("native_unit_id")
+            or unit_key
+            or row.get("window_id")
+            or row.get("target_id")
+        )
+        return str(burst_key).strip()
+
+    fallback = unit_key or row.get("window_id") or row.get("target_id")
+    return str(fallback).strip()
+
+
+def _resolve_source_aware_predictions(
+    predictions: pd.DataFrame,
+) -> pd.DataFrame:
+    """Ensure predictions DataFrame uses source-aware native evaluation unit keys."""
+    if predictions.empty:
+        return predictions.copy()
+    frame = predictions.copy()
+    if "source_type" in frame.columns and (
+        "window_id" in frame.columns or "target_id" in frame.columns
+    ):
+        frame["temporal_unit_key"] = [
+            resolve_source_aware_native_unit_key(row)
+            for _, row in frame.iterrows()
+        ]
+    return frame
+
+
 def build_native_split_evaluation(
     predictions: pd.DataFrame,
     *,
@@ -54,6 +122,7 @@ def build_native_split_evaluation(
     if min_supported_classes <= 0:
         raise ValueError("min_supported_classes must be positive")
     _validate_prediction_scope(predictions, split)
+    predictions = _resolve_source_aware_predictions(predictions)
 
     config = NativeTemporalMetricsConfig(
         true_col="true_label",
@@ -322,6 +391,7 @@ __all__ = [
     "VALIDATION_TIEBREAKER",
     "ValidationSelectionScore",
     "build_native_split_evaluation",
+    "resolve_source_aware_native_unit_key",
     "selection_score_from_metrics",
     "validation_score_is_better",
     "validation_selection_policy",

@@ -26,6 +26,7 @@ from pig_behavior.classification_v2.training.validation_selection import (
     VALIDATION_TIEBREAKER,
     ValidationSelectionScore,
     build_native_split_evaluation,
+    resolve_source_aware_native_unit_key,
     selection_score_from_metrics,
     validation_score_is_better,
 )
@@ -399,3 +400,112 @@ class _StaticData:
                 "split_group_key": ["video-1"] * len(indices),
             },
         )
+
+
+def test_resolve_source_aware_native_unit_key() -> None:
+    cvat_row = {
+        "source_type": "cvat_tracking_xml",
+        "window_id": "cvat_target_window_1",
+        "temporal_unit_key": "cvat_behavior_run_0_1000",
+    }
+    assert (
+        resolve_source_aware_native_unit_key(cvat_row)
+        == "cvat_target_window_1"
+    )
+
+    legacy_row = {
+        "source_type": "legacy_recovered",
+        "window_id": "legacy_target_window_1",
+        "native_unit_id": "legacy_burst_seq_42",
+        "temporal_unit_key": "legacy_burst_seq_42",
+    }
+    assert (
+        resolve_source_aware_native_unit_key(legacy_row)
+        == "legacy_burst_seq_42"
+    )
+
+
+def test_cvat_anchor_intervals_do_not_collapse_under_same_behavior_run() -> None:
+    rows = [
+        _row("cvat_w1", "run_0_1000", "stand", "stand", 0.9),
+        _row("cvat_w2", "run_0_1000", "stand", "stand", 0.85),
+        _row("cvat_w3", "run_0_1000", "stand", "stand", 0.88),
+        _row("cvat_w4", "run_0_1000", "stand", "stand", 0.92),
+    ]
+    for r in rows:
+        r["source_type"] = "cvat_tracking_xml"
+
+    df_pred = pd.DataFrame(rows)
+    units, metrics, audit = build_native_split_evaluation(
+        df_pred,
+        split="validation",
+        min_supported_classes=1,
+    )
+
+    assert len(df_pred) == 4
+    assert len(units) == 4
+    assert units["temporal_unit_key"].tolist() == [
+        "cvat_w1",
+        "cvat_w2",
+        "cvat_w3",
+        "cvat_w4",
+    ]
+    assert audit["input_window_rows"] == 4
+    assert audit["output_native_unit_rows"] == 4
+    assert audit["row_loss"] == 0
+
+
+def test_legacy_burst_collapses_multi_window_sequences() -> None:
+    rows = [
+        _row("legacy_w1", "burst_100", "drink", "drink", 0.9),
+        _row("legacy_w2", "burst_100", "drink", "drink", 0.8),
+        _row("legacy_w3", "burst_101", "eat", "eat", 0.7),
+    ]
+    for r in rows:
+        r["source_type"] = "legacy_recovered"
+
+    df_pred = pd.DataFrame(rows)
+    units, metrics, audit = build_native_split_evaluation(
+        df_pred,
+        split="validation",
+        min_supported_classes=2,
+    )
+
+    assert len(df_pred) == 3
+    assert len(units) == 2
+    assert units["temporal_unit_key"].tolist() == [
+        "burst_100",
+        "burst_101",
+    ]
+
+
+def test_full_t6_one_to_one_validation_parity_simulation() -> None:
+    rows = [
+        _row("cvat_target_1", "run_A", "explore", "explore", 0.9),
+        _row("cvat_target_2", "run_A", "explore", "explore", 0.85),
+        _row("cvat_target_3", "run_B", "fight", "fight", 0.8),
+        _row("legacy_target_1", "burst_X", "stand", "stand", 0.75),
+        _row("legacy_target_2", "burst_Y", "sitting", "sitting", 0.7),
+    ]
+    rows[0]["source_type"] = "cvat_tracking_xml"
+    rows[1]["source_type"] = "cvat_tracking_xml"
+    rows[2]["source_type"] = "cvat_tracking_xml"
+    rows[3]["source_type"] = "legacy_recovered"
+    rows[4]["source_type"] = "legacy_recovered"
+
+    df_pred = pd.DataFrame(rows)
+    units, metrics, audit = build_native_split_evaluation(
+        df_pred,
+        split="validation",
+        min_supported_classes=4,
+    )
+
+    assert len(df_pred) == 5
+    assert len(units) == 5
+    assert (
+        metrics["validation_window_macro_f1"]
+        == pytest.approx(
+            metrics["validation_native_unit_macro_f1_global"]
+        )
+    )
+
