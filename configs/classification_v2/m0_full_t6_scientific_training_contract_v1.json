@@ -1,0 +1,105 @@
+{
+  "contract_name": "m0_full_t6_scientific_training_contract",
+  "version": "v1",
+  "campaign_id": "m0_full_t6_r128_v1",
+  "model": {
+    "architecture": "FullMultimodal-R34-T6-Concat",
+    "architecture_version": "multimodal_sequence_factory_v4_multitask_v2",
+    "model_mode": "full_multimodal",
+    "backbone_name": "resnet34",
+    "pretrained_weight_enum": "ResNet34_Weights.IMAGENET1K_V1",
+    "temporal_view": "fixed6_observed_time",
+    "temporal_input_frames": 6,
+    "image_size": 128,
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "spatial_feature_groups": [
+      "bbox_xywh_n",
+      "bbox_shape_n",
+      "motion_delta",
+      "roi_class_relation",
+      "social_relation"
+    ],
+    "standardize_spatial_groups": [
+      "bbox_shape_n",
+      "motion_delta",
+      "roi_class_relation",
+      "social_relation"
+    ],
+    "enable_image": true,
+    "enable_spatial": true,
+    "enable_interaction_context": true,
+    "enable_visual_context": true,
+    "enable_multitask": false,
+    "code_sha": "a35428c2"
+  },
+  "dataset": {
+    "name": "FULL-T6",
+    "resolution": 128,
+    "population": {
+      "total_windows": 33287,
+      "train_windows": 27834,
+      "validation_windows": 5453
+    },
+    "spatial_features": "canonical_46d",
+    "visual_context": "real_union_rgb_128",
+    "execution_cache": "window_major_u8"
+  },
+  "execution_profile": {
+    "microbatch_size": 128,
+    "gradient_accumulation_steps": 1,
+    "effective_batch_size": 128,
+    "amp_precision": "fp16",
+    "num_workers": 0,
+    "pin_memory": true,
+    "cache_staging_target": "/tmp/m0_window_major_r128_t6"
+  },
+  "optimization": {
+    "optimizer": "adamw",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "gradient_clip_norm": 1.0,
+    "scheduler": "none",
+    "warmup": "none",
+    "lr_batch_compatibility": "RESOLVED"
+  },
+  "loss": {
+    "behavior_weight": 1.0,
+    "class_weight_power": 0.5,
+    "class_weight_max": 5.0,
+    "sample_weight_policy": "event_class",
+    "sample_weight_max": 10.0
+  },
+  "evaluation_and_checkpointing": {
+    "primary_metric": "primary_native_macro_f1",
+    "early_stopping_metric": "validation_native_unit_macro_f1_supported",
+    "early_stopping_tiebreaker": "validation_native_unit_nll",
+    "early_stopping_min_supported_classes": 2,
+    "early_stopping_patience": 3,
+    "validation_population": {
+      "windows": 5453,
+      "native_units": 5453
+    }
+  },
+  "scientific_seeds": {
+    "campaign_id": "m0_full_t6_r128_v1",
+    "derivation": "SHA256(f'{campaign_id}/seed/{i}')[:4] mod (2^31 - 1)",
+    "seeds": [
+      240494961,
+      382529781,
+      166101551
+    ],
+    "historical_s1_seeds_reused": false
+  },
+  "budget": {
+    "status": "UNRESOLVED",
+    "max_epochs": null,
+    "max_optimizer_steps": null,
+    "checkpoint_every_steps": 500,
+    "unresolved_reason": "Scientific step/epoch budget for M0 FULL-T6 is not inherited from historical S1 and awaits explicit resolution."
+  },
+  "unresolved_fields": [
+    "budget.max_epochs",
+    "budget.max_optimizer_steps"
+  ]
+}
