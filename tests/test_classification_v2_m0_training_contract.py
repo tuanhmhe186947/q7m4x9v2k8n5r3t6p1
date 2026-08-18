@@ -41,8 +41,20 @@ def test_m0_full_t6_scientific_training_contract_schema_and_derivation():
     assert data['optimization']['learning_rate'] == 0.003
     assert data['optimization']['lr_batch_compatibility'] == 'RESOLVED'
 
-    # Checkpoint Metric
-    assert data['evaluation_and_checkpointing']['primary_metric'] == 'primary_native_macro_f1'
+    # Checkpoint Metric and Early Stopping
+    assert (
+        data['evaluation_and_checkpointing']['primary_metric']
+        == 'primary_native_macro_f1'
+    )
+    assert (
+        data['evaluation_and_checkpointing']['early_stopping_metric']
+        == 'validation_native_unit_macro_f1_supported'
+    )
+    assert data['evaluation_and_checkpointing']['early_stopping_patience'] == 5
+    assert (
+        data['evaluation_and_checkpointing']['validation_frequency']
+        == 'once_per_completed_epoch'
+    )
 
     # Seed derivation
     campaign_id = data['campaign_id']
@@ -61,7 +73,12 @@ def test_m0_full_t6_scientific_training_contract_schema_and_derivation():
     historical_s1_seeds = {20260804, 20260805, 20260806}
     assert not historical_s1_seeds.intersection(set(data['scientific_seeds']['seeds']))
 
-    # Budget unresolved
-    assert data['budget']['status'] == 'UNRESOLVED'
-    assert data['budget']['max_epochs'] is None
-    assert data['budget']['max_optimizer_steps'] is None
+    # Budget resolved
+    assert data['budget']['status'] == 'RESOLVED'
+    assert data['budget']['max_epochs'] == 30
+    assert data['budget']['drop_last'] is False
+    assert data['budget']['train_batches_per_epoch'] == 218
+    assert data['budget']['optimizer_steps_per_epoch'] == 218
+    assert data['budget']['max_optimizer_steps'] == 6540
+    assert data['budget']['historical_s1_budget_reused'] is False
+    assert data['unresolved_fields'] == []

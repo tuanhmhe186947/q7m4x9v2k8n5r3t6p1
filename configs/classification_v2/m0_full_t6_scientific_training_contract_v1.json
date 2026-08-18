@@ -75,11 +75,12 @@
     "early_stopping_metric": "validation_native_unit_macro_f1_supported",
     "early_stopping_tiebreaker": "validation_native_unit_nll",
     "early_stopping_min_supported_classes": 2,
-    "early_stopping_patience": 3,
+    "early_stopping_patience": 5,
     "validation_population": {
       "windows": 5453,
       "native_units": 5453
-    }
+    },
+    "validation_frequency": "once_per_completed_epoch"
   },
   "scientific_seeds": {
     "campaign_id": "m0_full_t6_r128_v1",
@@ -92,14 +93,15 @@
     "historical_s1_seeds_reused": false
   },
   "budget": {
-    "status": "UNRESOLVED",
-    "max_epochs": null,
-    "max_optimizer_steps": null,
-    "checkpoint_every_steps": 500,
-    "unresolved_reason": "Scientific step/epoch budget for M0 FULL-T6 is not inherited from historical S1 and awaits explicit resolution."
+    "status": "RESOLVED",
+    "authority": "Prospectively frozen M0 FULL-T6 development ceiling before scientific training",
+    "max_epochs": 30,
+    "drop_last": false,
+    "train_batches_per_epoch": 218,
+    "optimizer_steps_per_epoch": 218,
+    "max_optimizer_steps": 6540,
+    "validation_frequency": "once_per_completed_epoch",
+    "historical_s1_budget_reused": false
   },
-  "unresolved_fields": [
-    "budget.max_epochs",
-    "budget.max_optimizer_steps"
-  ]
+  "unresolved_fields": []
 }
