@@ -620,7 +620,7 @@ def test_resolution_plan_validates_matched_seeds(tmp_path: Path) -> None:
         "device_name": "cpu",
     }
 
-    for seed in (20260814, 20260815, 20260816, 20260804, 20260805, 20260806):
+    for seed in (20260814, 20260815, 20260816):
         plan = post_s1.create_resolution_plan(
             output_dir=tmp_path / f"out_{seed}",
             trial_id=f"post_s1_t6_r128_seed{seed}_steps4164",
@@ -630,11 +630,13 @@ def test_resolution_plan_validates_matched_seeds(tmp_path: Path) -> None:
         assert plan.seed == seed
         assert plan.trial_id == f"post_s1_t6_r128_seed{seed}_steps4164"
 
-    with pytest.raises(post_s1.PostS1ResolutionError, match="unregistered seed"):
-        post_s1.create_resolution_plan(
-            output_dir=tmp_path / "out_bad",
-            trial_id="post_s1_t6_r128_seed999999_steps4164",
-            seed=999999,
-            **common_kwargs,
-        )
+    # Verify that superseded/unregistered seeds are strictly rejected
+    for bad_seed in (20260804, 20260805, 20260806, 999999):
+        with pytest.raises(post_s1.PostS1ResolutionError, match="unregistered seed"):
+            post_s1.create_resolution_plan(
+                output_dir=tmp_path / f"out_bad_{bad_seed}",
+                trial_id=f"post_s1_t6_r128_seed{bad_seed}_steps4164",
+                seed=bad_seed,
+                **common_kwargs,
+            )
 
