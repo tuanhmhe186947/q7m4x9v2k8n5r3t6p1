@@ -40,6 +40,24 @@ superseded by this live verification.
 - Target/frame/mask/split/order parity: `PASS`; duplicate/missing target: `0/0`.
 - RGB coverage: `33,287/33,287`; required contexts: `199,722`; missing/duplicate contexts: `0/0`.
 
+## Seed and namespace guard
+
+- Current S1 temporal-screening seed evidence is the `s1_view_seed_metrics.csv`
+  under `.codex_worktrees/classification_v2_s1_temporal_screening_20260814/`,
+  `outputs/classification_v2/s1_temporal_screening_20260814/`,
+  `s1_final_authority_20260816/`. Its rows are the current S1 seeds
+  `20260814`, `20260815`, and `20260816` across T6/T8/T12/T16.
+- `docs/classification_v2/s1_04_canonical_r128_3seed_summary_20260817.json`
+  binds seeds `20260804`, `20260805`, and `20260806` to the historical
+  namespace `s1_post_temporal_closure_20260809` and validation `6154/6154`.
+  Mark that result `NOT_COMPATIBLE_FOR_CURRENT_FULL_T6_46D`; do not use it as
+  current evidence or compare it with a fresh R54/R128 run.
+- A seed number alone is not data provenance: a fresh run using
+  `20260804/05/06` is a new result only when its manifest binds the current
+  FULL-T6/46D authority, schema SHA, and remote input hashes above.
+- Keep this FULL-T6 full-pool authority separate from S1 matched-seed
+  authority; never infer one from the other.
+
 ## Remote SHA results
 
 The following remote hashes exactly match the local expected hashes:
