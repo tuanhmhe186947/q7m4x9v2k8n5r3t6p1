@@ -25,6 +25,7 @@ from pig_behavior.classification_v2.datasets.window_major_rgb_cache import (
     WindowMajorRgbReaderConfig,
 )
 from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_FEATURE_VALIDITY_MASKS,
     SPATIAL_PREDICTIVE_FEATURES,
     require_spatial_tensor_bundle,
 )
@@ -245,17 +246,12 @@ class StrictTrainingDataModule:
             .to(self.device)
             for name in self.spatial_feature_names
         }
-        motion_valid = torch.from_numpy(
-            self.bundle.arrays["motion_validity_mask"][indices]
-        ).float().to(self.device)
-        social_valid = torch.from_numpy(
-            self.bundle.arrays["social_validity_mask"][indices]
-        ).float().to(self.device)
         spatial_feature_validity = {
-            "motion_delta": motion_valid,
-            "social_distance": social_valid,
-            "social_angle": social_valid,
-            "social_bearing": social_valid,
+            group: torch.from_numpy(self.bundle.arrays[mask_name][indices])
+            .float()
+            .to(self.device)
+            for group, mask_name in SPATIAL_FEATURE_VALIDITY_MASKS.items()
+            if group in self.spatial_feature_names
         }
         interaction_context_features = torch.from_numpy(
             self.bundle.interaction_context_features[indices]
