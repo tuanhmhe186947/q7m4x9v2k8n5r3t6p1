@@ -1,0 +1,339 @@
+{
+  "audit": {
+    "duplicate_collapsed_native_predictions": 0,
+    "errors": [],
+    "expected_native_units": 2285,
+    "exploded_temporal_votes": 2285,
+    "metrics_on_predicted_units": {
+      "accuracy": 0.6157549234135667,
+      "confusion_matrix": {
+        "columns": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "index": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "values": [
+          [
+            7,
+            1,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            101,
+            0,
+            0,
+            17,
+            0,
+            0,
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            132,
+            0,
+            0,
+            0,
+            20,
+            0
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            98,
+            0,
+            0,
+            0,
+            13,
+            0
+          ],
+          [
+            22,
+            30,
+            0,
+            0,
+            551,
+            0,
+            0,
+            0,
+            54,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            10,
+            81,
+            0,
+            0,
+            144,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            45,
+            0,
+            0,
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            59,
+            0,
+            0,
+            0,
+            6,
+            0
+          ],
+          [
+            5,
+            1,
+            0,
+            1,
+            169,
+            11,
+            0,
+            0,
+            667,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0,
+            0,
+            6,
+            0
+          ]
+        ]
+      },
+      "focus_pair_confusions": {
+        "drink__vs__explore": {
+          "drink_predicted_as_explore": 16,
+          "explore_predicted_as_drink": 22,
+          "total_pair_confusions": 38
+        },
+        "drink__vs__stand": {
+          "drink_predicted_as_stand": 0,
+          "stand_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__explore": {
+          "eat_predicted_as_explore": 17,
+          "explore_predicted_as_eat": 30,
+          "total_pair_confusions": 47
+        },
+        "eat__vs__stand": {
+          "eat_predicted_as_stand": 0,
+          "stand_predicted_as_eat": 1,
+          "total_pair_confusions": 1
+        },
+        "fight__vs__move": {
+          "fight_predicted_as_move": 0,
+          "move_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__social-nose": {
+          "fight_predicted_as_social-nose": 0,
+          "social-nose_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__stand": {
+          "fight_predicted_as_stand": 0,
+          "stand_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "lying__vs__sitting": {
+          "lying_predicted_as_sitting": 144,
+          "sitting_predicted_as_lying": 11,
+          "total_pair_confusions": 155
+        },
+        "move__vs__explore": {
+          "explore_predicted_as_move": 0,
+          "move_predicted_as_explore": 59,
+          "total_pair_confusions": 59
+        },
+        "move__vs__stand": {
+          "move_predicted_as_stand": 0,
+          "stand_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__explore": {
+          "explore_predicted_as_playwithtoy": 0,
+          "playwithtoy_predicted_as_explore": 6,
+          "total_pair_confusions": 6
+        },
+        "playwithtoy__vs__move": {
+          "move_predicted_as_playwithtoy": 0,
+          "playwithtoy_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__stand": {
+          "playwithtoy_predicted_as_stand": 0,
+          "stand_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        }
+      },
+      "labels": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "macro_f1": 0.28899901888123763,
+      "macro_f1_supported": 0.28899901888123763,
+      "macro_precision": 0.3045913823228671,
+      "macro_precision_supported": 0.3045913823228671,
+      "macro_recall": 0.30738087982319634,
+      "macro_recall_supported": 0.30738087982319634,
+      "per_class": {
+        "drink": {
+          "f1": 0.23333333333333334,
+          "precision": 0.20588235294117646,
+          "predicted": 34,
+          "recall": 0.2692307692307692,
+          "support": 26,
+          "tp": 7
+        },
+        "eat": {
+          "f1": 0.7829457364341085,
+          "precision": 0.7318840579710145,
+          "predicted": 138,
+          "recall": 0.8416666666666667,
+          "support": 120,
+          "tp": 101
+        },
+        "explore": {
+          "f1": 0.6261363636363636,
+          "precision": 0.499546690843155,
+          "predicted": 1103,
+          "recall": 0.8386605783866058,
+          "support": 657,
+          "tp": 551
+        },
+        "fight": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 154,
+          "tp": 0
+        },
+        "lying": {
+          "f1": 0.4939024390243903,
+          "precision": 0.8804347826086957,
+          "predicted": 92,
+          "recall": 0.3432203389830508,
+          "support": 236,
+          "tp": 81
+        },
+        "move": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 65,
+          "tp": 0
+        },
+        "playwithtoy": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 12,
+          "tp": 0
+        },
+        "sitting": {
+          "f1": 0.7536723163841808,
+          "precision": 0.7281659388646288,
+          "predicted": 916,
+          "recall": 0.7810304449648712,
+          "support": 854,
+          "tp": 667
+        },
+        "social-nose": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 2,
+          "recall": 0.0,
+          "support": 113,
+          "tp": 0
+        },
+        "stand": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "predicted": 0,
+          "recall": 0.0,
+          "support": 48,
+          "tp": 0
+        }
+      },
+      "rows": 2285,
+      "supported_label_count": 10
+    },
+    "missing_native_unit_examples": [],
+    "native_unit_rows": 2285,
+    "native_units_predicted": 2285,
+    "native_units_unpredicted": 0,
+    "unexpected_native_prediction_examples": [],
+    "valid": true,
+    "warnings": [],
+    "window_prediction_rows": 2285,
+    "window_predictions_joined": 2285
+  },
+  "native_unit_rows": 2285,
+  "status": "PASS"
+}

@@ -1,0 +1,20 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "S1-02-CANONICAL-B1-LOADER-AUTHORITY",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/classification_v2_s1_temporal_screening_20260814/docs/classification_v2/s1_02_canonical_b1_loader_authority.json",
+      "sha256": "8f0c7dbe267f9c79a83e5c9a6a15a634edf2bd9a36ff5ca3a5c4630401f4ae3d",
+      "supports": ["S1-CPU"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "S1-02-REAL-LOADER-CPU-FORWARD-AUDIT",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/classification_v2_s1_temporal_screening_20260814/docs/classification_v2/s1_02_real_loader_cpu_forward_audit.json",
+      "sha256": "e2876d13c883d099d7a121823616797392f2fc435e4960d7ac5ac16d3f5feea2",
+      "supports": ["S1-CPU"],
+      "status": "PASS"
+    }
+  ]
+}

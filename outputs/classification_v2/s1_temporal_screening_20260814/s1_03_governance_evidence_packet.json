@@ -1,0 +1,28 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "S1-03-LOCAL-LAUNCH-AUTHORITY",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/classification_v2_s1_temporal_screening_20260814/docs/classification_v2/s1_03_local_launch_authority.json",
+      "sha256": "8e2ce9d1f8ce1a28e53aba037c0ca497c97a36bf4322fb33d49d385ef1673ce9",
+      "supports": ["S1-CPU"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "S1-03-CPU-GATE-SIX-AUDIT",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/classification_v2_s1_temporal_screening_20260814/docs/classification_v2/s1_03_cpu_gate_six_audit.json",
+      "sha256": "8346a5791002ae3169661ab0eb06fd95dfc3ca5d0505f2c29716a6264c244427",
+      "supports": ["S1-CPU"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "S1-03-IMMUTABLE-LAUNCH-MANIFEST",
+      "kind": "artifact",
+      "locator": ".codex_worktrees/classification_v2_s1_temporal_screening_20260814/outputs/classification_v2/s1_temporal_screening_20260814/s1_03_immutable_launch_manifest.json",
+      "sha256": "ae6475db0fe3dcdab197b09d0584b4ef3ff4e35c6f42e41bbb0bcc61937dbf2e",
+      "supports": ["S1-CPU"],
+      "status": "PASS"
+    }
+  ]
+}

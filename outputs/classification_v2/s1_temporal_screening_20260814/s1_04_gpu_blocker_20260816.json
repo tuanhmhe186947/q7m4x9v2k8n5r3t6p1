@@ -1,0 +1,58 @@
+{
+  "schema_version": "classification_v2.s1_gpu_blocker_evidence.v1",
+  "task": "CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260814-01",
+  "worktree": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_s1_temporal_screening_20260814",
+  "head": "b8fb50160a03be9260b2a5af539acd7c7c8a8a0e",
+  "studio": {
+    "teamspace": "ironheart211224/pig-project",
+    "name": "pig-gpu-l4-gcp",
+    "machine": "NVIDIA L4",
+    "cuda_available": true,
+    "final_state": "STOPPED",
+    "paid_l4_left_idle": "NO"
+  },
+  "current_code_hashes": {
+    "classification_v2_s1_descriptor_binding.py": "8de423a62c5ef2d30d81560ba5a420ab6becf27693f93a04aa99c6e1cb6b314b",
+    "classification_v2_s1_descriptor_training.py": "970981845ffcff66f7b05a64cebae83654aac3fb9b87cfd22aa88eab3a2e60cb",
+    "s1_descriptor_executor.py": "94b654d89186ba2da566af737d701cbfffc387ef063d00e801b1e053c96b467c"
+  },
+  "gpu_gate": {
+    "status": "PASS",
+    "descriptor": "s1_03_immutable_launch_manifest.json#/run_matrix/0",
+    "optimizer_steps": 20,
+    "loss_finite": "PASS",
+    "backward": "PASS",
+    "optimizer_update": "PASS",
+    "gpu_compute": "CUDA_CONTEXT_AND_MEMORY_CONFIRMED",
+    "elapsed_seconds": 151.643535222,
+    "checkpoint": "s1_04_gpu_gate_20260816/outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T6/checkpoint.pt"
+  },
+  "trial": {
+    "expected": 12,
+    "completed": 0,
+    "descriptor": "s1_seed_20260814_T6",
+    "status": "STOPPED_PERFORMANCE_BLOCKER",
+    "optimizer_step_at_stop": 40,
+    "data_wait_ms": 7249.611938999806,
+    "forward_ms": 5.48795099985,
+    "backward_ms": 4.55826999996134,
+    "step_ms": 1.3469209998220322,
+    "samples_per_second": 2.207731319716004
+  },
+  "failure_class": "DATA_PATH_DOMINATED_GPU_TRAINING",
+  "failure_evidence": {
+    "progress_path": "/teamspace/studios/this_studio/pig_e0_r3/inputs/s1_04_runtime_b8fb5016_20260815/outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T6/progress.json",
+    "log_path": "/teamspace/studios/this_studio/pig_e0_r3/inputs/s1_04_runtime_b8fb5016_20260815/outputs/s1_training_seed20260814_T6_current_20260816_retry.log",
+    "pmon_observation": "0 percent SM across sampled intervals; process remained CUDA compute type with allocated CUDA memory",
+    "interpretation": "data_wait dominates forward/backward/optimizer time; projected full trial is approximately 8-9 hours at observed cadence"
+  },
+  "invariants": {
+    "scientific_contract_changed": "NO",
+    "temporal_v2_mutated": "NO",
+    "descriptor_mutated": "NO",
+    "data_rebuilt": "NO",
+    "retry_count_for_hash_argv_bug": 1,
+    "training_run": "PARTIAL"
+  },
+  "exact_next_safe_action": "Fix and profile the remote data path performance-only, rerun the bounded 20-step gate, then resume the registered 12-trial matrix only after the performance gate passes."
+}

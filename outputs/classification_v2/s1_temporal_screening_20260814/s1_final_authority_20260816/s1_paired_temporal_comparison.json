@@ -1,0 +1,97 @@
+{
+  "schema_version": "classification_v2.s1_paired_temporal_comparison.v1",
+  "primary_metric": "native_unit_ten_class_macro_f1",
+  "candidate": "T6",
+  "runner_up": "T16",
+  "candidate_mean_macro_f1": 0.3103660369293591,
+  "runner_up_mean_macro_f1": 0.30149947889196654,
+  "mean_delta": 0.008866558037392558,
+  "std_delta_population": 0.012935233894466627,
+  "std_delta_sample": 0.015842361372498653,
+  "seed_win_count": 2,
+  "seed_loss_count": 1,
+  "seed_tie_count": 0,
+  "exact_native_pairing": "PASS",
+  "paired_by_seed": [
+    {
+      "seed": 20260814,
+      "candidate": "T6",
+      "baseline": "T16",
+      "paired_native_unit_rows": 2285,
+      "paired_unit_ids_sha256": "1fac6db115abd57a27b10786aa8caa6b4b69a9d2b023c5bd69d7aa4bc53282bf",
+      "native_unit_id_parity": "PASS",
+      "true_label_parity": "PASS",
+      "candidate_macro_f1": 0.31365683210325995,
+      "baseline_macro_f1": 0.2904160419177845,
+      "delta_macro_f1_candidate_minus_baseline": 0.02324079018547548,
+      "seed_winner": "T6",
+      "bootstrap": {
+        "estimate_bootstrap_mean": 0.02332150163445097,
+        "ci_low": 0.00839777387683319,
+        "ci_high": 0.03974051665021695,
+        "method": "unit_bootstrap_percentile",
+        "resample_unit": "native_temporal_unit",
+        "n_bootstrap": 200,
+        "bootstrap_seed": 20260710,
+        "scope": "inner_validation_descriptive_fallback_only",
+        "claim_grade": false
+      }
+    },
+    {
+      "seed": 20260815,
+      "candidate": "T6",
+      "baseline": "T16",
+      "paired_native_unit_rows": 2285,
+      "paired_unit_ids_sha256": "1fac6db115abd57a27b10786aa8caa6b4b69a9d2b023c5bd69d7aa4bc53282bf",
+      "native_unit_id_parity": "PASS",
+      "true_label_parity": "PASS",
+      "candidate_macro_f1": 0.2808796598224431,
+      "baseline_macro_f1": 0.28899901888123763,
+      "delta_macro_f1_candidate_minus_baseline": -0.008119359058794517,
+      "seed_winner": "T16",
+      "bootstrap": {
+        "estimate_bootstrap_mean": -0.008298004993834353,
+        "ci_low": -0.03057351171184894,
+        "ci_high": 0.017005584473287382,
+        "method": "unit_bootstrap_percentile",
+        "resample_unit": "native_temporal_unit",
+        "n_bootstrap": 200,
+        "bootstrap_seed": 20260711,
+        "scope": "inner_validation_descriptive_fallback_only",
+        "claim_grade": false
+      }
+    },
+    {
+      "seed": 20260816,
+      "candidate": "T6",
+      "baseline": "T16",
+      "paired_native_unit_rows": 2285,
+      "paired_unit_ids_sha256": "1fac6db115abd57a27b10786aa8caa6b4b69a9d2b023c5bd69d7aa4bc53282bf",
+      "native_unit_id_parity": "PASS",
+      "true_label_parity": "PASS",
+      "candidate_macro_f1": 0.33656161886237423,
+      "baseline_macro_f1": 0.3250833758768775,
+      "delta_macro_f1_candidate_minus_baseline": 0.011478242985496712,
+      "seed_winner": "T6",
+      "bootstrap": {
+        "estimate_bootstrap_mean": 0.012627618447792192,
+        "ci_low": -0.006347492497308672,
+        "ci_high": 0.03227369255589215,
+        "method": "unit_bootstrap_percentile",
+        "resample_unit": "native_temporal_unit",
+        "n_bootstrap": 200,
+        "bootstrap_seed": 20260712,
+        "scope": "inner_validation_descriptive_fallback_only",
+        "claim_grade": false
+      }
+    }
+  ],
+  "practical_sesoi": {
+    "metric": "macro_f1",
+    "minimum_effect_size": 0.02,
+    "absolute_mean_delta_below_sesoi": true
+  },
+  "statistical_claim_boundary": "No claim-grade fold/date cluster significance is asserted; current S1 output has inner validation native-unit bundles without registered OOF fold/date bindings.",
+  "bootstrap_method_status": "DESCRIPTIVE_NATIVE_UNIT_BOOTSTRAP",
+  "paired_evidence_status": "EXACT_NATIVE_UNIT_ALIGNMENT_PASS"
+}

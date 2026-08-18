@@ -1,0 +1,44 @@
+{
+  "schema_version": "classification_v2.s1_final_authority_receipt.v1",
+  "status": "PASS",
+  "task_id": "CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260814-01",
+  "authority_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_final_authority.json",
+  "authority_sha256": "741690afd2dfac74eea1f6802d879e9db07de3335758a1240f6485e62a72a354",
+  "authority_size_bytes": 101952,
+  "trial_count_complete": 12,
+  "selected_temporal_view": "T6",
+  "studio_final_state": "Stopped",
+  "paid_l4_left_idle": "NO",
+  "artifact_refs": [
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_confusion_evidence.json",
+      "sha256": "ba7ca54442f42610e2afdf19f527bfa8873be2b696439eba3916d9d64d5756da",
+      "size_bytes": 50808
+    },
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_final_authority.json",
+      "sha256": "741690afd2dfac74eea1f6802d879e9db07de3335758a1240f6485e62a72a354",
+      "size_bytes": 101952
+    },
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_paired_temporal_comparison.json",
+      "sha256": "9e12b75c80b2e6717498a6ff82804158b037a9d64f631883c2fa90047a416ecf",
+      "size_bytes": 3825
+    },
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_per_class_diagnostics.csv",
+      "sha256": "a70e65ccb170e4585c89aff4469ac3c7e1f1bea6e36bf152bd99fd0ba6e6b2b3",
+      "size_bytes": 10276
+    },
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_run_verification.json",
+      "sha256": "8072f7272070654ffcb2229f27a274b5eb34db8fc24a7dd61b5ce6e2235b550d",
+      "size_bytes": 3275
+    },
+    {
+      "relative_path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_final_authority_20260816/s1_view_seed_metrics.csv",
+      "sha256": "ec501e29abc2906b44db38682d42ef3043abaafff070534fbb0b86872a8ceb21",
+      "size_bytes": 2203
+    }
+  ]
+}

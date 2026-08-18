@@ -1,0 +1,17 @@
+{
+  "backward_ms": 4.932737000672205,
+  "collate_ms": 1.2626269999600481,
+  "data_wait_ms": 59.939815999314305,
+  "elapsed_seconds": 299.1855184219994,
+  "forward_ms": 4.818898999474186,
+  "gpu_memory_allocated": 43342336,
+  "loss": 0.6739770174026489,
+  "optimizer_step": 4164,
+  "run_id": "s1_seed_20260816_T16",
+  "samples_per_second": 222.68457494666316,
+  "seed": 20260816,
+  "step_ms": 1.127198000176577,
+  "total_steps": 4164,
+  "training_stall": false,
+  "view": "T16"
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": "classification_v2.s1_04_cold_data_path_profile.v1",
+  "status": "PASS",
+  "task_id": "CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260814-01",
+  "step_id": "S1-04",
+  "entrypoint": "scripts/classification_v2/04_baselines_smokes/classification_v2_s1_descriptor_training.py",
+  "entrypoint_sha256": "970981845ffcff66f7b05a64cebae83654aac3fb9b87cfd22aa88eab3a2e60cb",
+  "profile_primary_bottleneck": "cold authority verification plus serialized consumer/RGB initialization",
+  "before": {
+    "authority_verify_ms": 12003.29,
+    "index_load_ms": 2083.40,
+    "index_authority_verify_ms": 4462.29,
+    "target_lookup_ms": 3973.68,
+    "rgb_manifest_load_ms": 8361.37,
+    "rgb_cache_index_load_ms": 529.76,
+    "rgb_read_decode_ms": 8959.32,
+    "preprocess_ms": 24.32,
+    "collate_ms": 18.47,
+    "first_sample_ms": 24548.70,
+    "first_batch_total_ms": 35951.79
+  },
+  "after": {
+    "authority_verify_ms": 7966.5833,
+    "consumer_init_ms": 20149.9133,
+    "first_batch_total_ms": 24484.1915,
+    "steady_batch_median_ms": 3434.5958,
+    "steady_batch_p95_ms": 4390.5227,
+    "steady_batch_sample_count": 5,
+    "full_authority_verification_count_per_process": 1,
+    "frame_offset_index_verification_count_per_process": 1,
+    "integrity_check_disabled": "NO",
+    "batch_shape": [16, 6, 3, 64, 64],
+    "batch_size": 16,
+    "temporal_view": "T6",
+    "seed": 20260814
+  },
+  "scientific_parity": {
+    "matched_support_id": "cvat_tracking_xml|cvat_tracking_Pigs281119_000085_30fps|Pigs281119_000085_30fps|source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=0|sitting|run=0-1325|matched16=0",
+    "views": ["T6", "T8", "T12", "T16"],
+    "membership_parity": "PASS",
+    "frame_order_parity": "PASS",
+    "label_split_parity": "PASS",
+    "mask_parity": "PASS",
+    "rgb_input_parity": "PASS",
+    "tensor_parity": "PASS",
+    "nested_membership": "PASS",
+    "batch_order_preserved": "PASS",
+    "spatial_resolution": 64,
+    "numeric_feature_dimension": 0,
+    "scientific_contract_changed": "NO"
+  },
+  "validation": {
+    "focused_executor_tests": "18 passed",
+    "cold_first_batch_ready": "PASS",
+    "optimizer_step_count": 0,
+    "gpu_used": "NO",
+    "training_run": "NO"
+  }
+}

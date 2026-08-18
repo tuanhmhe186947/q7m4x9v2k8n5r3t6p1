@@ -1,0 +1,29 @@
+{
+  "schema_version": "pig.agent-governance-evidence-packet.v1",
+  "evidence": [
+    {
+      "evidence_id": "S1-04-COLD-DATA-PATH-PROFILE",
+      "kind": "runtime_profile",
+      "locator": "outputs/classification_v2/s1_temporal_screening_20260814/s1_04_cold_data_path_profile_20260816.json",
+      "sha256": "a31b9dbab34c3a9b99f610cbdeb27ebfd3370326e85903706701cf1033060c19",
+      "supports": ["S1-REMOTE"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "S1-04-DESCRIPTOR-TRAINING-SOURCE",
+      "kind": "source",
+      "locator": "scripts/classification_v2/04_baselines_smokes/classification_v2_s1_descriptor_training.py",
+      "sha256": "970981845ffcff66f7b05a64cebae83654aac3fb9b87cfd22aa88eab3a2e60cb",
+      "supports": ["S1-REMOTE"],
+      "status": "PASS"
+    },
+    {
+      "evidence_id": "S1-04-EXECUTOR-FOCUSED-TESTS",
+      "kind": "test",
+      "locator": "tests/test_classification_v2_s1_descriptor_executor.py",
+      "sha256": "4167da23ebce0da6b08ff1fcfc446d42007f623cda6b804b41ed67ae09654be2",
+      "supports": ["S1-REMOTE"],
+      "status": "PASS"
+    }
+  ]
+}

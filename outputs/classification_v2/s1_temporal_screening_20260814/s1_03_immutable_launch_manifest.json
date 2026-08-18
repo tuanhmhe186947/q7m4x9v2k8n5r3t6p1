@@ -1,0 +1,338 @@
+{
+  "schema_version": "classification_v2.s1_03_immutable_launch_manifest.v1",
+  "status": "PASS",
+  "task_id": "CLASSIFICATION-V2-S1-TEMPORAL-SCREENING-20260814-01",
+  "step_id": "S1-03",
+  "task_revision_at_generation": 62,
+  "code_head_at_generation":
+    "8a947869c375acfbdbb7a6751469cd0c661453f0",
+  "owner_execution_waiver": true,
+  "governance_bookkeeping_bypassed_by_owner_for_s1": true,
+  "governance_observation": {
+    "short_memory_inspect": "REJECTED_TASK_MISSING",
+    "manager_mutation_attempted": false,
+    "scientific_execution_blocked": false
+  },
+  "exact_s1_03_write_paths": [
+    {
+      "classification": "AUTHORITY_RECEIPT",
+      "path": "docs/classification_v2/s1_03_local_launch_authority.json"
+    },
+    {
+      "classification": "S1_03_AUDIT",
+      "path": "docs/classification_v2/s1_03_cpu_gate_six_audit.json"
+    },
+    {
+      "classification": "OPTIONAL_TASK_LOCAL_INDEX",
+      "path": "outputs/classification_v2/s1_temporal_screening_20260814/s1_03_immutable_launch_manifest.json"
+    }
+  ],
+  "scientific_population": "MATCHED_TEMPORAL_ABLATION",
+  "matched_support_count": 14706,
+  "supported_temporal_views": ["T6", "T8", "T12", "T16"],
+  "canonical_membership_contract": {
+    "membership_source": "CANONICAL_TEMPORAL_V2_CONSUMER",
+    "membership_authority":
+      "outputs/classification_v2/temporal_v2_canonical_authority_v1",
+    "membership_column": "emitted:selected_frame_indices",
+    "one_support_to_one_target_per_view": "PASS",
+    "canonical_membership_is_single_source_of_truth": true,
+    "adapter_temporal_selection_logic": "NONE",
+    "historical_s1_derived_data_dependency": 0,
+    "seek_index_role": "ACCELERATOR_ONLY",
+    "seek_index_changes_membership": false,
+    "nested_membership": {
+      "T16": "authority-published selected_frame_indices",
+      "T12": "authority-published selected_frame_indices",
+      "T8": "authority-published selected_frame_indices",
+      "T6": "authority-published selected_frame_indices"
+    }
+  },
+  "review_lineage": {
+    "behavior_review_status": "PASS",
+    "human_reviewed_units": 3243,
+    "accepted_decisions": 2750,
+    "corrected_decisions": 493,
+    "unreviewed_rows_before_targeting": 30112,
+    "unreviewed_policy": "PRESERVE_ORIGINAL_LABEL_EXACTLY",
+    "hidden_review_status": "PASS",
+    "hidden_review_resolved": "5233/5233",
+    "hidden_review_missing_duplicate_or_unresolved": 0,
+    "temporal_v2_generated_after_post_review_frame_authority": true,
+    "review_authorities_unchanged": true,
+    "interpretation_boundary": "Do not describe the full population as human behavior-reviewed; rows outside the targeted behavior review retained their original labels exactly under the frozen policy."
+  },
+  "authority_bindings": {
+    "adapter_entrypoint": "pig_behavior.classification_v2.training.canonical_b1_adapter:load_canonical_s1_b1_target",
+    "adapter_source_sha256":
+      "c59aa723de4ab8a88983199f10053ea22127026c7a161a3a491bb5f077ee5c01",
+    "focused_tests_path":
+      "tests/test_classification_v2_canonical_b1_adapter.py",
+    "focused_tests_sha256":
+      "9da221c797b5a13d6396eff2925529d798e7bccef1688246b959ed24c9521d34",
+    "s1_02_loader_authority_path":
+      "docs/classification_v2/s1_02_canonical_b1_loader_authority.json",
+    "s1_02_real_audit_path":
+      "docs/classification_v2/s1_02_real_loader_cpu_forward_audit.json",
+    "temporal_v2_authority_sha256":
+      "c9f4ba4ffa6ebae7405d13eaccc481097f9810d7be2385c1c9715aea04524681",
+    "matched_manifest_sha256":
+      "47c9c093634ab7a92887f9eda2527eba51f6817e1e089467c88343aab1b3c405",
+    "post_review_frame_authority_sha256":
+      "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+    "rgb_manifest_sha256":
+      "850c8610e0abf04708ab403f61861209d9a0cae30dcb9af3f765abd09a9f108f",
+    "support_cohort_sha256":
+      "f4f58a15408db0b9156053ddf214813573535ca42ffccb8f2c5ff27c1b080c04"
+  },
+  "b1_contract": {
+    "model_id": "B1_ACTOR_T6_SEQUENCE",
+    "architecture": "pig_behavior.classification_v2.models.balanced.balanced_model.BalancedCausalModel",
+    "spatial_resolution": "R64",
+    "modality": "actor RGB only",
+    "numeric_feature_dimension": 0,
+    "preprocessing": [
+      "authoritative actor RGB",
+      "existing letterbox policy",
+      "bilinear resize",
+      "float32 divided by 255",
+      "CHW"
+    ],
+    "class_index_authority":
+      "pig_behavior.classification_v2.schema:VALID_BEHAVIORS",
+    "class_count": 10,
+    "mask_contract": {
+      "observed_mask": "preserved from canonical target",
+      "causal_offsets": "derived after membership and preserved",
+      "padding": "none introduced",
+      "missingness_exposed_as_observation": false
+    }
+  },
+  "frozen_training_controls": {
+    "seeds": [20260814, 20260815, 20260816],
+    "batch_size": 16,
+    "fixed_optimizer_steps": 4164,
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "scheduler": "none",
+    "precision": "FP32",
+    "early_stopping": false,
+    "endpoint": "fixed_step_endpoint",
+    "augmentation": "none",
+    "outer_test_access": false,
+    "model_architecture_change": false,
+    "feature_set_changed": false,
+    "loss_contract_changed": false,
+    "optimizer_contract_changed": false,
+    "optimizer_step_count_before_launch": 0,
+    "training_run_before_launch": false,
+    "gpu_used_before_launch": false
+  },
+  "model_config_sha256_by_view": {
+    "T6": "6e4ac265726360113cc005348ad366ffa9affb50598bc3c0250c3938eb7427a3",
+    "T8": "8ea98dc29a89093da06d0eb0ae84264b1ffde594ff32bf09749aa96d4344303c",
+    "T12": "e940030a36a4399b86b2a9e7a2bcf7ad3292c37165ec8e7ca952c49066ea7607",
+    "T16": "93513ebb484cc15c4baad03cb49d3cd95cccd1c6c401d9a96d9a24376ad08e7f"
+  },
+  "model_parameter_count_by_view": {
+    "T6": 67594,
+    "T8": 67594,
+    "T12": 67594,
+    "T16": 67594,
+    "parity": "PASS"
+  },
+  "run_matrix": [
+    {
+      "run_id": "s1_seed_20260814_T6",
+      "seed": 20260814,
+      "temporal_view": "T6",
+      "sequence_length": 6,
+      "model_config_sha256":
+        "6e4ac265726360113cc005348ad366ffa9affb50598bc3c0250c3938eb7427a3",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T6",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/0"
+    },
+    {
+      "run_id": "s1_seed_20260814_T8",
+      "seed": 20260814,
+      "temporal_view": "T8",
+      "sequence_length": 8,
+      "model_config_sha256":
+        "8ea98dc29a89093da06d0eb0ae84264b1ffde594ff32bf09749aa96d4344303c",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T8",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/1"
+    },
+    {
+      "run_id": "s1_seed_20260814_T12",
+      "seed": 20260814,
+      "temporal_view": "T12",
+      "sequence_length": 12,
+      "model_config_sha256":
+        "e940030a36a4399b86b2a9e7a2bcf7ad3292c37165ec8e7ca952c49066ea7607",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T12",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/2"
+    },
+    {
+      "run_id": "s1_seed_20260814_T16",
+      "seed": 20260814,
+      "temporal_view": "T16",
+      "sequence_length": 16,
+      "model_config_sha256":
+        "93513ebb484cc15c4baad03cb49d3cd95cccd1c6c401d9a96d9a24376ad08e7f",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260814/T16",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/3"
+    },
+    {
+      "run_id": "s1_seed_20260815_T6",
+      "seed": 20260815,
+      "temporal_view": "T6",
+      "sequence_length": 6,
+      "model_config_sha256":
+        "6e4ac265726360113cc005348ad366ffa9affb50598bc3c0250c3938eb7427a3",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260815/T6",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/4"
+    },
+    {
+      "run_id": "s1_seed_20260815_T8",
+      "seed": 20260815,
+      "temporal_view": "T8",
+      "sequence_length": 8,
+      "model_config_sha256":
+        "8ea98dc29a89093da06d0eb0ae84264b1ffde594ff32bf09749aa96d4344303c",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260815/T8",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/5"
+    },
+    {
+      "run_id": "s1_seed_20260815_T12",
+      "seed": 20260815,
+      "temporal_view": "T12",
+      "sequence_length": 12,
+      "model_config_sha256":
+        "e940030a36a4399b86b2a9e7a2bcf7ad3292c37165ec8e7ca952c49066ea7607",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260815/T12",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/6"
+    },
+    {
+      "run_id": "s1_seed_20260815_T16",
+      "seed": 20260815,
+      "temporal_view": "T16",
+      "sequence_length": 16,
+      "model_config_sha256":
+        "93513ebb484cc15c4baad03cb49d3cd95cccd1c6c401d9a96d9a24376ad08e7f",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260815/T16",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/7"
+    },
+    {
+      "run_id": "s1_seed_20260816_T6",
+      "seed": 20260816,
+      "temporal_view": "T6",
+      "sequence_length": 6,
+      "model_config_sha256":
+        "6e4ac265726360113cc005348ad366ffa9affb50598bc3c0250c3938eb7427a3",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260816/T6",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/8"
+    },
+    {
+      "run_id": "s1_seed_20260816_T8",
+      "seed": 20260816,
+      "temporal_view": "T8",
+      "sequence_length": 8,
+      "model_config_sha256":
+        "8ea98dc29a89093da06d0eb0ae84264b1ffde594ff32bf09749aa96d4344303c",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260816/T8",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/9"
+    },
+    {
+      "run_id": "s1_seed_20260816_T12",
+      "seed": 20260816,
+      "temporal_view": "T12",
+      "sequence_length": 12,
+      "model_config_sha256":
+        "e940030a36a4399b86b2a9e7a2bcf7ad3292c37165ec8e7ca952c49066ea7607",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260816/T12",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/10"
+    },
+    {
+      "run_id": "s1_seed_20260816_T16",
+      "seed": 20260816,
+      "temporal_view": "T16",
+      "sequence_length": 16,
+      "model_config_sha256":
+        "93513ebb484cc15c4baad03cb49d3cd95cccd1c6c401d9a96d9a24376ad08e7f",
+      "output_root": "outputs/classification_v2/s1_temporal_screening_20260814/runs/seed_20260816/T16",
+      "config_source":
+        "s1_03_immutable_launch_manifest.json#/run_matrix/11"
+    }
+  ],
+  "output_and_resume_policy": {
+    "run_count": 12,
+    "expected_matrix": "3 seeds x 4 temporal views",
+    "output_root_uniqueness": "PASS",
+    "output_root_collision_count": 0,
+    "overwrite_existing_outputs": false,
+    "resume_allowed": true,
+    "resume_requires_identical": [
+      "code_head",
+      "adapter_source_sha256",
+      "Temporal-v2 authority SHA256",
+      "matched manifest SHA256",
+      "model config SHA256",
+      "seed",
+      "temporal view",
+      "fixed training controls",
+      "output root"
+    ],
+    "resume_across_semantic_config_change": false,
+    "failed_artifacts_retained": true,
+    "outer_test_access": false
+  },
+  "launch_order": [
+    "seed 20260814: T6, T8, T12, T16",
+    "seed 20260815: T6, T8, T12, T16",
+    "seed 20260816: T6, T8, T12, T16"
+  ],
+  "local_preflight": {
+    "canonical_matched_corpus_binding": "PASS",
+    "adapter_tests": "PASS",
+    "cpu_forward_all_views": "PASS",
+    "cpu_loss_all_views": "PASS",
+    "model_parameter_count_parity": "PASS",
+    "temporal_only_config_diff": "PASS",
+    "run_configs_frozen": "PASS",
+    "unique_output_paths": "PASS",
+    "resume_semantics_declared": "PASS",
+    "local_s1_gpu_ready": "NO",
+    "reason_not_ready": "S1-04 remote binding and preflight remain pending"
+  },
+  "non_actions": {
+    "temporal_v2_mutated": "NO",
+    "scientific_data_mutated": "NO",
+    "features_recomputed": "NO",
+    "rgb_crops_regenerated": "NO",
+    "detector_tracker_executed": "NO",
+    "model_architecture_changed": "NO",
+    "feature_set_changed": "NO",
+    "optimizer_step_count": 0,
+    "training_run": "NO",
+    "gpu_used": "NO",
+    "studio_lifecycle_action": "NONE"
+  },
+  "next_registered_step": {
+    "step_id": "S1-04",
+    "summary":
+      "Verify authorized remote binding and real-loader preflight.",
+    "remote_or_gpu_started": false
+  }
+}
