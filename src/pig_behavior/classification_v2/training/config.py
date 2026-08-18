@@ -77,6 +77,9 @@ class DatasetConfig:
     temporal_view_selection_col: str = "fixed6_keep"
     augmentation_policy: str = "none"
     strict_packed_cache: bool = True
+    window_major_rgb_cache: Path | None = None
+    window_major_union_mask: Path | None = None
+    window_major_window_index: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)

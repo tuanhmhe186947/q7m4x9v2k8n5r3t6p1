@@ -20,6 +20,10 @@ from pig_behavior.classification_v2.datasets.visual_interaction_loader import (
     VisualInteractionDatasetConfig,
     VisualInteractionWindowDataset,
 )
+from pig_behavior.classification_v2.datasets.window_major_rgb_cache import (
+    WindowMajorRgbReader,
+    WindowMajorRgbReaderConfig,
+)
 from pig_behavior.classification_v2.features.spatial_schema import (
     SPATIAL_PREDICTIVE_FEATURES,
     require_spatial_tensor_bundle,
@@ -142,6 +146,29 @@ class StrictTrainingDataModule:
             self.bundle.arrays,
             config.model.spatial_feature_groups,
         )
+        self.window_major_reader: WindowMajorRgbReader | None = None
+        if config.dataset.window_major_rgb_cache is not None:
+            mask_path = config.dataset.window_major_union_mask
+            if mask_path is None:
+                mask_path = (
+                    config.dataset.window_major_rgb_cache.parent
+                    / "m0_union_available_mask.npy"
+                )
+            index_path = config.dataset.window_major_window_index
+            if index_path is None:
+                index_path = (
+                    config.dataset.window_major_rgb_cache.parent
+                    / "m0_rgb_window_index.csv"
+                )
+            reader_config = WindowMajorRgbReaderConfig(
+                rgb_cache_path=config.dataset.window_major_rgb_cache,
+                union_mask_path=mask_path,
+                window_index_path=index_path,
+                expected_window_ids=self.bundle.frame["window_id"],
+                expected_image_size=config.model.image_size,
+                expected_frames=config.model.temporal_input_frames,
+            )
+            self.window_major_reader = WindowMajorRgbReader(reader_config)
         self.fold_preprocessing_state: FoldPreprocessingState | None = None
         self._validate_behavior_target_alignment()
 
@@ -186,19 +213,100 @@ class StrictTrainingDataModule:
             + {"train": 0, "validation": 10_000, "test": 20_000}[role],
         )
 
+    def _fast_batch_from_indices(self, indices: np.ndarray) -> dict[str, Any]:
+        assert self.window_major_reader is not None
+        rgb_dict = self.window_major_reader.read_batch_tensors(
+            indices,
+            self.device,
+        )
+        expected_frames = self.config.model.temporal_input_frames
+        spatial_length = (
+            torch.from_numpy(self.bundle.arrays["length_mask"][indices])
+            .float()
+            .to(self.device)
+        )
+        spatial_observed = (
+            torch.from_numpy(self.bundle.arrays["observed_mask"][indices])
+            .float()
+            .to(self.device)
+        )
+        spatial_quality = (
+            torch.from_numpy(self.bundle.arrays["spatial_quality_mask"][indices])
+            .float()
+            .to(self.device)
+        )
+        image_length_mask = spatial_length[:, :expected_frames]
+        image_observed_mask = spatial_observed[:, :expected_frames]
+        visual_context_length_mask = spatial_length[:, :expected_frames]
+
+        spatial_features = {
+            name: torch.from_numpy(self.bundle.arrays[name][indices])
+            .float()
+            .to(self.device)
+            for name in self.spatial_feature_names
+        }
+        motion_valid = torch.from_numpy(
+            self.bundle.arrays["motion_validity_mask"][indices]
+        ).float().to(self.device)
+        social_valid = torch.from_numpy(
+            self.bundle.arrays["social_validity_mask"][indices]
+        ).float().to(self.device)
+        spatial_feature_validity = {
+            "motion_delta": motion_valid,
+            "social_distance": social_valid,
+            "social_angle": social_valid,
+            "social_bearing": social_valid,
+        }
+        interaction_context_features = torch.from_numpy(
+            self.bundle.interaction_context_features[indices]
+        ).float().to(self.device)
+        interaction_context_available_mask = torch.from_numpy(
+            self.bundle.interaction_context_available_mask[indices, None]
+        ).float().to(self.device)
+        target_indices = np.asarray(
+            [self.label_to_index[str(lbl)] for lbl in self.bundle.y.iloc[indices]],
+            dtype=np.int64,
+        )
+        target = torch.from_numpy(target_indices).to(self.device)
+        return {
+            "image": rgb_dict["image"],
+            "image_length_mask": image_length_mask,
+            "image_observed_mask": image_observed_mask,
+            "spatial_features": spatial_features,
+            "spatial_length_mask": spatial_length,
+            "spatial_observed_mask": spatial_observed,
+            "spatial_quality_mask": spatial_quality,
+            "spatial_feature_validity_masks": spatial_feature_validity,
+            "interaction_context_features": interaction_context_features,
+            "interaction_context_available_mask": (
+                interaction_context_available_mask
+            ),
+            "visual_context_image": rgb_dict["visual_context_image"],
+            "visual_context_length_mask": visual_context_length_mask,
+            "visual_context_observed_mask": (
+                rgb_dict["visual_context_observed_mask"]
+            ),
+            "target": target,
+            "training_sample_weight": self._training_sample_weight(indices),
+            "target_labels": self.bundle.y.iloc[indices].astype(str).tolist(),
+        }
+
     def batch(self, indices: np.ndarray) -> StrictTrainingBatch:
         """Build one batch with strict cache access and key-aligned auxiliary targets."""
 
-        raw = _batch_from_indices(
-            self.actor_dataset,
-            self.visual_dataset,
-            self.bundle,
-            indices,
-            self.label_to_index,
-            {label: 1.0 for label in VALID_BEHAVIORS},
-            self.full_config,
-            self.device,
-        )
+        if self.window_major_reader is not None:
+            raw = self._fast_batch_from_indices(indices)
+        else:
+            raw = _batch_from_indices(
+                self.actor_dataset,
+                self.visual_dataset,
+                self.bundle,
+                indices,
+                self.label_to_index,
+                {label: 1.0 for label in VALID_BEHAVIORS},
+                self.full_config,
+                self.device,
+            )
         self._enforce_temporal_input_shape(raw)
         raw.update(self._time_delta_batch(indices, raw))
         self._apply_fold_preprocessing(raw)
@@ -261,6 +369,12 @@ class StrictTrainingDataModule:
             "fold_event_weight": self.fold_event_weight_audit,
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
+            "window_major_cache_configured": self.window_major_reader is not None,
+            "window_major_cache_path": (
+                str(self.config.dataset.window_major_rgb_cache)
+                if self.config.dataset.window_major_rgb_cache
+                else None
+            ),
         }
 
     def fit_fold_preprocessor(self) -> FoldPreprocessingState:
