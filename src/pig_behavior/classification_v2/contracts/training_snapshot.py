@@ -12,7 +12,7 @@ import hashlib
 import json
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import numpy as np
@@ -96,7 +96,10 @@ def check_training_snapshot(
 ) -> dict[str, Any]:
     """Compare current artifacts against a frozen snapshot and report deterministic drift."""
     expected = json.loads(snapshot_path.read_text(encoding="utf-8"))
-    contract_file = contract_path or Path(expected["contract_path"])
+    contract_file = contract_path or _resolve_snapshot_contract_path(
+        Path(expected["contract_path"]),
+        project_root=project_root,
+    )
     contract = load_contract(contract_file)
     paths = _resolve_paths(
         contract_file,
@@ -151,6 +154,39 @@ def check_training_snapshot(
         "warnings": warnings,
         "current": current,
     }
+
+
+def _resolve_snapshot_contract_path(
+    stored_path: Path,
+    *,
+    project_root: Path | None = None,
+) -> Path:
+    """Resolve a missing foreign-OS contract path without weakening identity checks."""
+    if stored_path.exists():
+        return stored_path
+
+    root = (project_root or Path.cwd()).resolve()
+    normalized = str(stored_path).replace("\\", "/")
+    parts = PurePosixPath(normalized).parts
+    candidates: set[Path] = set()
+    for start in range(len(parts)):
+        suffix = parts[start:]
+        if not suffix or any(part in {"", ".", ".."} for part in suffix):
+            continue
+        candidate = (root.joinpath(*suffix)).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if candidate.is_file():
+            candidates.add(candidate)
+
+    if len(candidates) != 1:
+        raise FileNotFoundError(
+            "snapshot contract path is missing or ambiguous: "
+            f"stored={stored_path} root={root} candidates={sorted(candidates)}"
+        )
+    return next(iter(candidates))
 
 
 def _resolve_paths(
