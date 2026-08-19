@@ -1167,6 +1167,8 @@ class AgentGovernanceLedger:
                 event_payload,
                 expired_permit,
             )
+            if isinstance(event_payload, dict) and event_payload.get("reused"):
+                return result
             result = self._finish_mutation(
                 result,
                 event_type,
@@ -2599,6 +2601,15 @@ class AgentGovernanceLedger:
             active = record.get("active_permit")
             if active:
                 if current < datetime.fromisoformat(active["expires_at"]):
+                    requested = sorted(set(effects))
+                    if (
+                        active.get("step_id") == step_id
+                        and requested == sorted(active.get("effects", []))
+                    ):
+                        return record, {
+                            "permit_id": active["permit_id"],
+                            "reused": True,
+                        }
                     raise GovernanceError("permit_already_active", "Consume or revoke it first.")
                 expired_progress = self._classify_expired_permit_progress(record, active)
                 record["active_permit"] = None

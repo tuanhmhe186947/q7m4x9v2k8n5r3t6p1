@@ -18,8 +18,8 @@
 
 - Scope: daily state plus bounded active managed resume capsules in
   `Asia/Saigon`.
-- Opened: `2026-08-17`.
-- Expires: `2026-08-18T00:00:00+07:00`.
+- Opened: `2026-08-18`.
+- Expires: `2026-08-19T00:00:00+07:00`.
 - On first read after expiry, run the atomic task manager's `rollover` command.
 - Rollover retains nonterminal managed task blocks byte-for-byte and resets
   daily state; it creates no duplicate medium authority.
@@ -935,16 +935,40 @@
 - [ ] `F46D17-05` `[TODO]` Close lineage and project state locally
   - Next: Run state-steward closeout and leave GPU and Studio unused.
 
+### M0-U2-FAST-PATH-20260818-01 - Resolve and fix M0 FULL-T6 fast batch mask path
+
+- Prompt: Trace completed seed 240494961 launch path, fix only canonical fast batch mask wiring,
+  run bounded CPU parity and focused tests, commit.
+- Status: `DONE`.
+- Opened: `2026-08-18T17:28:27+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `01a013c5-14a1-7b81-949a-6b3f0707690b`.
+- Owner runtime session: `01a013c5-14a1-7b81-949a-6b3f0707690b`.
+- Owner token SHA256: `b289d6fbdf4822a0ec090734a3861a7fed34dd21b48574e31bd6de7ad932632a`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `2`.
+- Lease expires: `2026-08-18T18:00:58+07:00`.
+- Block SHA256: `b7e5d632ebd5be3b8164d5e682690594d14e8419b730f7c3d71ece0bb7e8d0c9`.
+- Acceptance: Historical path classified; canonical fast batch passes CPU parity and finite
+  forward loss backward; focused tests and ruff pass; ledger updated; no GPU or cache rebuild.
+- Skills: `dataset-contract-leakage-guard,safe-refactor-test-guardian`.
+- [x] `U2-1` `[DONE]` Trace historical seed runtime
+  - Evidence: Seed artifacts and scoped launcher search contain no exact
+    entrypoint/DataModule/batch trace; deterministic current KeyError rejects H1; historical
+    path is H4.
+
+
 ## Previous-Day Closeout
 
-- Source date: `2026-08-16`.
+- Source date: `2026-08-17`.
 - Completed: none
 - Carried forward: THESIS-20260804-02, TRACKING-20260804-03, C2V2-20260806-06, C2V2-20260806-07,
   CLASSIFICATION-20260807-01, C2V2-20260807-03, C2V2-20260807-04, C2V2-20260807-05,
   C2V2-20260809-03, C2V2-20260809-04, S1-POSTCLOSURE-20260809-01, S1-B-20260809-01,
   GOVPORT-20260810-01, S1RUNREADY-20260810-01, S1T6EXEC-20260810-01, C2V2-20260811-01,
-  C2V2-CONT-20260813-02; active tasks remain resume capsules in short memory
-- Purge after: `2026-08-18T00:00:00+07:00`.
+  C2V2-CONT-20260813-02, CLASSIFICATION-V2-FULL-T6-46D-20260817-01; active tasks remain resume
+  capsules in short memory
+- Purge after: `2026-08-19T00:00:00+07:00`.
 
 ## Current Scientific Handoff
 

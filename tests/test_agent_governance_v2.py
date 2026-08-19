@@ -1923,6 +1923,29 @@ def test_same_session_recovery_rotates_token_and_rejects_old_token(
     assert confirmed["state"] == "CONFIRMED"
 
 
+def test_reissuing_same_active_permit_is_idempotent(
+    manager: ModuleType, project: Path
+) -> None:
+    ledger, record = create(manager, project)
+    record = confirm(ledger, record, project)
+    first = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    second = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW + timedelta(seconds=1),
+        **owner(first, project),
+    )
+    assert second["active_permit"]["permit_id"] == first["active_permit"]["permit_id"]
+    assert second["revision"] == first["revision"]
+
+
 def test_expired_takeover_requires_expiry_and_rejects_old_token(
     manager: ModuleType,
     project: Path,

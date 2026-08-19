@@ -71,7 +71,7 @@ unmerged branches are not completion evidence.
 - `main` is the continuous delivery branch. For all work, use `shared_main` mode
   and commit each verified bounded milestone to local `main` immediately; that commit
   is the integration for the milestone.
-- Do not accumulate a queue of completed worktree changes or unmerged branches.
+- do not accumulate a queue of completed worktree changes or unmerged branches.
 
 Before working on this repository, always read these files first:
 
