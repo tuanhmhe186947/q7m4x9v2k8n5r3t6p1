@@ -1880,7 +1880,7 @@ def test_shared_main_allows_disjoint_scopes(
     assert second_record["worktree"]["path_scope"] == ["src/beta"]
 
 
-def test_shared_main_rejects_overlapping_scopes(
+def test_shared_main_allows_overlapping_scopes_without_live_permits(
     manager: ModuleType,
     project: Path,
 ) -> None:
@@ -1891,13 +1891,54 @@ def test_shared_main_rejects_overlapping_scopes(
     second = packet(project)
     second.update(task_id="SHARED-OVERLAP-02", worktree_mode="shared_main")
     second["path_scope"] = ["src/components"]
-    with pytest.raises(manager.GovernanceError, match="shared_main_scope_overlap"):
-        ledger.create(
-            second,
-            owner_session=RUNTIME,
-            owner_token="shared-owner-token-02",
-            worktree=project,
+    created = ledger.create(
+        second,
+        owner_session=RUNTIME,
+        owner_token="shared-owner-token-02",
+        worktree=project,
+        now=NOW,
+    )
+    assert created["task_id"] == "SHARED-OVERLAP-02"
+
+
+def test_shared_main_rejects_cross_runtime_overlapping_live_permits(
+    manager: ModuleType,
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = packet(project)
+    first.update(task_id="SHARED-PERMIT-01", worktree_mode="shared_main")
+    first["path_scope"] = ["src"]
+    ledger, first_record = create(manager, project, first)
+    first_record = confirm(ledger, first_record, project)
+    ledger.permit(
+        first_record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(first_record, project),
+    )
+
+    second_runtime = "runtime-session-2"
+    monkeypatch.setenv("CODEX_THREAD_ID", second_runtime)
+    second = packet(project)
+    second.update(task_id="SHARED-PERMIT-02", worktree_mode="shared_main")
+    second["path_scope"] = ["src/components"]
+    second_record = ledger.create(
+        second,
+        owner_session=second_runtime,
+        owner_token=TOKEN,
+        worktree=project,
+        now=NOW,
+    )
+    second_record = confirm(ledger, second_record, project)
+    with pytest.raises(manager.GovernanceError, match="shared_main_permit_overlap"):
+        ledger.permit(
+            second_record["task_id"],
+            "S-1",
+            ["edit", "test"],
             now=NOW,
+            **owner(second_record, project),
         )
 
 

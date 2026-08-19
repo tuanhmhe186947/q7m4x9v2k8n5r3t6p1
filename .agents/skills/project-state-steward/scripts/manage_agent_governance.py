@@ -1356,15 +1356,6 @@ class AgentGovernanceLedger:
                                 "worktree_already_admitted",
                                 str(active.get("task_id")),
                             )
-                        active_scope = active.get("worktree", {}).get(
-                            "path_scope",
-                            [],
-                        )
-                        if _scopes_overlap(active_scope, path_scope):
-                            raise GovernanceError(
-                                "shared_main_scope_overlap",
-                                str(active.get("task_id")),
-                            )
             _atomic_json(path, record)
         result = _json_copy(record)
         if owner_token is None:
@@ -2683,8 +2674,37 @@ class AgentGovernanceLedger:
                     "worktree_fingerprint_drift",
                     "Review current dirty paths and amend the plan before effect.",
                 )
-            accepted_artifacts = record["worktree"].get("accepted_artifacts", {})
             worktree_root = Path(record["worktree"]["path"]).resolve()
+            if record["worktree"].get("mode") == "shared_main":
+                for other_path in self.tasks.glob("*.json"):
+                    if other_path == self._path(task_id):
+                        continue
+                    other = _load_json(other_path)
+                    _validate_record(other)
+                    other_worktree = other.get("worktree", {})
+                    if other_worktree.get("mode") != "shared_main":
+                        continue
+                    if Path(other_worktree.get("path", "")).resolve() != worktree_root:
+                        continue
+                    if (
+                        other.get("owner", {}).get("runtime_session")
+                        == record["owner"]["runtime_session"]
+                    ):
+                        continue
+                    other_permit = other.get("active_permit")
+                    if not other_permit or current >= datetime.fromisoformat(
+                        other_permit["expires_at"]
+                    ):
+                        continue
+                    if _scopes_overlap(
+                        other_worktree.get("path_scope", []),
+                        record["worktree"].get("path_scope", []),
+                    ):
+                        raise GovernanceError(
+                            "shared_main_permit_overlap",
+                            str(other.get("task_id")),
+                        )
+            accepted_artifacts = record["worktree"].get("accepted_artifacts", {})
             for acc_path, acc_meta in accepted_artifacts.items():
                 target = (worktree_root / acc_path).resolve()
                 if target.is_file():
