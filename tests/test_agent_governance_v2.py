@@ -2021,6 +2021,74 @@ def test_shared_main_allows_same_runtime_overlapping_live_permits(
     assert granted["active_permit"]["step_id"] == "S-1"
 
 
+def test_shared_main_permit_ignores_dirty_path_outside_task_scope(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    value = packet(project)
+    value.update(task_id="SHARED-EXTERNAL-DIRTY-01", worktree_mode="shared_main")
+    value["path_scope"] = ["task-owned.txt"]
+    ledger, record = create(manager, project, value)
+    record = confirm(ledger, record, project)
+    (project / "other-chat.txt").write_text("unrelated\n", encoding="utf-8")
+    granted = ledger.permit(
+        record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    assert granted["active_permit"]["step_id"] == "S-1"
+
+
+def test_shared_main_permit_rejects_unpermitted_in_scope_drift(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    value = packet(project)
+    value.update(task_id="SHARED-IN-SCOPE-DRIFT-01", worktree_mode="shared_main")
+    value["path_scope"] = ["task-owned.txt"]
+    ledger, record = create(manager, project, value)
+    record = confirm(ledger, record, project)
+    (project / "task-owned.txt").write_text("unpermitted\n", encoding="utf-8")
+    with pytest.raises(manager.GovernanceError, match="worktree_fingerprint_drift"):
+        ledger.permit(
+            record["task_id"],
+            "S-1",
+            ["edit", "test"],
+            now=NOW,
+            **owner(record, project),
+        )
+
+
+def test_shared_main_expired_permit_ignores_other_chat_progress(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    value = packet(project)
+    value.update(task_id="SHARED-EXTERNAL-PROGRESS-01", worktree_mode="shared_main")
+    value["path_scope"] = ["task-owned.txt"]
+    ledger, record = create(manager, project, value)
+    record = confirm(ledger, record, project)
+    record = ledger.permit(
+        record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        ttl_seconds=60,
+        now=NOW,
+        **owner(record, project),
+    )
+    (project / "other-chat.txt").write_text("progress\n", encoding="utf-8")
+    renewed = ledger.permit(
+        record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW + timedelta(minutes=2),
+        **owner(record, project),
+    )
+    assert renewed["active_permit"]["step_id"] == "S-1"
+
+
 def test_expired_task_does_not_reserve_shared_main_scope(
     manager: ModuleType,
     project: Path,

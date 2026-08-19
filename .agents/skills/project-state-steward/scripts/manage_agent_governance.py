@@ -2465,11 +2465,16 @@ class AgentGovernanceLedger:
         scope = worktree.get("path_scope", [])
         known_lineage_paths = set(accepted_artifacts) | set(baseline_artifacts)
         if scope:
-            in_scope = sorted(
-                path
-                for path in changed
-                if _path_within_scope(path, scope) or path in known_lineage_paths
-            )
+            if worktree.get("mode") == "shared_main":
+                in_scope = sorted(
+                    path for path in changed if _path_within_scope(path, scope)
+                )
+            else:
+                in_scope = sorted(
+                    path
+                    for path in changed
+                    if _path_within_scope(path, scope) or path in known_lineage_paths
+                )
         else:
             in_scope = sorted(path for path in changed if path in known_lineage_paths)
         out_of_scope = sorted(changed.difference(in_scope))
@@ -2479,7 +2484,7 @@ class AgentGovernanceLedger:
                     "unknown_or_mixed_change",
                     "task scope is required for new task paths",
                 )
-        if out_of_scope:
+        if out_of_scope and worktree.get("mode") != "shared_main":
             code = "unknown_or_mixed_change" if in_scope else "external_or_owner_change"
             raise GovernanceError(code, ",".join(out_of_scope))
         authorized_effects = set((permit or {}).get("effects", []))
@@ -2528,6 +2533,7 @@ class AgentGovernanceLedger:
             "changed_paths": sorted(changed),
             "task_owned_paths": sorted(task_paths),
             "known_paths": sorted(known_paths),
+            "external_paths": out_of_scope,
         }
 
     def _classify_expired_permit_progress(
@@ -2667,13 +2673,49 @@ class AgentGovernanceLedger:
             accepted_fingerprint = record["worktree"].get(
                 "accepted_task_fingerprint", record["worktree"]["fingerprint"]
             )
-            if identity["head_sha"] != accepted_head:
-                raise GovernanceError("worktree_head_drift", identity["head_sha"])
-            if identity["fingerprint"] != accepted_fingerprint:
-                raise GovernanceError(
-                    "worktree_fingerprint_drift",
-                    "Review current dirty paths and amend the plan before effect.",
+            shared_main = record["worktree"].get("mode") == "shared_main"
+            if shared_main:
+                if identity["head_sha"] != accepted_head and not _is_ancestor(
+                    Path(record["worktree"]["path"]),
+                    accepted_head,
+                    identity["head_sha"],
+                ):
+                    raise GovernanceError("worktree_head_drift", identity["head_sha"])
+                changed = set(
+                    _changed_paths_since(
+                        Path(record["worktree"]["path"]),
+                        accepted_head,
+                        identity["head_sha"],
+                    )
                 )
+                changed.update(identity["dirty_paths"])
+                scope = record["worktree"].get("path_scope", [])
+                for changed_path in changed:
+                    if not _path_within_scope(changed_path, scope):
+                        continue
+                    current_sha = _content_sha256(
+                        Path(record["worktree"]["path"]), changed_path
+                    )
+                    accepted = record["worktree"].get("accepted_artifacts", {}).get(
+                        changed_path
+                    )
+                    baseline = record["worktree"].get("baseline_artifacts", {}).get(
+                        changed_path
+                    )
+                    expected_sha = (accepted or baseline or {}).get("sha256")
+                    if expected_sha != current_sha:
+                        raise GovernanceError(
+                            "worktree_fingerprint_drift",
+                            changed_path,
+                        )
+            else:
+                if identity["head_sha"] != accepted_head:
+                    raise GovernanceError("worktree_head_drift", identity["head_sha"])
+                if identity["fingerprint"] != accepted_fingerprint:
+                    raise GovernanceError(
+                        "worktree_fingerprint_drift",
+                        "Review current dirty paths and amend the plan before effect.",
+                    )
             worktree_root = Path(record["worktree"]["path"]).resolve()
             if record["worktree"].get("mode") == "shared_main":
                 for other_path in self.tasks.glob("*.json"):
@@ -2706,6 +2748,10 @@ class AgentGovernanceLedger:
                         )
             accepted_artifacts = record["worktree"].get("accepted_artifacts", {})
             for acc_path, acc_meta in accepted_artifacts.items():
+                if shared_main and not _path_within_scope(
+                    acc_path, record["worktree"].get("path_scope", [])
+                ):
+                    continue
                 target = (worktree_root / acc_path).resolve()
                 if target.is_file():
                     expected_sha = (
