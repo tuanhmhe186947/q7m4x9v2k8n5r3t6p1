@@ -485,6 +485,63 @@ def test_different_runtime_cannot_claim_same_session_recovery(
     assert unchanged["ownership_audit_events"] == 0
 
 
+def test_context_handoff_recovery_accepts_current_owner_token(
+    tmp_path: Path,
+    manager: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(manager.RUNTIME_SESSION_ENV, "thread-alpha-0001")
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    created = _create_task(ledger, "RECOVER-20260803-01")
+    monkeypatch.setenv(manager.RUNTIME_SESSION_ENV, "thread-beta-0002")
+
+    recovered = ledger.recover_same_session(
+        task_id=created["task_id"],
+        expected_owner_session=created["owner_session"],
+        expected_revision=created["revision"],
+        expected_block_sha256=created["block_sha256"],
+        worktree=tmp_path,
+        reason="Codex context handoff retained the owner token",
+        owner_token=OWNER_TOKEN,
+        new_owner_token=OTHER_TOKEN,
+        now=NOW + timedelta(seconds=30),
+    )
+
+    assert recovered["owner_runtime_session"] == "thread-beta-0002"
+    assert recovered["ownership_audit_events"] == 1
+
+
+def test_step_ids_are_scoped_to_their_task(tmp_path: Path, manager: ModuleType) -> None:
+    _write_memory(tmp_path, NOW)
+    ledger = manager.ShortMemoryLedger(tmp_path)
+    shared_step = [
+        {
+            "step_id": "COMMON-1",
+            "summary": "Run one bounded phase.",
+            "next_action": "Continue the owning task only.",
+        }
+    ]
+    for task_id, owner, token in (
+        ("FIRST-20260803-01", "session-first-0001", OWNER_TOKEN),
+        ("SECOND-20260803-01", "session-second-0002", OTHER_TOKEN),
+    ):
+        created = ledger.create(
+            task_id=task_id,
+            title="independent fixture",
+            prompt="Prove task-local step identity.",
+            acceptance="Independent tasks may reuse a readable step name.",
+            skills=["project-state-steward"],
+            steps=shared_step,
+            active_step="COMMON-1",
+            owner_session=owner,
+            owner_token=token,
+            worktree=tmp_path,
+            now=NOW,
+        )
+        assert created["steps"][0]["step_id"] == "COMMON-1"
+
+
 def test_admin_takeover_requires_exact_confirmation_and_fresh_cas(
     tmp_path: Path,
     manager: ModuleType,
@@ -662,7 +719,7 @@ def test_compaction_preserves_lossless_history_and_unrelated_tasks(
     assert compacted["revision"] == oversized["revision"] + 1
     assert compacted["pre_compaction_revision"] == oversized["revision"]
     assert compacted["pre_compaction_block_sha256"] == oversized["block_sha256"]
-    assert compacted["active_task_line_count"] <= 120
+    assert compacted["active_task_line_count"] <= manager.MAX_ACTIVE_TASK_LINES
     archive_path = tmp_path / compacted["archive_reference"]
     payload = json.loads(archive_path.read_text(encoding="utf-8"))
     assert payload["content"] == oversized_before

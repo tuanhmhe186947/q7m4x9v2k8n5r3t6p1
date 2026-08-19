@@ -1706,7 +1706,7 @@ def test_bootstrap_is_bounded_and_lists_active_task(
     project: Path,
 ) -> None:
     ledger, _ = create(manager, project)
-    result = ledger.bootstrap()
+    result = ledger.bootstrap(now=NOW)
     assert result["active_tasks"] == [
         {
             "task_id": "REFORM-20260813-01",
@@ -1718,7 +1718,27 @@ def test_bootstrap_is_bounded_and_lists_active_task(
             ),
         }
     ]
+    assert result["stale_tasks"] == []
     assert len(json.dumps(result)) < 2000
+
+
+def test_bootstrap_separates_expired_task_from_active_tasks(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    ledger = manager.AgentGovernanceLedger(project)
+    ledger.create(
+        packet(project),
+        owner_session=RUNTIME,
+        owner_token=TOKEN,
+        worktree=project,
+        lease_seconds=1,
+        now=NOW,
+    )
+    result = ledger.bootstrap(now=NOW + timedelta(seconds=2))
+    assert result["active_tasks"] == []
+    assert result["stale_tasks"][0]["task_id"] == "REFORM-20260813-01"
+    assert "reserves no scope" in result["stale_tasks"][0]["next_action"]
 
 
 def test_worktree_lifecycle_validator_rejects_unsafe_retirement(
@@ -1881,6 +1901,35 @@ def test_shared_main_rejects_overlapping_scopes(
         )
 
 
+def test_expired_task_does_not_reserve_shared_main_scope(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    first = packet(project)
+    first.update(task_id="SHARED-EXPIRED-20260813-01", worktree_mode="shared_main")
+    first["path_scope"] = ["src/components"]
+    ledger = manager.AgentGovernanceLedger(project)
+    ledger.create(
+        first,
+        owner_session=RUNTIME,
+        owner_token=TOKEN,
+        worktree=project,
+        lease_seconds=1,
+        now=NOW,
+    )
+    second = packet(project)
+    second.update(task_id="SHARED-EXPIRED-20260813-02", worktree_mode="shared_main")
+    second["path_scope"] = ["src/components"]
+    created = ledger.create(
+        second,
+        owner_session=RUNTIME,
+        owner_token="shared-owner-token-02",
+        worktree=project,
+        now=NOW + timedelta(seconds=2),
+    )
+    assert created["task_id"] == "SHARED-EXPIRED-20260813-02"
+
+
 def test_same_session_recovery_rotates_token_and_rejects_old_token(
     manager: ModuleType,
     project: Path,
@@ -1923,6 +1972,49 @@ def test_same_session_recovery_rotates_token_and_rejects_old_token(
     assert confirmed["state"] == "CONFIRMED"
 
 
+def test_context_handoff_recovery_accepts_current_owner_token(
+    manager: ModuleType,
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ledger, record = create(manager, project)
+    monkeypatch.setenv("CODEX_THREAD_ID", "runtime-session-2")
+    recovered = ledger.recover_same_session(
+        "REFORM-20260813-01",
+        expected_owner_session=RUNTIME,
+        expected_revision=record["revision"],
+        expected_record_sha256=record["record_sha256"],
+        worktree=project,
+        reason="Continue after Codex context handoff.",
+        owner_token=TOKEN,
+        new_owner_token="handoff-owner-token-012345",
+        now=NOW + timedelta(seconds=1),
+    )
+    assert recovered["owner"]["runtime_session"] == "runtime-session-2"
+    assert recovered["events"][-1]["payload"]["action"] == (
+        "context-handoff-token-recovery"
+    )
+
+
+def test_context_handoff_recovery_rejects_missing_owner_proof(
+    manager: ModuleType,
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ledger, record = create(manager, project)
+    monkeypatch.setenv("CODEX_THREAD_ID", "runtime-session-2")
+    with pytest.raises(manager.GovernanceError, match="recovery_runtime_mismatch"):
+        ledger.recover_same_session(
+            "REFORM-20260813-01",
+            expected_owner_session=RUNTIME,
+            expected_revision=record["revision"],
+            expected_record_sha256=record["record_sha256"],
+            worktree=project,
+            reason="Unproven context handoff must fail closed.",
+            now=NOW + timedelta(seconds=1),
+        )
+
+
 def test_reissuing_same_active_permit_is_idempotent(
     manager: ModuleType, project: Path
 ) -> None:
@@ -1944,6 +2036,24 @@ def test_reissuing_same_active_permit_is_idempotent(
     )
     assert second["active_permit"]["permit_id"] == first["active_permit"]["permit_id"]
     assert second["revision"] == first["revision"]
+
+
+def test_default_lease_and_permit_cover_a_full_day(
+    manager: ModuleType, project: Path
+) -> None:
+    ledger, record = create(manager, project)
+    lease_expires = datetime.fromisoformat(record["owner"]["lease_expires"])
+    assert lease_expires - NOW == timedelta(days=1)
+    record = confirm(ledger, record, project)
+    permitted = ledger.permit(
+        "REFORM-20260813-01",
+        "S-1",
+        ["test"],
+        now=NOW,
+        **owner(record, project),
+    )
+    permit_expires = datetime.fromisoformat(permitted["active_permit"]["expires_at"])
+    assert permit_expires - NOW == timedelta(days=1)
 
 
 def test_expired_takeover_requires_expiry_and_rejects_old_token(
@@ -2327,6 +2437,7 @@ def test_authorized_edit_progress_is_accepted_after_expired_permit(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )
@@ -2345,6 +2456,7 @@ def test_generated_evidence_progress_is_accepted_after_expired_permit(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )
@@ -2363,6 +2475,7 @@ def test_authorized_descendant_commit_is_accepted_after_expired_permit(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )
@@ -2386,6 +2499,7 @@ def test_external_dirty_path_still_fails_closed_after_expired_permit(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )
@@ -2403,6 +2517,7 @@ def test_mixed_authorized_and_unknown_paths_fail_closed(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )
@@ -2421,6 +2536,7 @@ def test_out_of_scope_descendant_commit_is_not_accepted(
         "SCOPED-PROGRESS-20260814-01",
         "S-1",
         ["edit"],
+        ttl_seconds=60,
         now=NOW,
         **owner(record, project),
     )

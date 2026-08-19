@@ -185,11 +185,11 @@ Rules:
   effect, use `manage_short_memory.py create` before the first effect. Retain
   the returned owner token only in that live session. Use `inspect` plus
   revision/hash CAS for `checkpoint`, `renew`, audited-drift `reconcile`, or
-  expired-lease `takeover`. If the token was lost after a crash, `recover` may
-  rotate it during an active lease only when the task is already bound to the
-  current `CODEX_THREAD_ID`. Otherwise require user-authorized
-  `admin-takeover` with the exact task ID, revision, hash, worktree,
-  confirmation phrase, reason, and authorization reference.
+  expired-lease `takeover`. A Codex context handoff may rebind the runtime
+  through `recover` without new user confirmation when the caller proves the
+  current owner token plus exact task ID, revision/hash CAS, and worktree.
+  Lost-token recovery remains limited to the already-bound runtime. Require
+  user-authorized `admin-takeover` only when neither proof path is available.
   Never edit a managed task block manually. Update only at phase boundaries;
   checkpoint `DONE` before the next step's first effect and attach evidence.
 - Checklist steps use `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `DEFERRED`, or

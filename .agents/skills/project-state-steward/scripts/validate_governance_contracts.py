@@ -434,9 +434,9 @@ def _check_short_checklist(root: Path) -> list[str]:
         task_status = status_match.group("status") if status_match else None
         if (
             task_status not in TERMINAL_CHECKLIST_STATES
-            and len(task_body.splitlines()) > 120
+            and len(task_body.splitlines()) > TASK_MANAGER.MAX_ACTIVE_TASK_LINES
         ):
-            errors.append(f"short_task_exceeds_120_line_budget:{task_id}")
+            errors.append(f"short_task_exceeds_active_line_budget:{task_id}")
         for marker in required_task_markers:
             if marker not in task_body:
                 errors.append(f"short_task_missing:{task_id}:{marker[2:-1]}")

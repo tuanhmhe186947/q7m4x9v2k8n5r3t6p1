@@ -26,6 +26,9 @@ V1_MANAGER_PATH = Path(__file__).with_name("manage_short_memory.py")
 SCHEMA_VERSION = "pig.agent-governance-task.v2"
 EVENT_SCHEMA = "pig.agent-governance-event.v1"
 RUNTIME_SESSION_ENV = "CODEX_THREAD_ID"
+MAX_LEASE_SECONDS = 86400
+DEFAULT_LEASE_SECONDS = MAX_LEASE_SECONDS
+DEFAULT_PERMIT_TTL_SECONDS = MAX_LEASE_SECONDS
 HIGH_RISK_EFFECTS = {
     "delete",
     "destructive",
@@ -1184,7 +1187,7 @@ class AgentGovernanceLedger:
         owner_session: str,
         worktree: Path,
         owner_token: str | None = None,
-        lease_seconds: int = 1800,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
     ) -> dict[str, Any]:
         current = _now(now)
@@ -1337,6 +1340,11 @@ class AgentGovernanceLedger:
             for existing in self.tasks.glob("*.json") if self.tasks.exists() else []:
                 active = _load_json(existing)
                 if active.get("state") != "CLOSED":
+                    lease_expires = active.get("owner", {}).get("lease_expires")
+                    if lease_expires and current >= datetime.fromisoformat(
+                        lease_expires
+                    ):
+                        continue
                     active_path = Path(active.get("worktree", {}).get("path", ""))
                     if active_path.resolve() == worktree.resolve():
                         active_mode = active.get("worktree", {}).get(
@@ -1439,7 +1447,7 @@ class AgentGovernanceLedger:
     def renew(
         self,
         task_id: str,
-        lease_seconds: int = 1800,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
         **owner: Any,
     ) -> dict[str, Any]:
@@ -1469,8 +1477,9 @@ class AgentGovernanceLedger:
         expected_record_sha256: str,
         worktree: Path,
         reason: str,
+        owner_token: str | None = None,
         new_owner_token: str | None = None,
-        lease_seconds: int = 1800,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
     ) -> dict[str, Any]:
         if lease_seconds < 1 or lease_seconds > 86400:
@@ -1487,19 +1496,33 @@ class AgentGovernanceLedger:
             self._check_cas(record, expected_revision, expected_record_sha256)
             if record["owner"]["session"] != expected_owner_session:
                 raise GovernanceError("recovery_owner_conflict", expected_owner_session)
-            if record["owner"]["runtime_session"] != runtime:
-                raise GovernanceError("recovery_runtime_mismatch", "Use the bound runtime.")
+            previous_runtime = record["owner"]["runtime_session"]
+            if previous_runtime != runtime:
+                if not owner_token or not secrets.compare_digest(
+                    record["owner"]["token_sha256"],
+                    hashlib.sha256(owner_token.encode("utf-8")).hexdigest(),
+                ):
+                    raise GovernanceError(
+                        "recovery_runtime_mismatch",
+                        "Context handoff needs the current owner token.",
+                    )
             if Path(record["worktree"]["path"]).resolve() != worktree.resolve():
                 raise GovernanceError("recovery_worktree_mismatch", str(worktree))
             record["owner"]["token_sha256"] = hashlib.sha256(
                 token.encode("utf-8")
             ).hexdigest()
+            record["owner"]["runtime_session"] = runtime
             record["owner"]["lease_expires"] = _iso(
                 current + timedelta(seconds=lease_seconds)
             )
             payload = {
-                "action": "same-session-token-recovery",
+                "action": (
+                    "context-handoff-token-recovery"
+                    if previous_runtime != runtime
+                    else "same-session-token-recovery"
+                ),
                 "owner_session": expected_owner_session,
+                "prior_runtime_session": previous_runtime,
                 "runtime_session": runtime,
                 "reason": _clean(reason, "recovery_reason", 300),
                 "prior_revision": expected_revision,
@@ -1527,7 +1550,7 @@ class AgentGovernanceLedger:
         new_worktree: Path,
         reason: str,
         new_owner_token: str | None = None,
-        lease_seconds: int = 1800,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
     ) -> dict[str, Any]:
         current = _now(now)
@@ -1594,7 +1617,7 @@ class AgentGovernanceLedger:
         new_worktree: Path,
         reason: str,
         new_owner_token: str | None = None,
-        lease_seconds: int = 1800,
+        lease_seconds: int = DEFAULT_LEASE_SECONDS,
         now: datetime | None = None,
     ) -> dict[str, Any]:
         if confirm_task_id != task_id:
@@ -1802,7 +1825,7 @@ class AgentGovernanceLedger:
 
         normalized_paths: list[str] = []
         path_hash_map: dict[str, str] = {}
-        for p, h in zip(raw_paths, raw_hashes):
+        for p, h in zip(raw_paths, raw_hashes, strict=True):
             path = Path(p.replace("\\", "/"))
             normalized_path = path.as_posix().strip("/")
             if (
@@ -2585,7 +2608,7 @@ class AgentGovernanceLedger:
         task_id: str,
         step_id: str,
         effects: list[str],
-        ttl_seconds: int = 1800,
+        ttl_seconds: int = DEFAULT_PERMIT_TTL_SECONDS,
         now: datetime | None = None,
         **owner: Any,
     ) -> dict[str, Any]:
@@ -2703,7 +2726,7 @@ class AgentGovernanceLedger:
         self,
         task_id: str,
         permit_id: str,
-        ttl_seconds: int = 1800,
+        ttl_seconds: int = DEFAULT_PERMIT_TTL_SECONDS,
         now: datetime | None = None,
         **owner: Any,
     ) -> dict[str, Any]:
@@ -3415,31 +3438,41 @@ class AgentGovernanceLedger:
             )
         return normalized
 
-    def bootstrap(self) -> dict[str, Any]:
+    def bootstrap(self, now: datetime | None = None) -> dict[str, Any]:
         active: list[dict[str, Any]] = []
+        stale: list[dict[str, Any]] = []
+        current = _now(now)
         if self.tasks.is_dir():
             for path in sorted(self.tasks.glob("*.json")):
                 record = _load_json(path)
                 _validate_record(record)
                 if record.get("state") != "CLOSED":
-                    active.append(
-                        {
-                            "task_id": record.get("task_id"),
-                            "state": record.get("state"),
-                            "active_step": next(
-                                (
-                                    step["step_id"]
-                                    for step in record.get("plan", {}).get("steps", [])
-                                    if step.get("status") == "IN_PROGRESS"
-                                ),
-                                None,
+                    item = {
+                        "task_id": record.get("task_id"),
+                        "state": record.get("state"),
+                        "active_step": next(
+                            (
+                                step["step_id"]
+                                for step in record.get("plan", {}).get("steps", [])
+                                if step.get("status") == "IN_PROGRESS"
                             ),
-                            "worktree": record.get("worktree", {}).get("path"),
-                            "next_action": (
-                                "inspect task, retrieve listed authorities, and obey permit gate"
-                            ),
-                        }
+                            None,
+                        ),
+                        "worktree": record.get("worktree", {}).get("path"),
+                        "next_action": (
+                            "inspect task, retrieve listed authorities, and obey permit gate"
+                        ),
+                    }
+                    lease_expires = datetime.fromisoformat(
+                        record["owner"]["lease_expires"]
                     )
+                    if current >= lease_expires:
+                        item["next_action"] = (
+                            "recover exact task by CAS before resuming; it reserves no scope"
+                        )
+                        stale.append(item)
+                    else:
+                        active.append(item)
         v1_ids = _v1_task_ids(self.root)
         overlap = sorted({item["task_id"] for item in active}.intersection(v1_ids))
         if overlap:
@@ -3449,6 +3482,7 @@ class AgentGovernanceLedger:
         return {
             "schema_version": "pig.agent-bootstrap.v1",
             "active_tasks": active,
+            "stale_tasks": stale,
             "authority_scopes": sorted(
                 entry["scope"] for entry in index.get("entries", [])
             ),
@@ -3485,7 +3519,7 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("--owner-session", default=os.getenv(RUNTIME_SESSION_ENV))
     create.add_argument("--owner-token")
     create.add_argument("--worktree", type=Path, default=Path.cwd())
-    create.add_argument("--lease-seconds", type=int, default=1800)
+    create.add_argument("--lease-seconds", type=int, default=DEFAULT_LEASE_SECONDS)
     confirm = commands.add_parser("confirm-plan")
     confirm.add_argument("--task-id", required=True)
     confirm.add_argument("--confirmation-ref", required=True)
@@ -3501,7 +3535,11 @@ def build_parser() -> argparse.ArgumentParser:
     permit.add_argument("--task-id", required=True)
     permit.add_argument("--step-id", required=True)
     permit.add_argument("--effect", action="append", default=[])
-    permit.add_argument("--ttl-seconds", type=int, default=1800)
+    permit.add_argument(
+        "--ttl-seconds",
+        type=int,
+        default=DEFAULT_PERMIT_TTL_SECONDS,
+    )
     _owner_arguments(permit)
     advance = commands.add_parser("advance")
     advance.add_argument("--task-id", required=True)
@@ -3518,14 +3556,15 @@ def build_parser() -> argparse.ArgumentParser:
     _owner_arguments(advance)
     renew = commands.add_parser("renew")
     renew.add_argument("--task-id", required=True)
-    renew.add_argument("--lease-seconds", type=int, default=1800)
+    renew.add_argument("--lease-seconds", type=int, default=DEFAULT_LEASE_SECONDS)
     _owner_arguments(renew)
     recover = commands.add_parser("recover")
     recover.add_argument("--task-id", required=True)
     recover.add_argument("--expected-owner-session", required=True)
     recover.add_argument("--reason", required=True)
+    recover.add_argument("--owner-token", default=os.getenv("PIG_TASK_OWNER_TOKEN"))
     recover.add_argument("--new-owner-token")
-    recover.add_argument("--lease-seconds", type=int, default=1800)
+    recover.add_argument("--lease-seconds", type=int, default=DEFAULT_LEASE_SECONDS)
     recover.add_argument("--expected-revision", required=True, type=int)
     recover.add_argument("--expected-record-sha256", required=True)
     recover.add_argument("--worktree", type=Path, default=Path.cwd())
@@ -3536,7 +3575,7 @@ def build_parser() -> argparse.ArgumentParser:
     takeover.add_argument("--new-owner-token")
     takeover.add_argument("--new-worktree", type=Path, default=Path.cwd())
     takeover.add_argument("--reason", required=True)
-    takeover.add_argument("--lease-seconds", type=int, default=1800)
+    takeover.add_argument("--lease-seconds", type=int, default=DEFAULT_LEASE_SECONDS)
     takeover.add_argument("--expected-revision", required=True, type=int)
     takeover.add_argument("--expected-record-sha256", required=True)
     admin = commands.add_parser("admin-takeover")
@@ -3550,7 +3589,7 @@ def build_parser() -> argparse.ArgumentParser:
     admin.add_argument("--new-owner-token")
     admin.add_argument("--new-worktree", type=Path, default=Path.cwd())
     admin.add_argument("--reason", required=True)
-    admin.add_argument("--lease-seconds", type=int, default=1800)
+    admin.add_argument("--lease-seconds", type=int, default=DEFAULT_LEASE_SECONDS)
     admin.add_argument("--expected-revision", required=True, type=int)
     admin.add_argument("--expected-record-sha256", required=True)
     rebaseline = commands.add_parser("rebaseline-worktree-fingerprint")
@@ -3620,7 +3659,11 @@ def build_parser() -> argparse.ArgumentParser:
     renew_permit = commands.add_parser("renew-permit")
     renew_permit.add_argument("--task-id", required=True)
     renew_permit.add_argument("--permit-id", required=True)
-    renew_permit.add_argument("--ttl-seconds", type=int, default=1800)
+    renew_permit.add_argument(
+        "--ttl-seconds",
+        type=int,
+        default=DEFAULT_PERMIT_TTL_SECONDS,
+    )
     _owner_arguments(renew_permit)
     amend = commands.add_parser("amend-plan")
     amend.add_argument("--task-id", required=True)
@@ -3679,6 +3722,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.expected_record_sha256,
                 args.worktree,
                 args.reason,
+                owner_token=args.owner_token,
                 new_owner_token=args.new_owner_token,
                 lease_seconds=args.lease_seconds,
             )

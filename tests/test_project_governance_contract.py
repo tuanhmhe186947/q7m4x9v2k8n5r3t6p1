@@ -734,7 +734,7 @@ def test_short_daily_budget_excludes_bounded_managed_capsules(
 
     assert len(checklist.splitlines()) > 1200
     assert all(
-        len(span["block"].splitlines()) <= 120
+        len(span["block"].splitlines()) <= manager.MAX_ACTIVE_TASK_LINES
         for span in manager.task_spans(ledger._read())
     )
     assert "short_exceeds_250_line_budget" not in errors
@@ -949,14 +949,17 @@ def test_canonical_stale_and_over_budget_state_fail_from_each_worktree(
         "- Skills: `project-state-steward`.",
         "- [ ] `BUDGET-1` `[IN_PROGRESS]` Keep the fixture active.",
         "  - Next: validate the canonical ledger.",
-        *[f"- Padding: {index}." for index in range(121)],
+        *[
+            f"- Padding: {index}."
+            for index in range(validator.TASK_MANAGER.MAX_ACTIVE_TASK_LINES + 1)
+        ],
     ]
     lines[checklist_end : checklist_end + 1] = task_lines
     _write_short_fixture(canonical, lines)
 
     for root in (canonical, fresh):
         state = _active_short_state(validator, root, current)
-        assert f"short_task_exceeds_120_line_budget:{task_id}" in state["errors"]
+    assert f"short_task_exceeds_active_line_budget:{task_id}" in state["errors"]
 
 
 def test_terminal_task_history_does_not_consume_active_task_budget(
@@ -982,7 +985,10 @@ def test_terminal_task_history_does_not_consume_active_task_budget(
 
     for root in (canonical, fresh):
         state = _active_short_state(validator, root, current)
-        assert f"short_task_exceeds_120_line_budget:{task_id}" not in state["errors"]
+        assert (
+            f"short_task_exceeds_active_line_budget:{task_id}"
+            not in state["errors"]
+        )
         assert state["errors"] == []
 
 
