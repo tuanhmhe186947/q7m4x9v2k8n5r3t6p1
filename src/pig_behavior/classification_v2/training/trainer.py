@@ -190,7 +190,7 @@ def _run_training_impl(
             preprocessing_state,
         )
         probe = data.batch(train_indices[: min(len(train_indices), 2)])
-        model = _build_model(config, probe).to(device)
+        model = _build_model(config, probe, data).to(device)
         optimizer_groups, optimizer_group_contract = build_visual_optimizer_groups(
             model,
             learning_rate=config.optimization.learning_rate,
@@ -577,11 +577,16 @@ def _evaluate(
 
 
 def _build_model(
-    config: ClassificationV2TrainingConfig, probe: StrictTrainingBatch
+    config: ClassificationV2TrainingConfig,
+    probe: StrictTrainingBatch,
+    data: StrictTrainingDataModule,
 ) -> MultitaskFusionClassifier:
     """Derive tensor dimensions only from declared model branches, never arbitrary columns."""
 
-    validate_model_inputs(probe.model_inputs)
+    validate_model_inputs(
+        probe.model_inputs,
+        expected_keys=data.expected_model_input_keys,
+    )
     spatial = probe.model_inputs["spatial_features"]
     observed_spatial_dims = {name: int(value.shape[-1]) for name, value in spatial.items()}
     spatial_dims = observed_spatial_dims if config.model.enable_spatial else {}
