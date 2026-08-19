@@ -7,7 +7,7 @@
   "task_sha256": "e3f6e7adb4530c41a9a48b28bce6702c7927d2e6b6a24bcc2f62c3189384da51",
   "judge_sha256": "3ef4b59fce9a7a543821f403c27a1b9e5df447a4794f45a8de55237fb21c8935",
   "runner_sha256": "b8ca02a25bad68d1d3ef787ac9d1f6d497d11de2bf9f5c2eeb956ae83c5b0525",
-  "validator_sha256": "c9fb1352157e0e441fe76b766b76e7ea6c6b3f983aebc3e62567a2b0b95afc68",
+  "validator_sha256": "78984a14b0aeb3f5076499a9a19e8df3dae4679deb41634931b3a7224811a17e",
   "live_agent_suite": {
     "task_definition": "live_tasks.json",
     "trace_schema": "live_trace_schema.json",
@@ -29,7 +29,7 @@
       ".agents/evals/agent_governance/run_regression.py":
         "b114f8613be64cad27faf06ba3e2a31b2b006c40",
       ".agents/skills/project-state-steward/scripts/validate_governance_contracts.py":
-        "85b209a193c0d84b168c702d069c711a81f891f4"
+        "04f5987bca5c79ec95bd5bb8aa3c33709dcc5427"
     }
   },
   "minimum_runs": 3,

@@ -1,6 +1,6 @@
 {
   "generated_view": {
-    "inventory_sha256": "b8f653185bed222f3ca52d99cc5c3110ea1fe3cc502bec6c8d66eeb9194396bd",
+    "inventory_sha256": "68e3861f7f1112f1e44d8c48f25a4bb81468e0794ad73f2e4d191b0cae18cf80",
     "source": ".agents/skills/skill_inventory.json"
   },
   "mandatory_reasoning_routes": {
@@ -284,15 +284,15 @@
       ],
       "bundle_sha256": "f8fc2f8f0a3517ab4a29b8d8ab1a537196961a6fda514d4e519d6cffd8433530",
       "category": "governance",
-      "file_sha256": "f60280cf8057cbd9d70c6a1182b03eef468ba13f176f1fabad5bea49c28fde4a",
+      "file_sha256": "0d50ec8457cb730d5050c601b7e5b3b0c1f1ab2031cca1fae1f2370e9afcd012",
       "git_identity": {
-        "blob_oid": "d62127c723e09a25a8226775d81d3122c33ad1b7",
+        "blob_oid": "be24ba39108d735f196e46883c2e004ef4dde7d5",
         "bundle_blob_oids": {
-          "SKILL.md": "d62127c723e09a25a8226775d81d3122c33ad1b7",
+          "SKILL.md": "be24ba39108d735f196e46883c2e004ef4dde7d5",
           "agents/openai.yaml": "ad7e858415985989879cc0dacc05750ab887262c",
           "scripts/manage_memory_maturity.py": "b7744fac654e01d208a9eb1775e2ee6b1d965e41",
-          "scripts/manage_short_memory.py": "bfba0a2db837623110585b57bb8f3a3b8256b3ff",
-          "scripts/validate_governance_contracts.py": "85b209a193c0d84b168c702d069c711a81f891f4",
+          "scripts/manage_short_memory.py": "36a102c998fedcb6883689c1960899fcf4935f6c",
+          "scripts/validate_governance_contracts.py": "04f5987bca5c79ec95bd5bb8aa3c33709dcc5427",
           "scripts/validate_memory_contract_v2.py": "b3b1c855865bb48a10bf1c44cb2f2e896fcba302",
           "templates/memory_maturity_candidate.json": "06a09f387f46e66148d42020d7fa11f7d1541656"
         },
@@ -315,7 +315,7 @@
         "python",
         "pytest"
       ],
-      "version_or_commit": "a072e4a"
+      "version_or_commit": "d902fd2"
     },
     {
       "bundle_paths": [
