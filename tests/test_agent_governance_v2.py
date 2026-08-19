@@ -1942,6 +1942,85 @@ def test_shared_main_rejects_cross_runtime_overlapping_live_permits(
         )
 
 
+def test_shared_main_allows_cross_runtime_disjoint_live_permits(
+    manager: ModuleType,
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = packet(project)
+    first.update(task_id="SHARED-DISJOINT-PERMIT-01", worktree_mode="shared_main")
+    first["path_scope"] = ["src/alpha.py"]
+    ledger, first_record = create(manager, project, first)
+    first_record = confirm(ledger, first_record, project)
+    ledger.permit(
+        first_record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(first_record, project),
+    )
+
+    second_runtime = "runtime-session-2"
+    monkeypatch.setenv("CODEX_THREAD_ID", second_runtime)
+    second = packet(project)
+    second.update(task_id="SHARED-DISJOINT-PERMIT-02", worktree_mode="shared_main")
+    second["path_scope"] = ["src/beta.py"]
+    second_record = ledger.create(
+        second,
+        owner_session=second_runtime,
+        owner_token=TOKEN,
+        worktree=project,
+        now=NOW,
+    )
+    second_record = confirm(ledger, second_record, project)
+    granted = ledger.permit(
+        second_record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(second_record, project),
+    )
+    assert granted["active_permit"]["step_id"] == "S-1"
+
+
+def test_shared_main_allows_same_runtime_overlapping_live_permits(
+    manager: ModuleType,
+    project: Path,
+) -> None:
+    first = packet(project)
+    first.update(task_id="SHARED-SAME-RUNTIME-01", worktree_mode="shared_main")
+    first["path_scope"] = ["src/shared.py"]
+    ledger, first_record = create(manager, project, first)
+    first_record = confirm(ledger, first_record, project)
+    ledger.permit(
+        first_record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(first_record, project),
+    )
+
+    second = packet(project)
+    second.update(task_id="SHARED-SAME-RUNTIME-02", worktree_mode="shared_main")
+    second["path_scope"] = ["src/shared.py"]
+    second_record = ledger.create(
+        second,
+        owner_session=RUNTIME,
+        owner_token=TOKEN,
+        worktree=project,
+        now=NOW,
+    )
+    second_record = confirm(ledger, second_record, project)
+    granted = ledger.permit(
+        second_record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        now=NOW,
+        **owner(second_record, project),
+    )
+    assert granted["active_permit"]["step_id"] == "S-1"
+
+
 def test_expired_task_does_not_reserve_shared_main_scope(
     manager: ModuleType,
     project: Path,
