@@ -103,8 +103,8 @@ worktree binding, owner-token proof, lease, revision/hash CAS, and byte identity
 for every non-owned task. A Codex context handoff may rebind the runtime through
 `recover` when the caller proves the current owner token plus exact task ID,
 revision/hash CAS, and worktree. Lost-token recovery remains limited to the
-already-bound runtime. Use explicit `admin-takeover` only when neither proof path
-is available. Each ownership change adds a hash-bound audit event. Never
+already-bound `CODEX_THREAD_ID`. Use explicit `admin-takeover` only when neither
+proof path is available. Each ownership change adds a hash-bound audit event. Never
 `apply_patch` a managed block. Halt on stale CAS, unaudited takeover, worktree
 mismatch, or external task drift.
 

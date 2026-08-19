@@ -1002,10 +1002,18 @@ def test_merge_owner_conflict_still_fails_closed(
     manager: ModuleType,
     project: Path,
 ) -> None:
-    ledger, record = active_task(
+    ledger, record = create_confirm(
         manager,
         project,
         packet(project, "SYNTHETIC-MERGE-20260814-01"),
+    )
+    record = ledger.permit(
+        record["task_id"],
+        "S-1",
+        ["edit", "test"],
+        ttl_seconds=60,
+        now=NOW,
+        **owner(record, project),
     )
     task_path = "src/synthetic_adapter/merge.py"
     (project / task_path).parent.mkdir(parents=True, exist_ok=True)

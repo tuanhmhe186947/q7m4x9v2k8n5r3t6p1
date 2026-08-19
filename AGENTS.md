@@ -188,7 +188,8 @@ Rules:
   expired-lease `takeover`. A Codex context handoff may rebind the runtime
   through `recover` without new user confirmation when the caller proves the
   current owner token plus exact task ID, revision/hash CAS, and worktree.
-  Lost-token recovery remains limited to the already-bound runtime. Require
+  Lost-token recovery remains limited to the already-bound `CODEX_THREAD_ID`.
+  Require
   user-authorized `admin-takeover` only when neither proof path is available.
   Never edit a managed task block manually. Update only at phase boundaries;
   checkpoint `DONE` before the next step's first effect and attach evidence.
