@@ -1,0 +1,615 @@
+{
+  "artifact_hash_bindings": {
+    "aligned": true,
+    "bindings": [
+      {
+        "consumer_artifact": "full_t6_build_evidence",
+        "consumer_json_field": "artifacts.final_npz.sha256",
+        "declared_sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7",
+        "matched": true,
+        "source_artifact": "full_t6_spatial_bundle",
+        "source_sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7"
+      },
+      {
+        "consumer_artifact": "full_t6_build_evidence",
+        "consumer_json_field": "artifacts.row_manifest.sha256",
+        "declared_sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0",
+        "matched": true,
+        "source_artifact": "full_t6_row_manifest",
+        "source_sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0"
+      }
+    ]
+  },
+  "artifacts": {
+    "full_t6_build_evidence": {
+      "exists": true,
+      "json_hash_fields": [
+        "artifacts.final_npz.sha256",
+        "artifacts.row_manifest.sha256"
+      ],
+      "json_top_level_type": "dict",
+      "observed_json_hash_fields": {
+        "artifacts.final_npz.sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7",
+        "artifacts.row_manifest.sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0"
+      },
+      "observed_required_json_values": {
+        "active_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"
+      },
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\build_evidence.json",
+      "required": true,
+      "required_json_value_mismatches": {},
+      "required_json_values": {
+        "active_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"
+      },
+      "sha256": "96b6dc65ebfd41ff3e2ed512dc3ea47547c3d4b94911d1a1693196095763e61e",
+      "size_bytes": 36464,
+      "type": "json"
+    },
+    "full_t6_row_manifest": {
+      "columns": [
+        "row_index",
+        "target_id",
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "object_track_key",
+        "behavior",
+        "outer_fold_id",
+        "split",
+        "native_unit_id",
+        "matched_support_id",
+        "physical_frame_ids_json",
+        "observed_mask_json",
+        "source_row_kind"
+      ],
+      "dtypes": {
+        "behavior": "str",
+        "dataset_id": "str",
+        "matched_support_id": "float64",
+        "native_unit_id": "str",
+        "object_track_key": "str",
+        "observed_mask_json": "str",
+        "outer_fold_id": "str",
+        "physical_frame_ids_json": "str",
+        "row_index": "int64",
+        "source_row_kind": "str",
+        "source_type": "str",
+        "split": "str",
+        "target_id": "str",
+        "video_key": "str"
+      },
+      "duplicate_key_count": 0,
+      "exists": true,
+      "key_column": "target_id",
+      "key_set_sha256": "10760ea71d7fb45f60269a4f36fb1fa825b19fdc262ce7e7372c85e25e36864f",
+      "missing_required_columns": [],
+      "null_key_count": 0,
+      "ordered_key_hash_version": "newline_join_v1",
+      "ordered_key_sha256": "e80e47e9ac3aa2fabe2dd81bfcc9c43cad0f050c9d945fd7e94ff347208398c2",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_row_manifest.csv",
+      "required": true,
+      "row_count": 33287,
+      "sha256": "6737b4437074a1d4021d3749c980797c9dbf145691778d6a6b1075fcfacee6e0",
+      "size_bytes": 19218966,
+      "type": "csv",
+      "unique_key_count": 33287
+    },
+    "full_t6_spatial_bundle": {
+      "array_names": [
+        "adjacent_motion_pair_mask",
+        "bbox_rate_valid_mask",
+        "bbox_shape_n",
+        "bbox_xywh_n",
+        "direction_change_valid_mask",
+        "direction_valid_mask",
+        "frame_index_sequence",
+        "length_mask",
+        "motion_delta",
+        "motion_feature_available_mask",
+        "motion_feature_validity_mask",
+        "observed_mask",
+        "pen_validity_mask",
+        "roi_class_relation",
+        "roi_validity_mask",
+        "social_feature_validity_mask",
+        "social_relation",
+        "social_validity_mask",
+        "sparse_velocity_pair_mask",
+        "spatial_quality_mask",
+        "tangential_acceleration_valid_mask",
+        "valid_motion_pair_mask",
+        "vector_acceleration_valid_mask",
+        "velocity_valid_mask"
+      ],
+      "arrays": {
+        "adjacent_motion_pair_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "bbox_rate_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "bbox_shape_n": {
+          "dtype": "float32",
+          "finite_count": 399444,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            2
+          ]
+        },
+        "bbox_xywh_n": {
+          "dtype": "float32",
+          "finite_count": 798888,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            4
+          ]
+        },
+        "direction_change_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "direction_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "frame_index_sequence": {
+          "dtype": "int32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "length_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "motion_delta": {
+          "dtype": "float32",
+          "finite_count": 2396664,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            12
+          ]
+        },
+        "motion_feature_available_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "motion_feature_validity_mask": {
+          "dtype": "float32",
+          "finite_count": 2396664,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            12
+          ]
+        },
+        "observed_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "pen_validity_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "roi_class_relation": {
+          "dtype": "float32",
+          "finite_count": 3594996,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            18
+          ]
+        },
+        "roi_validity_mask": {
+          "dtype": "float32",
+          "finite_count": 599166,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            3
+          ]
+        },
+        "social_feature_validity_mask": {
+          "dtype": "float32",
+          "finite_count": 1997220,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            10
+          ]
+        },
+        "social_relation": {
+          "dtype": "float32",
+          "finite_count": 1997220,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6,
+            10
+          ]
+        },
+        "social_validity_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "sparse_velocity_pair_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "spatial_quality_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "tangential_acceleration_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "valid_motion_pair_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "vector_acceleration_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        },
+        "velocity_valid_mask": {
+          "dtype": "float32",
+          "finite_count": 199722,
+          "nonfinite_count": 0,
+          "shape": [
+            33287,
+            6
+          ]
+        }
+      },
+      "exists": true,
+      "first_axis_lengths": {
+        "adjacent_motion_pair_mask": 33287,
+        "bbox_rate_valid_mask": 33287,
+        "bbox_shape_n": 33287,
+        "bbox_xywh_n": 33287,
+        "direction_change_valid_mask": 33287,
+        "direction_valid_mask": 33287,
+        "frame_index_sequence": 33287,
+        "length_mask": 33287,
+        "motion_delta": 33287,
+        "motion_feature_available_mask": 33287,
+        "motion_feature_validity_mask": 33287,
+        "observed_mask": 33287,
+        "pen_validity_mask": 33287,
+        "roi_class_relation": 33287,
+        "roi_validity_mask": 33287,
+        "social_feature_validity_mask": 33287,
+        "social_relation": 33287,
+        "social_validity_mask": 33287,
+        "sparse_velocity_pair_mask": 33287,
+        "spatial_quality_mask": 33287,
+        "tangential_acceleration_valid_mask": 33287,
+        "valid_motion_pair_mask": 33287,
+        "vector_acceleration_valid_mask": 33287,
+        "velocity_valid_mask": 33287
+      },
+      "missing_required_arrays": [],
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\full_t6_canonical_46d_20260816\\full_t6_canonical_46d.npz",
+      "required": true,
+      "row_count": 33287,
+      "sha256": "fa4a9f26135271717115355b0ba2a71058b506d05e7cb70b560dca299f14b7d7",
+      "size_bytes": 16822477,
+      "type": "npz"
+    },
+    "partner_frame_context": {
+      "columns": [
+        "identifier_schema_version",
+        "scene_frame_uid",
+        "frame_uid",
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "source_video_key",
+        "source_video_path",
+        "clip_id",
+        "task_id",
+        "object_track_key",
+        "pig_id",
+        "track_id",
+        "frame_index",
+        "temporal_unit_key",
+        "image_width",
+        "image_height",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "bbox_valid",
+        "crop_path",
+        "interaction_partner_count",
+        "interaction_partner_ids",
+        "nearest_pig_id",
+        "nearest_track_id",
+        "nearest_dist_n",
+        "social_density_near_count",
+        "social_contact_count",
+        "requires_partner_context",
+        "review_include_in_training",
+        "review_training_action",
+        "lineage_scope",
+        "human_review_complete",
+        "image_context_id",
+        "image_context_source",
+        "resolved_media_path",
+        "resolved_media_exists",
+        "bbox_context_valid",
+        "full_frame_context_available",
+        "partner_context_available",
+        "image_context_loadable",
+        "image_context_error"
+      ],
+      "dtypes": {
+        "bbox_context_valid": "bool",
+        "bbox_valid": "bool",
+        "clip_id": "float64",
+        "crop_path": "float64",
+        "dataset_id": "str",
+        "frame_index": "int64",
+        "frame_uid": "str",
+        "full_frame_context_available": "bool",
+        "human_review_complete": "bool",
+        "identifier_schema_version": "str",
+        "image_context_error": "float64",
+        "image_context_id": "str",
+        "image_context_loadable": "bool",
+        "image_context_source": "str",
+        "image_height": "int64",
+        "image_width": "int64",
+        "interaction_partner_count": "int64",
+        "interaction_partner_ids": "str",
+        "lineage_scope": "str",
+        "nearest_dist_n": "float64",
+        "nearest_pig_id": "str",
+        "nearest_track_id": "int64",
+        "object_track_key": "str",
+        "partner_context_available": "bool",
+        "pig_id": "str",
+        "requires_partner_context": "bool",
+        "resolved_media_exists": "bool",
+        "resolved_media_path": "str",
+        "review_include_in_training": "bool",
+        "review_training_action": "str",
+        "scene_frame_uid": "str",
+        "social_contact_count": "int64",
+        "social_density_near_count": "int64",
+        "source_type": "str",
+        "source_video_key": "str",
+        "source_video_path": "float64",
+        "task_id": "float64",
+        "temporal_unit_key": "str",
+        "track_id": "int64",
+        "video_key": "str",
+        "x1": "float64",
+        "x2": "float64",
+        "y1": "float64",
+        "y2": "float64"
+      },
+      "exists": true,
+      "missing_required_columns": [],
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\image_context_v2\\image_frame_context_manifest.csv",
+      "required": true,
+      "row_count": 245680,
+      "sha256": "8f64804fabd1fa5438208689eaf249a73f868263880faa45c367d6d00a05e340",
+      "size_bytes": 277961058,
+      "type": "csv"
+    },
+    "rgb_window_index": {
+      "columns": [
+        "window_row",
+        "target_id",
+        "split",
+        "behavior",
+        "source_type",
+        "object_track_key"
+      ],
+      "dtypes": {
+        "behavior": "str",
+        "object_track_key": "str",
+        "source_type": "str",
+        "split": "str",
+        "target_id": "str",
+        "window_row": "int64"
+      },
+      "duplicate_key_count": 0,
+      "exists": true,
+      "key_column": "target_id",
+      "key_set_sha256": "10760ea71d7fb45f60269a4f36fb1fa825b19fdc262ce7e7372c85e25e36864f",
+      "missing_required_columns": [],
+      "null_key_count": 0,
+      "ordered_key_hash_version": "newline_join_v1",
+      "ordered_key_sha256": "e80e47e9ac3aa2fabe2dd81bfcc9c43cad0f050c9d945fd7e94ff347208398c2",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\m0_window_major_r128_t6\\m0_rgb_window_index.csv",
+      "required": true,
+      "row_count": 33287,
+      "sha256": "a6a02853931863b0a182083f28cf4e7fea5549606effb2d3a39dbba8a1b42fc9",
+      "size_bytes": 13264630,
+      "type": "csv",
+      "unique_key_count": 33287
+    },
+    "rgb_window_major_cache": {
+      "exists": true,
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\m0_window_major_r128_t6\\m0_rgb_window_major_u8.npy",
+      "required": true,
+      "sha256": "d77297574dacfbf7e1525e8c4c32470af54a260b717c6d6198e994d8ef766737",
+      "size_bytes": 19633471616,
+      "type": "binary"
+    },
+    "trainer_contract_v2": {
+      "exists": true,
+      "json_hash_fields": [],
+      "json_top_level_type": "dict",
+      "observed_json_hash_fields": {},
+      "observed_required_json_values": {
+        "version": "classification_v2_trainer_contract_v2"
+      },
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\configs\\classification_v2\\trainer_contract_v2.json",
+      "required": true,
+      "required_json_value_mismatches": {},
+      "required_json_values": {
+        "version": "classification_v2_trainer_contract_v2"
+      },
+      "sha256": "334c45301c307645a63179d3d14ed25a5e1037357c87e0e6d3833ab5cb0d71e8",
+      "size_bytes": 3317,
+      "type": "json"
+    },
+    "union_availability_mask": {
+      "exists": true,
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\m0_window_major_r128_t6\\m0_union_available_mask.npy",
+      "required": true,
+      "sha256": "baff122b7941acb8c397e0cbd8e2f1744c57cca95ca5055e862f349585aff393",
+      "size_bytes": 199850,
+      "type": "binary"
+    }
+  },
+  "contract_digest": "9258916c49db6d9be5e267c0b75549de7094889683ac365f6a53cc246c846f8a",
+  "contract_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\configs\\classification_v2\\data_contract_full_t6_v1.json",
+  "contract_version": "classification_v2_data_contract_full_t6_v1",
+  "errors": [],
+  "git_commit": "f54e4efe3a124802bc9991832f5832d17e920268",
+  "key_alignment": {
+    "aligned": true,
+    "group": [
+      "full_t6_row_manifest",
+      "rgb_window_index"
+    ],
+    "mismatched": [],
+    "ordered_key_hash_version": "newline_join_v1",
+    "ordered_key_sha256": {
+      "full_t6_row_manifest": "e80e47e9ac3aa2fabe2dd81bfcc9c43cad0f050c9d945fd7e94ff347208398c2",
+      "rgb_window_index": "e80e47e9ac3aa2fabe2dd81bfcc9c43cad0f050c9d945fd7e94ff347208398c2"
+    },
+    "source_artifact": "full_t6_row_manifest"
+  },
+  "key_coverage": {
+    "covered": true,
+    "groups": [
+      {
+        "covered": true,
+        "group": [
+          "rgb_window_index"
+        ],
+        "key_set_sha256": {
+          "rgb_window_index": "10760ea71d7fb45f60269a4f36fb1fa825b19fdc262ce7e7372c85e25e36864f"
+        },
+        "mismatched": [],
+        "source_artifact": "full_t6_row_manifest"
+      }
+    ],
+    "mismatched": []
+  },
+  "lineage_audit_artifact": "full_t6_build_evidence",
+  "model_input_audit": {},
+  "primary_key": "target_id",
+  "required_ordered_window_artifacts": [
+    "full_t6_row_manifest",
+    "rgb_window_index"
+  ],
+  "row_alignment": {
+    "aligned": true,
+    "expected_rows": 33287,
+    "group": [
+      "full_t6_row_manifest",
+      "full_t6_spatial_bundle",
+      "rgb_window_index"
+    ],
+    "row_counts": {
+      "full_t6_row_manifest": 33287,
+      "full_t6_spatial_bundle": 33287,
+      "rgb_window_index": 33287
+    }
+  },
+  "snapshot_id": "c2v2_732ae44bb845d7fb",
+  "snapshot_name": "classification_v2_full_t6_current_authority",
+  "snapshot_schema_version": "classification_v2.training_snapshot.v2"
+}
