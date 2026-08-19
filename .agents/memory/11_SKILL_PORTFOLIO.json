@@ -1,6 +1,6 @@
 {
   "generated_view": {
-    "inventory_sha256": "57ca24c751e96e55fb6cc0973c7b81de415e4227daf5705f8005d83a0a3eeb70",
+    "inventory_sha256": "b8f653185bed222f3ca52d99cc5c3110ea1fe3cc502bec6c8d66eeb9194396bd",
     "source": ".agents/skills/skill_inventory.json"
   },
   "mandatory_reasoning_routes": {
@@ -284,7 +284,7 @@
       ],
       "bundle_sha256": "f8fc2f8f0a3517ab4a29b8d8ab1a537196961a6fda514d4e519d6cffd8433530",
       "category": "governance",
-      "file_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc",
+      "file_sha256": "f60280cf8057cbd9d70c6a1182b03eef468ba13f176f1fabad5bea49c28fde4a",
       "git_identity": {
         "blob_oid": "d62127c723e09a25a8226775d81d3122c33ad1b7",
         "bundle_blob_oids": {
@@ -315,7 +315,7 @@
         "python",
         "pytest"
       ],
-      "version_or_commit": "826416c"
+      "version_or_commit": "a072e4a"
     },
     {
       "bundle_paths": [

@@ -588,8 +588,8 @@
         "do_not_invoke_for": "trivial questions"
       },
       "portfolio": {
-        "version_or_commit": "826416c",
-        "file_sha256": "d2fe080a0c3317833c0b4c3cda5ca116773954913023385e91fe457c28558ebc",
+        "version_or_commit": "a072e4a",
+        "file_sha256": "f60280cf8057cbd9d70c6a1182b03eef468ba13f176f1fabad5bea49c28fde4a",
         "bundle_paths": [
           "SKILL.md",
           "agents/openai.yaml",

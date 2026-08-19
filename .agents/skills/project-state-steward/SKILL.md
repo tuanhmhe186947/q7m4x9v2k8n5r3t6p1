@@ -100,14 +100,13 @@ rtk python <manager> rollover
 Retain the generated private owner token only in the owning live session; short
 memory stores only its SHA-256. The manager enforces an OS lock, atomic replace,
 worktree binding, owner-token proof, lease, revision/hash CAS, and byte identity
-for every non-owned task. If a crash loses the token, `recover` may rotate it
-during an active lease only when the recorded runtime owner matches the current
-`CODEX_THREAD_ID`. A different or unbound runtime requires explicit user
-authorization and `admin-takeover` with exact task ID, revision, hash, worktree,
-confirmation phrase, reason, and authorization reference. Each ownership change
-adds a hash-bound audit event. Never `apply_patch` a managed block. Halt on ID
-collision, stale CAS, unaudited active-lease takeover, runtime mismatch, or
-external task drift.
+for every non-owned task. A Codex context handoff may rebind the runtime through
+`recover` when the caller proves the current owner token plus exact task ID,
+revision/hash CAS, and worktree. Lost-token recovery remains limited to the
+already-bound runtime. Use explicit `admin-takeover` only when neither proof path
+is available. Each ownership change adds a hash-bound audit event. Never
+`apply_patch` a managed block. Halt on stale CAS, unaudited takeover, worktree
+mismatch, or external task drift.
 
 Compacted continuation steps must retain the full task ID before their `-99`
 suffix. A generic family prefix can collide with another compacted task.
