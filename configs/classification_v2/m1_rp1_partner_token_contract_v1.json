@@ -1,0 +1,123 @@
+{
+  "experiment": "M1-RP1",
+  "contract_version": "m1_rp1_partner_token_contract_v1",
+  "K": 2,
+  "selection_rule": "select up to K valid non-actor rows in the same source_type, dataset_id, video_key, scene_frame_uid, and frame_index; sort by axis_distance_n ascending, then object_track_key ascending",
+  "ranking_field": "axis_distance_n",
+  "ranking_field_definition": {
+    "formula": "sqrt((partner.cx_n - actor.cx_n)^2 + (partner.cy_n - actor.cy_n)^2)",
+    "canonical_metric_id": "image_axis_normalized_distance",
+    "canonical_metric_version": "classification_v2.image_axis_normalized_distance.v1",
+    "units": "axis_normalized_image_distance",
+    "tie_break": "canonical_partner_key_ascending",
+    "authority": "src/pig_behavior/classification_v2/features/spatial_semantics.py"
+  },
+  "partner_identifier": "object_track_key",
+  "actor_identifier": "object_track_key",
+  "actor_membership_source": "outputs/classification_v2/full_t6_canonical_46d_20260816/full_t6_row_manifest.csv",
+  "same_frame_grouping_columns": [
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "scene_frame_uid",
+    "frame_index"
+  ],
+  "input_columns": [
+    "actor.cx_n",
+    "actor.cy_n",
+    "actor.bw_n",
+    "actor.bh_n",
+    "actor.x1",
+    "actor.x2",
+    "actor.y1",
+    "actor.y2",
+    "actor.bbox_valid",
+    "partner.cx_n",
+    "partner.cy_n",
+    "partner.bw_n",
+    "partner.bh_n",
+    "partner.x1",
+    "partner.x2",
+    "partner.y1",
+    "partner.y2",
+    "partner.bbox_valid"
+  ],
+  "input_column_sources": {
+    "actor": "outputs/classification_v2/temporal_v2_canonical_authority_v1/sequence_frame_features.csv actor object_track_key row",
+    "partner": "outputs/classification_v2/temporal_v2_canonical_authority_v1/sequence_frame_features.csv same-frame non-actor object_track_key row"
+  },
+  "input_column_order": [
+    "relative_center_dx_n",
+    "relative_center_dy_n",
+    "relative_width_delta_n",
+    "relative_height_delta_n",
+    "axis_distance_n",
+    "bbox_iou"
+  ],
+  "token_columns": [
+    {
+      "name": "relative_center_dx_n",
+      "formula": "partner.cx_n - actor.cx_n",
+      "source_columns": ["cx_n"],
+      "source_scope": ["actor", "partner"]
+    },
+    {
+      "name": "relative_center_dy_n",
+      "formula": "partner.cy_n - actor.cy_n",
+      "source_columns": ["cy_n"],
+      "source_scope": ["actor", "partner"]
+    },
+    {
+      "name": "relative_width_delta_n",
+      "formula": "partner.bw_n - actor.bw_n",
+      "source_columns": ["bw_n"],
+      "source_scope": ["actor", "partner"]
+    },
+    {
+      "name": "relative_height_delta_n",
+      "formula": "partner.bh_n - actor.bh_n",
+      "source_columns": ["bh_n"],
+      "source_scope": ["actor", "partner"]
+    },
+    {
+      "name": "axis_distance_n",
+      "formula": "sqrt(relative_center_dx_n^2 + relative_center_dy_n^2)",
+      "source_columns": ["cx_n", "cy_n"],
+      "source_scope": ["actor", "partner"],
+      "canonical_metric_id": "image_axis_normalized_distance"
+    },
+    {
+      "name": "bbox_iou",
+      "formula": "intersection_area(actor_box, partner_box) / union_area(actor_box, partner_box)",
+      "source_columns": ["x1", "x2", "y1", "y2", "bbox_valid"],
+      "source_scope": ["actor", "partner"]
+    }
+  ],
+  "token_dim": 6,
+  "dtype": "float32",
+  "normalization": {
+    "type": "none",
+    "fit_scope": "not_applicable",
+    "reason": "cx_n, cy_n, bw_n, and bh_n are canonical normalized fields; relative geometry and IoU are deterministic bounded same-frame derivations",
+    "parameters": {},
+    "validation_statistics_used": false
+  },
+  "mask_semantics": {
+    "partner_valid_mask_shape": "[B,T,K]",
+    "valid_slot": "true only when actor and partner bbox_valid are true and every required source value is finite",
+    "padding_slot": "false",
+    "padding_value": 0.0,
+    "padding_is_real_partner": false,
+    "masked_aggregation": "invalid partner slots contribute zero weight and are excluded from the set mean",
+    "actor_missing_policy": "all K slots invalid and zero-filled"
+  },
+  "missing_partner_policy": "select fewer than K when available; zero-pad remaining slots and mark them invalid; if no valid partner exists, all slots are invalid",
+  "temporal_scope": "same M0 T6 only",
+  "future_information": false,
+  "partner_id_predictive_feature": false,
+  "source_authority": {
+    "canonical_frame_rows": "outputs/classification_v2/temporal_v2_canonical_authority_v1/sequence_frame_features.csv",
+    "canonical_t6_membership": "outputs/classification_v2/full_t6_canonical_46d_20260816/full_t6_row_manifest.csv",
+    "selection_tie_break_authority": "src/pig_behavior/classification_v2/features/spatial_semantics.py"
+  }
+}

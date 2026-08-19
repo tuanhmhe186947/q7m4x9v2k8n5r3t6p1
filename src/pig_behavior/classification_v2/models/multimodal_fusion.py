@@ -22,9 +22,7 @@ from pig_behavior.classification_v2.models.visual_backbones import (
 )
 
 MODEL_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v5_spatial_masks"
-_FEATURE_MASK_REQUIRED_GROUPS = frozenset(
-    {"motion_delta", "social_relation"}
-)
+_FEATURE_MASK_REQUIRED_GROUPS = frozenset({"motion_delta", "social_relation"})
 
 
 @dataclass(slots=True)
@@ -92,7 +90,10 @@ class ImageSequenceEncoder(nn.Module):
         clean_image = _masked_values(image, mask, branch_name="image")
         clean_image = self._normalize(clean_image)
         encoded = self.frame_encoder(
-            clean_image.reshape(batch_size * sequence_len, *image.shape[2:])
+            clean_image.reshape(
+                batch_size * sequence_len,
+                *image.shape[2:],
+            )
         )
         encoded = encoded.reshape(batch_size, sequence_len, -1)
         projected = self.temporal_projection(encoded)
@@ -186,20 +187,11 @@ class SpatialSequenceEncoder(nn.Module):
         missing = [name for name in self.branch_order if name not in features]
         if missing:
             raise ValueError(f"Missing spatial feature groups: {missing}")
-        required_masks = _FEATURE_MASK_REQUIRED_GROUPS.intersection(
-            self.branch_order
-        )
-        provided_masks = (
-            set()
-            if feature_validity_masks is None
-            else set(feature_validity_masks)
-        )
+        required_masks = _FEATURE_MASK_REQUIRED_GROUPS.intersection(self.branch_order)
+        provided_masks = set() if feature_validity_masks is None else set(feature_validity_masks)
         missing_masks = sorted(required_masks.difference(provided_masks))
         if missing_masks:
-            raise ValueError(
-                "Missing spatial feature validity masks: "
-                f"{missing_masks}"
-            )
+            raise ValueError(f"Missing spatial feature validity masks: {missing_masks}")
         first = features[self.branch_order[0]]
         if first.ndim != 3:
             raise ValueError(f"{self.branch_order[0]} must have shape [B, T, D]")
@@ -220,9 +212,11 @@ class SpatialSequenceEncoder(nn.Module):
                 raise ValueError(f"{name} sequence shape does not match first spatial group")
             expected_dim = self.config.input_dims[name]
             if value.shape[-1] != expected_dim:
-                raise ValueError(
-                    f"{name} feature dim {value.shape[-1]} does not match {expected_dim}"
+                msg = (
+                    f"{name} feature dim {value.shape[-1]} "
+                    f"does not match {expected_dim}"
                 )
+                raise ValueError(msg)
             explicit = (
                 None
                 if feature_validity_masks is None
@@ -253,11 +247,12 @@ class SpatialSequenceEncoder(nn.Module):
             branch = branch * feature_mask.any(dim=-1, keepdim=True).to(
                 branch.dtype
             )
-            projected.append(
+            branch_out = (
                 branch
                 if mask_delta is None
                 else branch + self.mask_branches[name](mask_delta)
             )
+            projected.append(branch_out)
         fused = self.projection(torch.cat(projected, dim=-1))
         return self.temporal_encoder(fused, mask, time_delta=time_delta)
 
@@ -294,10 +289,8 @@ class PartnerSetEncoder(nn.Module):
         if value.ndim == 2:
             value = value.unsqueeze(1)
         if value.ndim != 3 or value.shape[-1] != self.input_dim:
-            raise ValueError(
-                "partner features must have shape [B,D] or [B,K,D] with "
-                f"D={self.input_dim}"
-            )
+            msg = f"partner features must have shape [B,D] or [B,K,D] with D={self.input_dim}"
+            raise ValueError(msg)
         available = _set_mask(
             available_mask,
             value.shape[:2],
@@ -319,6 +312,90 @@ class PartnerSetEncoder(nn.Module):
         weights = valid.to(projected.dtype).unsqueeze(-1)
         pooled = (projected * weights).sum(dim=1)
         return pooled / weights.sum(dim=1).clamp_min(1.0)
+
+
+@dataclass(slots=True)
+class RelationalPartnerEncoderConfig:
+    token_dim: int = 6
+    k: int = 2
+    token_embedding_dim: int = 32
+    embedding_dim: int = 32
+    dropout: float = 0.0
+    temporal_encoder_name: str = "masked_tcn"
+    transformer_layers: int = 2
+    transformer_heads: int = 4
+
+
+class RelationalPartnerSequenceEncoder(nn.Module):
+    """Encode explicit actor-partner relational geometry sequences [B, T, K, D]."""
+
+    def __init__(self, config: RelationalPartnerEncoderConfig) -> None:
+        super().__init__()
+        self.config = config
+        self.frame_partner_encoder = PartnerSetEncoder(
+            input_dim=config.token_dim,
+            embedding_dim=config.token_embedding_dim,
+            dropout=config.dropout,
+        )
+        if config.token_embedding_dim != config.embedding_dim:
+            self.projection: nn.Module = nn.Sequential(
+                nn.Linear(config.token_embedding_dim, config.embedding_dim),
+                nn.LayerNorm(config.embedding_dim),
+                nn.GELU(),
+                nn.Dropout(config.dropout),
+            )
+        else:
+            self.projection = nn.Identity()
+
+        self.temporal_encoder = build_temporal_encoder(
+            config.temporal_encoder_name,
+            embedding_dim=config.embedding_dim,
+            dropout=config.dropout,
+            transformer_layers=config.transformer_layers,
+            transformer_heads=config.transformer_heads,
+        )
+
+    def forward(
+        self,
+        tokens: torch.Tensor,
+        *,
+        partner_mask: torch.Tensor,
+        length_mask: torch.Tensor,
+        observed_mask: torch.Tensor | None = None,
+        available_mask: torch.Tensor | None = None,
+        quality_mask: torch.Tensor | None = None,
+        time_delta: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Encode [B, T, K, D] relational tokens to [B, embedding_dim]."""
+        if tokens.ndim != 4:
+            raise ValueError("partner tokens must have shape [B, T, K, D]")
+        if tokens.shape[-1] != self.config.token_dim:
+            msg = f"partner token dimension {tokens.shape[-1]} != expected {self.config.token_dim}"
+            raise ValueError(msg)
+        batch_size, seq_len, k_dim, token_dim = tokens.shape
+        t_mask = _combined_mask(
+            length_mask,
+            observed_mask,
+            tokens.shape[:2],
+            available_mask=available_mask,
+            quality_mask=quality_mask,
+            branch_name="partner_tokens",
+        )
+
+        flat_tokens = tokens.reshape(batch_size * seq_len, k_dim, token_dim)
+        flat_partner_mask = partner_mask.reshape(batch_size * seq_len, k_dim)
+
+        flat_frame_valid = t_mask.reshape(batch_size * seq_len, 1)
+        flat_mask = flat_partner_mask.to(torch.bool) & flat_frame_valid
+
+        frame_encoded = self.frame_partner_encoder(
+            flat_tokens,
+            available_mask=flat_mask,
+        )
+        seq_encoded = frame_encoded.reshape(batch_size, seq_len, -1)
+        seq_projected = self.projection(seq_encoded)
+
+        return self.temporal_encoder(seq_projected, t_mask, time_delta=time_delta)
 
 
 class UnionCropEncoder(ImageSequenceEncoder):
@@ -393,6 +470,8 @@ class MultimodalFusionConfig:
     spatial_embedding_dim: int = 64
     interaction_embedding_dim: int = 32
     visual_context_embedding_dim: int = 64
+    partner_token_dim: int = 6
+    partner_embedding_dim: int = 32
     fusion_hidden_dim: int = 96
     dropout: float = 0.1
     temporal_encoder_name: str = "masked_tcn"
@@ -402,6 +481,7 @@ class MultimodalFusionConfig:
     enable_spatial: bool = True
     enable_interaction_context: bool | None = None
     enable_visual_context: bool = False
+    enable_partner_tokens: bool = False
 
 
 class MultimodalFusionClassifier(nn.Module):
@@ -461,9 +541,8 @@ class MultimodalFusionClassifier(nn.Module):
         interaction_dim = 0
         if interaction_enabled:
             if config.interaction_context_dim is None:
-                raise ValueError(
-                    "interaction_context_dim required when interaction branch is enabled"
-                )
+                msg = "interaction_context_dim required when interaction branch is enabled"
+                raise ValueError(msg)
             if config.interaction_context_dim <= 0:
                 raise ValueError("interaction_context_dim must be positive when provided")
             if config.interaction_embedding_dim <= 0:
@@ -493,7 +572,26 @@ class MultimodalFusionClassifier(nn.Module):
                 )
             )
             visual_context_dim = config.visual_context_embedding_dim
-        fused_dim = image_dim + spatial_dim + interaction_dim + visual_context_dim
+        self.partner_encoder: RelationalPartnerSequenceEncoder | None = None
+        partner_dim = 0
+        if config.enable_partner_tokens:
+            if config.partner_token_dim <= 0:
+                raise ValueError("partner_token_dim must be positive")
+            if config.partner_embedding_dim <= 0:
+                raise ValueError("partner_embedding_dim must be positive")
+            self.partner_encoder = RelationalPartnerSequenceEncoder(
+                RelationalPartnerEncoderConfig(
+                    token_dim=config.partner_token_dim,
+                    token_embedding_dim=config.partner_embedding_dim,
+                    embedding_dim=config.partner_embedding_dim,
+                    dropout=config.dropout,
+                    temporal_encoder_name=config.temporal_encoder_name,
+                    transformer_layers=config.transformer_layers,
+                    transformer_heads=config.transformer_heads,
+                )
+            )
+            partner_dim = config.partner_embedding_dim
+        fused_dim = image_dim + spatial_dim + interaction_dim + visual_context_dim + partner_dim
         self.fused_embedding_dim = int(fused_dim)
         self.classifier = nn.Sequential(
             FusionHead(fused_dim, config.fusion_hidden_dim, config.dropout),
@@ -527,6 +625,13 @@ class MultimodalFusionClassifier(nn.Module):
         visual_context_available_mask: torch.Tensor | None = None,
         visual_context_quality_mask: torch.Tensor | None = None,
         visual_context_time_delta: torch.Tensor | None = None,
+        partner_tokens: torch.Tensor | None = None,
+        partner_valid_mask: torch.Tensor | None = None,
+        partner_length_mask: torch.Tensor | None = None,
+        partner_observed_mask: torch.Tensor | None = None,
+        partner_available_mask: torch.Tensor | None = None,
+        partner_quality_mask: torch.Tensor | None = None,
+        partner_time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return logits shaped ``[B, num_classes]``.
 
@@ -560,6 +665,13 @@ class MultimodalFusionClassifier(nn.Module):
             visual_context_available_mask=visual_context_available_mask,
             visual_context_quality_mask=visual_context_quality_mask,
             visual_context_time_delta=visual_context_time_delta,
+            partner_tokens=partner_tokens,
+            partner_valid_mask=partner_valid_mask,
+            partner_length_mask=partner_length_mask,
+            partner_observed_mask=partner_observed_mask,
+            partner_available_mask=partner_available_mask,
+            partner_quality_mask=partner_quality_mask,
+            partner_time_delta=partner_time_delta,
         )
         return self.classifier(fused)
 
@@ -590,6 +702,13 @@ class MultimodalFusionClassifier(nn.Module):
         visual_context_available_mask: torch.Tensor | None = None,
         visual_context_quality_mask: torch.Tensor | None = None,
         visual_context_time_delta: torch.Tensor | None = None,
+        partner_tokens: torch.Tensor | None = None,
+        partner_valid_mask: torch.Tensor | None = None,
+        partner_length_mask: torch.Tensor | None = None,
+        partner_observed_mask: torch.Tensor | None = None,
+        partner_available_mask: torch.Tensor | None = None,
+        partner_quality_mask: torch.Tensor | None = None,
+        partner_time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return the shared late-fusion embedding before classification heads."""
 
@@ -638,9 +757,7 @@ class MultimodalFusionClassifier(nn.Module):
             if interaction_context_features is None:
                 raise ValueError("interaction_context_features required by model config")
             if interaction_context_available_mask is None:
-                raise ValueError(
-                    "interaction_context_available_mask required by model config"
-                )
+                raise ValueError("interaction_context_available_mask required by model config")
             if batch_size is not None and interaction_context_features.shape[0] != batch_size:
                 raise ValueError("interaction_context_features batch size mismatch")
             interaction_embedding = self.interaction_context_encoder(
@@ -665,6 +782,39 @@ class MultimodalFusionClassifier(nn.Module):
                 raise ValueError("visual context batch size mismatch")
             embeddings.append(visual_embedding)
             batch_size = int(visual_embedding.shape[0])
+        if self.partner_encoder is not None:
+            if partner_tokens is None or partner_valid_mask is None:
+                raise ValueError("partner_tokens and partner_valid_mask required by model config")
+            effective_partner_time_delta = (
+                partner_time_delta
+                if partner_time_delta is not None
+                else (
+                    spatial_time_delta
+                    if spatial_time_delta is not None
+                    else image_time_delta
+                )
+            )
+            partner_embedding = self.partner_encoder(
+                partner_tokens,
+                partner_mask=partner_valid_mask,
+                length_mask=(
+                    partner_length_mask
+                    if partner_length_mask is not None
+                    else length_mask
+                ),
+                observed_mask=(
+                    partner_observed_mask
+                    if partner_observed_mask is not None
+                    else observed_mask
+                ),
+                available_mask=partner_available_mask,
+                quality_mask=partner_quality_mask,
+                time_delta=effective_partner_time_delta,
+            )
+            if batch_size is not None and partner_embedding.shape[0] != batch_size:
+                raise ValueError("partner embedding batch size mismatch")
+            embeddings.append(partner_embedding)
+            batch_size = int(partner_embedding.shape[0])
         return torch.cat(embeddings, dim=-1)
 
 
@@ -771,6 +921,8 @@ __all__ = [
     "MultimodalFusionClassifier",
     "MultimodalFusionConfig",
     "PartnerSetEncoder",
+    "RelationalPartnerEncoderConfig",
+    "RelationalPartnerSequenceEncoder",
     "SpatialSequenceEncoder",
     "SpatialSequenceEncoderConfig",
     "UnionCropEncoder",

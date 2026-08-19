@@ -132,7 +132,7 @@ class FoldPreprocessingState:
                         f"feature validity shape mismatch for {group}: "
                         f"{tuple(explicit.shape)}:{tuple(values.shape)}"
                     )
-                feature_valid &= explicit
+                feature_valid = feature_valid & explicit
             if group in self.statistics:
                 statistics = self.statistics[group]
                 mean = torch.as_tensor(

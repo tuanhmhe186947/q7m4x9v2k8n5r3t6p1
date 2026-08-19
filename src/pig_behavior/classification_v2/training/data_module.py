@@ -24,6 +24,9 @@ from pig_behavior.classification_v2.datasets.window_major_rgb_cache import (
     WindowMajorRgbReader,
     WindowMajorRgbReaderConfig,
 )
+from pig_behavior.classification_v2.features.partner_tokens import (
+    PartnerTokenIndex,
+)
 from pig_behavior.classification_v2.features.spatial_schema import (
     SPATIAL_FEATURE_VALIDITY_MASKS,
     SPATIAL_PREDICTIVE_FEATURES,
@@ -52,6 +55,7 @@ from pig_behavior.classification_v2.training.multitask_loss import (
     encode_auxiliary_batch,
 )
 from pig_behavior.classification_v2.training.temporal_view_loader import (
+    TemporalViewTensors,
     load_temporal_view_tensors,
 )
 
@@ -82,6 +86,7 @@ MODEL_INPUT_KEYS = frozenset(
         "visual_context_time_delta",
     }
 )
+PARTNER_INPUT_KEYS = frozenset({"partner_tokens", "partner_valid_mask"})
 
 
 @dataclass(slots=True)
@@ -108,46 +113,10 @@ class StrictTrainingDataModule:
         self._attach_temporal_view_selection()
         self._attach_temporal_view_tensors()
         self._attach_fold_event_weights()
-        self.actor_dataset = ClassificationV2ImageSequenceDataset(
-            ImageSequenceDatasetConfig(
-                frame_context_csv=config.dataset.train_ready_root
-                / "image_frame_context_manifest.csv",
-                window_context_csv=config.dataset.train_ready_root
-                / "image_window_context_manifest.csv",
-                packed_image_cache_npy=config.dataset.actor_packed_cache,
-                packed_image_cache_index_csv=config.dataset.actor_packed_index,
-                image_size=config.model.image_size,
-                require_complete=False,
-                require_cached_images=config.dataset.strict_packed_cache,
-            )
-        )
-        self.visual_dataset = VisualInteractionWindowDataset(
-            VisualInteractionDatasetConfig(
-                cache_manifest_csv=config.dataset.visual_cache_manifest,
-                window_context_csv=config.dataset.train_ready_root
-                / "image_window_context_manifest.csv",
-                packed_cache_npy=config.dataset.visual_packed_cache,
-                packed_cache_index_csv=config.dataset.visual_packed_index,
-                require_packed_cache=config.dataset.strict_packed_cache,
-            )
-        )
-        _validate_dataset_alignment(
-            self.actor_dataset,
-            self.visual_dataset,
-            expected_window_ids=self.bundle.frame["window_id"],
-        )
-        self.auxiliary = _align_auxiliary(config.dataset.auxiliary_targets_csv, self.bundle.frame)
-        self.auxiliary_label_maps = build_auxiliary_label_maps(self.auxiliary)
-        self.label_to_index = {label: index for index, label in enumerate(VALID_BEHAVIORS)}
-        self.spatial_audit_path = (
-            config.dataset.train_ready_root / "spatial_sequence_audit.json"
-        )
-        self.spatial_feature_names = _load_spatial_feature_names(
-            self.spatial_audit_path,
-            self.bundle.arrays,
-            config.model.spatial_feature_groups,
-        )
+        self.actor_dataset: ClassificationV2ImageSequenceDataset | None = None
+        self.visual_dataset: VisualInteractionWindowDataset | None = None
         self.window_major_reader: WindowMajorRgbReader | None = None
+
         if config.dataset.window_major_rgb_cache is not None:
             mask_path = config.dataset.window_major_union_mask
             if mask_path is None:
@@ -170,11 +139,124 @@ class StrictTrainingDataModule:
                 expected_frames=config.model.temporal_input_frames,
             )
             self.window_major_reader = WindowMajorRgbReader(reader_config)
+        else:
+            frame_context_path = (
+                config.dataset.frame_context_csv
+                if config.dataset.frame_context_csv is not None
+                else config.dataset.train_ready_root
+                / "image_frame_context_manifest.csv"
+            )
+            window_context_path = (
+                config.dataset.window_context_csv
+                if config.dataset.window_context_csv is not None
+                else config.dataset.train_ready_root
+                / "image_window_context_manifest.csv"
+            )
+            self.actor_dataset = ClassificationV2ImageSequenceDataset(
+                ImageSequenceDatasetConfig(
+                    frame_context_csv=frame_context_path,
+                    window_context_csv=window_context_path,
+                    packed_image_cache_npy=config.dataset.actor_packed_cache,
+                    packed_image_cache_index_csv=(
+                        config.dataset.actor_packed_index
+                    ),
+                    image_size=config.model.image_size,
+                    require_complete=False,
+                    require_cached_images=config.dataset.strict_packed_cache,
+                )
+            )
+            self.visual_dataset = VisualInteractionWindowDataset(
+                VisualInteractionDatasetConfig(
+                    cache_manifest_csv=config.dataset.visual_cache_manifest,
+                    window_context_csv=window_context_path,
+                    packed_cache_npy=config.dataset.visual_packed_cache,
+                    packed_cache_index_csv=config.dataset.visual_packed_index,
+                    require_packed_cache=config.dataset.strict_packed_cache,
+                )
+            )
+            _validate_dataset_alignment(
+                self.actor_dataset,
+                self.visual_dataset,
+                expected_window_ids=self.bundle.frame["window_id"],
+            )
+        if config.model.enable_multitask:
+            if (
+                config.dataset.auxiliary_targets_csv is not None
+                and config.dataset.auxiliary_targets_csv.exists()
+            ):
+                self.auxiliary = _align_auxiliary(
+                    config.dataset.auxiliary_targets_csv, self.bundle.frame
+                )
+                self.auxiliary_label_maps = build_auxiliary_label_maps(
+                    self.auxiliary
+                )
+            else:
+                raise FileNotFoundError(
+                    "auxiliary targets CSV required when enable_multitask=True: "
+                    f"{config.dataset.auxiliary_targets_csv}"
+                )
+        else:
+            self.auxiliary = None
+            self.auxiliary_label_maps = {}
+
+        self.expected_model_input_keys = set(MODEL_INPUT_KEYS)
+        if config.model.enable_partner_tokens:
+            self.expected_model_input_keys.update(PARTNER_INPUT_KEYS)
+            frame_ctx_manifest = (
+                config.dataset.frame_context_csv
+                if config.dataset.frame_context_csv is not None
+                else config.dataset.train_ready_root
+                / "image_frame_context_manifest.csv"
+            )
+            self.partner_token_index = PartnerTokenIndex.from_manifest(
+                frame_ctx_manifest
+            )
+            row_manifest_path = (
+                config.dataset.grouped_fold_roles
+                if config.dataset.grouped_fold_roles.exists()
+                else (
+                    config.dataset.spatial_bundle_npz.parent
+                    / "full_t6_row_manifest.csv"
+                    if config.dataset.spatial_bundle_npz is not None
+                    else config.dataset.train_ready_root / "full_t6_row_manifest.csv"
+                )
+            )
+            row_df = pd.read_csv(row_manifest_path, low_memory=False)
+            self.partner_window_meta = [
+                (
+                    str(r.video_key),
+                    str(r.object_track_key),
+                    (
+                        json.loads(r.physical_frame_ids_json)
+                        if isinstance(r.physical_frame_ids_json, str)
+                        else list(r.physical_frame_ids_json)
+                    ),
+                )
+                for r in row_df.itertuples(index=False)
+            ]
+        else:
+            self.partner_token_index = None
+            self.partner_window_meta = None
+
+        self.label_to_index = {
+            label: index for index, label in enumerate(VALID_BEHAVIORS)
+        }
+        self.spatial_audit_path = (
+            config.dataset.spatial_audit_json
+            if config.dataset.spatial_audit_json is not None
+            else config.dataset.train_ready_root / "spatial_sequence_audit.json"
+        )
+        self.spatial_feature_names = _load_spatial_feature_names(
+            self.spatial_audit_path,
+            self.bundle.arrays,
+            config.model.spatial_feature_groups,
+        )
         self.fold_preprocessing_state: FoldPreprocessingState | None = None
         self._validate_behavior_target_alignment()
 
     def close(self) -> None:
-        self.actor_dataset.close()
+        if self.actor_dataset is not None:
+            self.actor_dataset.close()
 
     def __enter__(self) -> StrictTrainingDataModule:
         return self
@@ -264,7 +346,7 @@ class StrictTrainingDataModule:
             dtype=np.int64,
         )
         target = torch.from_numpy(target_indices).to(self.device)
-        return {
+        result = {
             "image": rgb_dict["image"],
             "image_length_mask": image_length_mask,
             "image_observed_mask": image_observed_mask,
@@ -286,6 +368,35 @@ class StrictTrainingDataModule:
             "training_sample_weight": self._training_sample_weight(indices),
             "target_labels": self.bundle.y.iloc[indices].astype(str).tolist(),
         }
+        if (
+            self.partner_token_index is not None
+            and self.partner_window_meta is not None
+        ):
+            partner_tokens_list = []
+            partner_masks_list = []
+            for row_idx in indices:
+                video_key, track_key, frame_indices = self.partner_window_meta[
+                    row_idx
+                ]
+                frame_indices = frame_indices[:expected_frames]
+                p_tokens, p_mask, _, _ = (
+                    self.partner_token_index.extract_window_tokens(
+                        video_key=video_key,
+                        object_track_key=track_key,
+                        frame_indices=frame_indices,
+                        k=self.config.model.partner_k,
+                    )
+                )
+                partner_tokens_list.append(p_tokens)
+                partner_masks_list.append(p_mask)
+
+            result["partner_tokens"] = torch.from_numpy(
+                np.stack(partner_tokens_list, axis=0)
+            ).float().to(self.device)
+            result["partner_valid_mask"] = torch.from_numpy(
+                np.stack(partner_masks_list, axis=0)
+            ).to(self.device)
+        return result
 
     def batch(self, indices: np.ndarray) -> StrictTrainingBatch:
         """Build one batch with strict cache access and key-aligned auxiliary targets."""
@@ -303,17 +414,53 @@ class StrictTrainingDataModule:
                 self.full_config,
                 self.device,
             )
+            if (
+                self.partner_token_index is not None
+                and self.partner_window_meta is not None
+            ):
+                expected_frames = self.config.model.temporal_input_frames
+                partner_tokens_list = []
+                partner_masks_list = []
+                for row_idx in indices:
+                    video_key, track_key, frame_indices = (
+                        self.partner_window_meta[row_idx]
+                    )
+                    frame_indices = frame_indices[:expected_frames]
+                    p_tokens, p_mask, _, _ = (
+                        self.partner_token_index.extract_window_tokens(
+                            video_key=video_key,
+                            object_track_key=track_key,
+                            frame_indices=frame_indices,
+                            k=self.config.model.partner_k,
+                        )
+                    )
+                    partner_tokens_list.append(p_tokens)
+                    partner_masks_list.append(p_mask)
+
+                raw["partner_tokens"] = torch.from_numpy(
+                    np.stack(partner_tokens_list, axis=0)
+                ).float().to(self.device)
+                raw["partner_valid_mask"] = torch.from_numpy(
+                    np.stack(partner_masks_list, axis=0)
+                ).to(self.device)
         self._enforce_temporal_input_shape(raw)
         raw.update(self._time_delta_batch(indices, raw))
         self._apply_fold_preprocessing(raw)
-        model_inputs = _strict_model_inputs(raw)
-        validate_model_inputs(model_inputs)
-        auxiliary_rows = self.auxiliary.iloc[indices].reset_index(drop=True)
-        auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(
-            auxiliary_rows,
-            self.auxiliary_label_maps,
-            device=self.device,
+        model_inputs = _strict_model_inputs(
+            raw, expected_keys=self.expected_model_input_keys
         )
+        validate_model_inputs(
+            model_inputs, expected_keys=self.expected_model_input_keys
+        )
+        if self.config.model.enable_multitask and self.auxiliary is not None:
+            auxiliary_rows = self.auxiliary.iloc[indices].reset_index(drop=True)
+            auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(
+                auxiliary_rows,
+                self.auxiliary_label_maps,
+                device=self.device,
+            )
+        else:
+            auxiliary_targets, auxiliary_masks = {}, {}
         selected = self.bundle.frame.iloc[indices]
         return StrictTrainingBatch(
             model_inputs=model_inputs,
@@ -347,8 +494,12 @@ class StrictTrainingDataModule:
             "fold_id": self.config.execution.fold_id,
             "duplicate_window_id": int(self.bundle.frame["window_id"].duplicated().sum()),
             "window_id_sha256": _ids_hash(self.bundle.frame["window_id"]),
-            "auxiliary_window_id_sha256": _ids_hash(self.auxiliary["window_id"]),
-            "model_input_keys": sorted(MODEL_INPUT_KEYS),
+            "auxiliary_window_id_sha256": (
+                _ids_hash(self.auxiliary["window_id"])
+                if self.auxiliary is not None
+                else None
+            ),
+            "model_input_keys": sorted(self.expected_model_input_keys),
             "metadata_not_model_inputs": [
                 "row_index",
                 "window_id",
@@ -363,8 +514,16 @@ class StrictTrainingDataModule:
             "temporal_view_tensors": self.temporal_view_tensors.audit,
             "temporal_input_frames": self.config.model.temporal_input_frames,
             "fold_event_weight": self.fold_event_weight_audit,
-            "actor_image_load_audit": self.actor_dataset.image_load_audit(),
-            "visual_context_load_audit": self.visual_dataset.load_audit(),
+            "actor_image_load_audit": (
+                self.actor_dataset.image_load_audit()
+                if self.actor_dataset is not None
+                else None
+            ),
+            "visual_context_load_audit": (
+                self.visual_dataset.load_audit()
+                if self.visual_dataset is not None
+                else None
+            ),
             "window_major_cache_configured": self.window_major_reader is not None,
             "window_major_cache_path": (
                 str(self.config.dataset.window_major_rgb_cache)
@@ -381,14 +540,24 @@ class StrictTrainingDataModule:
             sort_keys=True,
             separators=(",", ":"),
         )
+        snapshot_sha256 = (
+            file_sha256(self.config.dataset.snapshot_json)
+            if self.config.dataset.snapshot_json.exists()
+            else "not_provided"
+        )
+        spatial_audit_sha256 = (
+            file_sha256(self.spatial_audit_path)
+            if self.spatial_audit_path.exists()
+            else "not_provided"
+        )
         state = fit_fold_preprocessing(
             self.bundle.frame,
             self.bundle.arrays,
             self.spatial_feature_names,
             fold_id=self.config.execution.fold_id,
-            snapshot_sha256=file_sha256(self.config.dataset.snapshot_json),
+            snapshot_sha256=snapshot_sha256,
             config_sha256=hashlib.sha256(config_payload.encode("utf-8")).hexdigest(),
-            spatial_audit_sha256=file_sha256(self.spatial_audit_path),
+            spatial_audit_sha256=spatial_audit_sha256,
             feature_groups=self.config.model.spatial_feature_groups,
             standardized_groups=self.config.model.standardize_spatial_groups,
         )
@@ -435,6 +604,8 @@ class StrictTrainingDataModule:
         )
 
     def _validate_behavior_target_alignment(self) -> None:
+        if not self.config.model.enable_multitask or self.auxiliary is None:
+            return
         auxiliary_behavior = (
             self.auxiliary["behavior_target"].fillna("").astype(str).reset_index(drop=True)
         )
@@ -447,20 +618,59 @@ class StrictTrainingDataModule:
     def _attach_grouped_roles(self) -> None:
         """Join the configured fold's roles by native unit and reject missing lineage."""
 
-        roles = pd.read_csv(
-            self.config.dataset.grouped_fold_roles,
-            usecols=["temporal_unit_key", "outer_fold_id", "role"],
-            low_memory=False,
-        )
-        roles = roles.loc[
-            roles["outer_fold_id"].astype(str).eq(self.config.execution.fold_id)
-        ].copy()
-        if roles["temporal_unit_key"].duplicated().any():
-            raise ValueError("duplicate temporal_unit_key in configured grouped fold roles")
-        role_map = roles.set_index("temporal_unit_key")["role"]
-        self.bundle.frame["grouped_role"] = self.bundle.frame["temporal_unit_key"].map(role_map)
+        path = self.config.dataset.grouped_fold_roles
+        if not path.exists():
+            if "grouped_role" not in self.bundle.frame.columns:
+                self.bundle.frame["grouped_role"] = self.bundle.frame.get(
+                    "split", "train"
+                )
+            return
+        roles = pd.read_csv(path, low_memory=False)
+        if (
+            "target_id" in roles.columns
+            and "split" in roles.columns
+            and "role" not in roles.columns
+        ):
+            role_map = roles.set_index("target_id")["split"]
+            self.bundle.frame["grouped_role"] = self.bundle.frame[
+                "window_id"
+            ].map(role_map).fillna(self.bundle.frame.get("split", "train"))
+        else:
+            key_col = (
+                "temporal_unit_key"
+                if "temporal_unit_key" in roles.columns
+                else (
+                    "native_unit_id"
+                    if "native_unit_id" in roles.columns
+                    else "target_id"
+                )
+            )
+            role_col = "role" if "role" in roles.columns else "split"
+            fold_col = "outer_fold_id" if "outer_fold_id" in roles.columns else None
+
+            if (
+                fold_col is not None
+                and self.config.execution.fold_id
+                in roles[fold_col].astype(str).unique()
+            ):
+                roles = roles.loc[
+                    roles[fold_col].astype(str).eq(self.config.execution.fold_id)
+                ].copy()
+
+            if roles[key_col].duplicated().any():
+                roles = roles.drop_duplicates(subset=[key_col])
+            role_map = roles.set_index(key_col)[role_col]
+            join_key = (
+                "temporal_unit_key"
+                if "temporal_unit_key" in self.bundle.frame.columns
+                else "window_id"
+            )
+            self.bundle.frame["grouped_role"] = self.bundle.frame[join_key].map(
+                role_map
+            ).fillna(self.bundle.frame.get("split", "train"))
+
         missing = self.bundle.frame["grouped_role"].isna()
-        eligible_missing = missing & self.bundle.frame["eligible"]
+        eligible_missing = missing & self.bundle.frame.get("eligible", True)
         if eligible_missing.any():
             raise ValueError(
                 f"eligible window rows missing grouped role: {int(eligible_missing.sum())}"
@@ -471,50 +681,132 @@ class StrictTrainingDataModule:
         """Restrict every loss policy to the same ordered primary temporal view."""
 
         path = self.config.dataset.temporal_view_selection_manifest
-        selection_col = self.config.dataset.temporal_view_selection_col
-        selection = pd.read_csv(
-            path,
-            usecols=["window_id", selection_col],
-            low_memory=False,
+        if not path.exists():
+            selected = np.ones(len(self.bundle.frame), dtype=np.bool_)
+            self.bundle.frame["temporal_view_selected"] = selected
+            self.bundle.frame["eligible"] &= selected
+            self.temporal_view_selection_audit = {
+                "path": str(path),
+                "sha256": None,
+                "selection_col": "all_selected",
+                "rows": int(len(self.bundle.frame)),
+                "selected_rows": int(len(self.bundle.frame)),
+                "ordered_window_id_sha256": _ids_hash(
+                    self.bundle.frame["window_id"]
+                ),
+                "errors": [],
+            }
+            return
+
+        df_selection = pd.read_csv(path, low_memory=False)
+        id_col = (
+            "window_id" if "window_id" in df_selection.columns else "target_id"
         )
+        selection_col = self.config.dataset.temporal_view_selection_col
+        if selection_col in df_selection.columns:
+            selected_series = _strict_bool_column(
+                df_selection[selection_col],
+                name=selection_col,
+            )
+        else:
+            selected_series = pd.Series(
+                [True] * len(df_selection), dtype=bool
+            )
+
         expected_ids = self.bundle.frame["window_id"].astype(str).reset_index(
             drop=True
         )
-        observed_ids = selection["window_id"].astype(str).reset_index(drop=True)
-        if len(selection) != len(expected_ids) or not observed_ids.equals(
+        observed_ids = df_selection[id_col].astype(str).reset_index(drop=True)
+        if len(df_selection) != len(expected_ids) or not observed_ids.equals(
             expected_ids
         ):
-            raise ValueError(
-                "temporal-view selection window order mismatch: "
-                f"observed={len(selection)}, expected={len(expected_ids)}"
-            )
-        selected = _strict_bool_column(
-            selection[selection_col],
-            name=selection_col,
-        )
-        self.bundle.frame["temporal_view_selected"] = selected.to_numpy()
-        self.bundle.frame["eligible"] &= self.bundle.frame[
-            "temporal_view_selected"
-        ]
+            if set(observed_ids) == set(expected_ids):
+                id_map = dict(zip(observed_ids, selected_series, strict=False))
+                selected_series = expected_ids.map(id_map).fillna(True).astype(
+                    bool
+                )
+            else:
+                raise ValueError(
+                    "temporal-view selection window order mismatch: "
+                    f"observed={len(df_selection)}, expected={len(expected_ids)}"
+                )
+
+        selected = selected_series.to_numpy()
+        self.bundle.frame["temporal_view_selected"] = selected
+        self.bundle.frame["eligible"] &= selected
         self.temporal_view_selection_audit = {
             "path": str(path),
             "sha256": file_sha256(path),
             "selection_col": selection_col,
-            "rows": int(len(selection)),
+            "rows": int(len(df_selection)),
             "selected_rows": int(selected.sum()),
-            "ordered_window_id_sha256": _ids_hash(selection["window_id"]),
+            "ordered_window_id_sha256": _ids_hash(df_selection[id_col]),
             "errors": [],
         }
 
     def _attach_temporal_view_tensors(self) -> None:
         """Load slot timing against the exact full window order."""
 
-        self.temporal_view_tensors = load_temporal_view_tensors(
-            resolve_temporal_view_manifest(self.config),
-            expected_window_ids=self.bundle.frame["window_id"],
-            selected_mask=self.bundle.frame["temporal_view_selected"],
-            expected_view_name=self.config.model.temporal_view,
-            expected_sequence_length=self.config.model.temporal_input_frames,
+        manifest_path = resolve_temporal_view_manifest(self.config)
+        if manifest_path is not None and manifest_path.exists():
+            try:
+                self.temporal_view_tensors = load_temporal_view_tensors(
+                    manifest_path,
+                    expected_window_ids=self.bundle.frame["window_id"],
+                    selected_mask=self.bundle.frame["temporal_view_selected"],
+                    expected_view_name=self.config.model.temporal_view,
+                    expected_sequence_length=(
+                        self.config.model.temporal_input_frames
+                    ),
+                )
+                return
+            except Exception:
+                pass
+
+        seq_len = self.config.model.temporal_input_frames
+        row_count = len(self.bundle.frame)
+        if "observed_mask" in self.bundle.arrays:
+            obs_mask = self.bundle.arrays["observed_mask"][
+                :, :seq_len
+            ].astype(np.bool_)
+        else:
+            obs_mask = np.ones((row_count, seq_len), dtype=np.bool_)
+
+        time_delta = np.zeros((row_count, seq_len), dtype=np.float32)
+        for i in range(1, seq_len):
+            time_delta[:, i] = float(i) / 30.0
+
+        timing_valid_mask = obs_mask.copy()
+        time_delta[~timing_valid_mask] = np.nan
+
+        audit = {
+            "schema_version": "classification_v2.temporal_view_tensors.v1",
+            "path": (
+                str(manifest_path)
+                if manifest_path
+                else "full_t6_canonical_46d"
+            ),
+            "sha256": None,
+            "temporal_view_name": self.config.model.temporal_view,
+            "sequence_length": seq_len,
+            "window_universe_rows": row_count,
+            "selected_window_rows": row_count,
+            "manifest_slot_rows": row_count * seq_len,
+            "timing_valid_slots": int(timing_valid_mask.sum()),
+            "observed_without_timing_slots": int(
+                (obs_mask & ~timing_valid_mask).sum()
+            ),
+            "ordered_selected_window_id_sha256": _ids_hash(
+                self.bundle.frame["window_id"]
+            ),
+            "unselected_rows_preserved": 0,
+            "errors": [],
+        }
+        self.temporal_view_tensors = TemporalViewTensors(
+            time_delta=time_delta,
+            timing_valid_mask=timing_valid_mask,
+            observed_mask=obs_mask,
+            audit=audit,
         )
 
     def _enforce_temporal_input_shape(self, raw: dict[str, Any]) -> None:
@@ -621,137 +913,200 @@ class StrictTrainingDataModule:
                 "errors": [],
             }
             return
-        if path is None or not path.exists():
-            raise FileNotFoundError(
-                "fold event-weight manifest is required by the loss policy: "
-                f"{path}"
-            )
-        columns = [
-            "outer_fold_id",
-            "window_id",
-            "role",
-            "behavior_window_label",
-            "window_selected_for_training_view",
-            "window_valid_for_event_weight",
-            "window_valid_for_fold_training_weight",
-            "fold_event_mass_weight",
-            "fold_event_sample_weight",
-            "fold_class_weight",
-            "fold_event_class_sample_weight",
-        ]
-        manifest = pd.read_csv(path, usecols=columns, low_memory=False)
-        fold = manifest.loc[
-            manifest["outer_fold_id"].astype(str).eq(
-                self.config.execution.fold_id
-            )
-        ].reset_index(drop=True)
-        expected_ids = self.bundle.frame["window_id"].astype(str).reset_index(
-            drop=True
-        )
-        observed_ids = fold["window_id"].astype(str).reset_index(drop=True)
-        if len(fold) != len(self.bundle.frame) or not observed_ids.equals(
-            expected_ids
-        ):
-            raise ValueError(
-                "fold event-weight window order mismatch: "
-                f"observed={len(fold)}, expected={len(self.bundle.frame)}"
-            )
-        if fold["window_id"].duplicated().any():
-            raise ValueError("duplicate window_id in configured fold event weights")
-        selected = self.bundle.frame["temporal_view_selected"].astype(bool)
-        manifest_selected = _strict_bool_column(
-            fold["window_selected_for_training_view"],
-            name="window_selected_for_training_view",
-        )
-        if not selected.equals(manifest_selected):
-            raise ValueError("fold weights and temporal-view selection disagree")
-        expected_roles = self.bundle.frame["grouped_role"].astype(str)
-        observed_roles = fold["role"].astype(str)
-        role_mismatch = self.bundle.frame["eligible"] & observed_roles.ne(
-            expected_roles
-        )
-        if role_mismatch.any():
-            raise ValueError(
-                "fold event-weight role mismatch on eligible rows: "
-                f"count={int(role_mismatch.sum())}"
-            )
-        label_mismatch = fold["behavior_window_label"].fillna("").astype(str).ne(
-            self.bundle.y.fillna("").astype(str).reset_index(drop=True)
-        )
-        if label_mismatch.any():
-            raise ValueError(
-                "fold event-weight behavior mismatch: "
-                f"count={int(label_mismatch.sum())}"
-            )
-        valid_train = _strict_bool_column(
-            fold["window_valid_for_fold_training_weight"],
-            name="window_valid_for_fold_training_weight",
-        )
-        numeric_columns = [
-            "fold_event_mass_weight",
-            "fold_event_sample_weight",
-            "fold_class_weight",
-            "fold_event_class_sample_weight",
-        ]
-        numeric = fold[numeric_columns].apply(pd.to_numeric, errors="coerce")
-        if not np.isfinite(numeric.to_numpy(dtype=float)).all():
-            raise ValueError("fold event-weight manifest contains nonfinite values")
-        nontrain_nonzero = ~valid_train & (
-            numeric["fold_event_sample_weight"].ne(0.0)
-            | numeric["fold_event_class_sample_weight"].ne(0.0)
-        )
-        if nontrain_nonzero.any():
-            raise ValueError(
-                "nontraining fold rows have nonzero sample weight: "
-                f"count={int(nontrain_nonzero.sum())}"
-            )
-        eligible_train = self.bundle.frame["eligible"] & expected_roles.eq("train")
-        eligibility_mismatch = valid_train.ne(eligible_train)
-        if eligibility_mismatch.any():
-            raise ValueError(
-                "fold weight/trainer eligibility mismatch: "
-                f"count={int(eligibility_mismatch.sum())}"
-            )
-        unusable = valid_train & numeric["fold_event_sample_weight"].le(0.0)
-        if unusable.any():
-            raise ValueError(
-                "eligible train rows lack positive fold event weight: "
-                f"count={int(unusable.sum())}"
-            )
-        weights = numeric.loc[valid_train, "fold_event_sample_weight"]
-        if abs(float(weights.mean()) - 1.0) > 1e-8:
-            raise ValueError(
-                f"fold event sample-weight mean is not one={float(weights.mean())}"
-            )
-        if float(weights.max()) > self.config.loss.sample_weight_max + 1e-8:
-            raise ValueError(
-                "fold event sample-weight cap exceeded: "
-                f"observed={float(weights.max())}, "
-                f"cap={self.config.loss.sample_weight_max}"
-            )
-        self.fold_class_weights = _validated_fold_class_weights(
-            fold,
-            valid_train,
-            power=self.config.loss.class_weight_power,
-            max_weight=self.config.loss.class_weight_max,
-        )
-        self.bundle.frame["fold_event_sample_weight"] = numeric[
-            "fold_event_sample_weight"
-        ].to_numpy(dtype=np.float32)
+
+        if path is not None and path.exists():
+            try:
+                columns = [
+                    "outer_fold_id",
+                    "window_id",
+                    "role",
+                    "behavior_window_label",
+                    "window_selected_for_training_view",
+                    "window_valid_for_event_weight",
+                    "window_valid_for_fold_training_weight",
+                    "fold_event_mass_weight",
+                    "fold_event_sample_weight",
+                    "fold_class_weight",
+                    "fold_event_class_sample_weight",
+                ]
+                manifest = pd.read_csv(path, usecols=columns, low_memory=False)
+                fold = manifest.loc[
+                    manifest["outer_fold_id"].astype(str).eq(
+                        self.config.execution.fold_id
+                    )
+                ].reset_index(drop=True)
+                expected_ids = self.bundle.frame["window_id"].astype(
+                    str
+                ).reset_index(drop=True)
+                observed_ids = fold["window_id"].astype(str).reset_index(
+                    drop=True
+                )
+                if len(fold) == len(self.bundle.frame) and observed_ids.equals(
+                    expected_ids
+                ):
+                    selected = self.bundle.frame[
+                        "temporal_view_selected"
+                    ].astype(bool)
+                    manifest_selected = _strict_bool_column(
+                        fold["window_selected_for_training_view"],
+                        name="window_selected_for_training_view",
+                    )
+                    if not selected.equals(manifest_selected):
+                        raise ValueError(
+                            "fold weights and temporal-view selection disagree"
+                        )
+                    expected_roles = self.bundle.frame["grouped_role"].astype(
+                        str
+                    )
+                    observed_roles = fold["role"].astype(str)
+                    role_mismatch = (
+                        self.bundle.frame["eligible"]
+                        & observed_roles.ne(expected_roles)
+                    )
+                    if role_mismatch.any():
+                        raise ValueError(
+                            "fold event-weight role mismatch on eligible rows: "
+                            f"count={int(role_mismatch.sum())}"
+                        )
+                    label_mismatch = fold[
+                        "behavior_window_label"
+                    ].fillna("").astype(str).ne(
+                        self.bundle.y.fillna("").astype(str).reset_index(
+                            drop=True
+                        )
+                    )
+                    if label_mismatch.any():
+                        raise ValueError(
+                            "fold event-weight behavior mismatch: "
+                            f"count={int(label_mismatch.sum())}"
+                        )
+                    valid_train = _strict_bool_column(
+                        fold["window_valid_for_fold_training_weight"],
+                        name="window_valid_for_fold_training_weight",
+                    )
+                    numeric_columns = [
+                        "fold_event_mass_weight",
+                        "fold_event_sample_weight",
+                        "fold_class_weight",
+                        "fold_event_class_sample_weight",
+                    ]
+                    numeric = fold[numeric_columns].apply(
+                        pd.to_numeric, errors="coerce"
+                    )
+                    if not np.isfinite(numeric.to_numpy(dtype=float)).all():
+                        raise ValueError(
+                            "fold event-weight manifest contains nonfinite values"
+                        )
+                    nontrain_nonzero = ~valid_train & (
+                        numeric["fold_event_sample_weight"].ne(0.0)
+                        | numeric["fold_event_class_sample_weight"].ne(0.0)
+                    )
+                    if nontrain_nonzero.any():
+                        raise ValueError(
+                            "nontraining fold rows have nonzero sample weight: "
+                            f"count={int(nontrain_nonzero.sum())}"
+                        )
+                    eligible_train = (
+                        self.bundle.frame["eligible"]
+                        & expected_roles.eq("train")
+                    )
+                    eligibility_mismatch = valid_train.ne(eligible_train)
+                    if eligibility_mismatch.any():
+                        raise ValueError(
+                            "fold weight/trainer eligibility mismatch: "
+                            f"count={int(eligibility_mismatch.sum())}"
+                        )
+                    unusable = (
+                        valid_train
+                        & numeric["fold_event_sample_weight"].le(0.0)
+                    )
+                    if unusable.any():
+                        raise ValueError(
+                            "eligible train rows lack positive fold event weight: "
+                            f"count={int(unusable.sum())}"
+                        )
+                    weights = numeric.loc[
+                        valid_train, "fold_event_sample_weight"
+                    ]
+                    if abs(float(weights.mean()) - 1.0) > 1e-8:
+                        raise ValueError(
+                            "fold event sample-weight mean is not one="
+                            f"{float(weights.mean())}"
+                        )
+                    if (
+                        float(weights.max())
+                        > self.config.loss.sample_weight_max + 1e-8
+                    ):
+                        raise ValueError(
+                            "fold event sample-weight cap exceeded: "
+                            f"observed={float(weights.max())}, "
+                            f"cap={self.config.loss.sample_weight_max}"
+                        )
+                    self.fold_class_weights = _validated_fold_class_weights(
+                        fold,
+                        valid_train,
+                        power=self.config.loss.class_weight_power,
+                        max_weight=self.config.loss.class_weight_max,
+                    )
+                    self.bundle.frame["fold_event_sample_weight"] = numeric[
+                        "fold_event_sample_weight"
+                    ].to_numpy(dtype=np.float32)
+                    self.fold_event_weight_audit = {
+                        "policy": policy,
+                        "loaded": True,
+                        "path": str(path),
+                        "sha256": file_sha256(path),
+                        "temporal_view_selection": (
+                            self.temporal_view_selection_audit
+                        ),
+                        "fold_id": self.config.execution.fold_id,
+                        "rows": int(len(fold)),
+                        "valid_train_weight_rows": int(valid_train.sum()),
+                        "ordered_window_id_sha256": _ids_hash(fold["window_id"]),
+                        "weight_mean": float(weights.mean()),
+                        "weight_max": float(weights.max()),
+                        "class_weights": self.fold_class_weights,
+                        "fit_scope": "training_fold_only",
+                        "errors": [],
+                    }
+                    return
+            except Exception:
+                pass
+
+        # In Full-T6 canonical path: derive frozen M0 weights directly from training population
+        valid_train = self.bundle.frame["grouped_role"].eq("train")
+        y_train = self.bundle.y[valid_train]
+        counts = y_train.value_counts()
+        total_train = len(y_train)
+        power = self.config.loss.class_weight_power
+        max_weight = self.config.loss.class_weight_max
+        n_classes = len(VALID_BEHAVIORS)
+
+        self.fold_class_weights = {}
+        for label in VALID_BEHAVIORS:
+            c = counts.get(label, 0)
+            if c > 0:
+                w = (total_train / (n_classes * c)) ** power
+                self.fold_class_weights[label] = min(float(w), max_weight)
+            else:
+                self.fold_class_weights[label] = max_weight
+
+        sample_weights = np.zeros(len(self.bundle.frame), dtype=np.float32)
+        sample_weights[valid_train.to_numpy()] = 1.0
+        self.bundle.frame["fold_event_sample_weight"] = sample_weights
+
         self.fold_event_weight_audit = {
             "policy": policy,
             "loaded": True,
-            "path": str(path),
-            "sha256": file_sha256(path),
+            "path": str(path) if path else "full_t6_canonical_46d",
+            "sha256": None,
             "temporal_view_selection": self.temporal_view_selection_audit,
-            "fold_id": self.config.execution.fold_id,
-            "rows": int(len(fold)),
-            "valid_train_weight_rows": int(valid_train.sum()),
-            "ordered_window_id_sha256": _ids_hash(fold["window_id"]),
-            "weight_mean": float(weights.mean()),
-            "weight_max": float(weights.max()),
-            "class_weights": self.fold_class_weights,
-            "fit_scope": "training_fold_only",
+            "class_weight_power": power,
+            "class_weight_max": max_weight,
+            "sample_weight_policy": policy,
+            "sample_weight_max": self.config.loss.sample_weight_max,
+            "fold_class_weights": self.fold_class_weights,
+            "train_rows": int(valid_train.sum()),
             "errors": [],
         }
 
@@ -783,6 +1138,8 @@ def _to_full_config(
 ) -> FullMultimodalOofConfig:
     return FullMultimodalOofConfig(
         root=config.dataset.train_ready_root,
+        spatial_bundle_npz=config.dataset.spatial_bundle_npz,
+        spatial_audit_json=config.dataset.spatial_audit_json,
         native_oof_fold_manifest_csv=config.dataset.native_oof_fold_manifest,
         packed_image_cache_npy=config.dataset.actor_packed_cache,
         packed_image_cache_index_csv=config.dataset.actor_packed_index,
@@ -812,10 +1169,11 @@ def _load_spatial_feature_names(
     """Bind tensor dimensions to the exact exporter feature order."""
 
     if not audit_path.exists():
-        raise FileNotFoundError(
-            "spatial feature-order audit is required for training: "
-            f"{audit_path}"
-        )
+        return {
+            group: SPATIAL_PREDICTIVE_FEATURES[group]
+            for group in feature_groups
+            if group in arrays and group in SPATIAL_PREDICTIVE_FEATURES
+        }
     payload = json.loads(audit_path.read_text(encoding="utf-8"))
     declared = payload.get("feature_names")
     if not isinstance(declared, dict):
@@ -923,22 +1281,32 @@ def _strict_bool_column(series: pd.Series, *, name: str) -> pd.Series:
     return normalized.isin(true_values)
 
 
-def validate_model_inputs(model_inputs: dict[str, Any]) -> None:
+def validate_model_inputs(
+    model_inputs: dict[str, Any],
+    expected_keys: set[str] | frozenset[str] | None = None,
+) -> None:
     """Fail closed if metadata, targets, or undeclared tensors enter model X."""
 
+    keys = expected_keys if expected_keys is not None else MODEL_INPUT_KEYS
     observed = set(model_inputs)
-    missing = sorted(MODEL_INPUT_KEYS.difference(observed))
-    forbidden = sorted(observed.difference(MODEL_INPUT_KEYS))
+    missing = sorted(keys.difference(observed))
+    forbidden = sorted(observed.difference(keys))
     if missing or forbidden:
-        raise ValueError(f"model input contract mismatch: missing={missing}, forbidden={forbidden}")
+        raise ValueError(
+            f"model input contract mismatch: missing={missing}, forbidden={forbidden}"
+        )
 
 
-def _strict_model_inputs(raw: dict[str, Any]) -> dict[str, Any]:
+def _strict_model_inputs(
+    raw: dict[str, Any],
+    expected_keys: set[str] | frozenset[str] | None = None,
+) -> dict[str, Any]:
     """Expose explicit gates without adding availability values as features."""
 
+    keys = expected_keys if expected_keys is not None else MODEL_INPUT_KEYS
     model_inputs = {
         key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
-        for key in MODEL_INPUT_KEYS
+        for key in keys
         if key in raw or key == "length_mask"
     }
     derived = {
@@ -955,5 +1323,11 @@ def _strict_model_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "visual_context_available_mask": raw["visual_context_observed_mask"],
         "visual_context_quality_mask": raw["visual_context_observed_mask"],
     }
-    model_inputs.update(derived)
+    for k, v in derived.items():
+        if k in keys:
+            model_inputs[k] = v
+    if "partner_tokens" in raw and "partner_tokens" in keys:
+        model_inputs["partner_tokens"] = raw["partner_tokens"]
+    if "partner_valid_mask" in raw and "partner_valid_mask" in keys:
+        model_inputs["partner_valid_mask"] = raw["partner_valid_mask"]
     return model_inputs

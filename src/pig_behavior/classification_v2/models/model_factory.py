@@ -66,6 +66,8 @@ class ModelModeSpec:
     enable_interaction_context: bool
     enable_visual_context: bool
     enable_multitask: bool
+    enable_partner_tokens: bool = False
+    enable_partner_tokens: bool = False
     allowed_temporal_encoders: frozenset[str] = TEMPORAL_ENCODER_NAMES
 
 
@@ -161,6 +163,16 @@ MODEL_MODE_REGISTRY: dict[str, ModelModeSpec] = {
         enable_visual_context=True,
         enable_multitask=False,
     ),
+    "full_multimodal_relational_partner": ModelModeSpec(
+        name="full_multimodal_relational_partner",
+        spatial_feature_groups=ALL_SPATIAL_GROUPS,
+        enable_image=True,
+        enable_spatial=True,
+        enable_interaction_context=True,
+        enable_visual_context=True,
+        enable_partner_tokens=True,
+        enable_multitask=False,
+    ),
     "full_multimodal_hierarchy": ModelModeSpec(
         name="full_multimodal_hierarchy",
         spatial_feature_groups=ALL_SPATIAL_GROUPS,
@@ -201,6 +213,7 @@ class ModelConfigLike(Protocol):
     enable_interaction_context: bool
     enable_visual_context: bool
     enable_multitask: bool
+    enable_partner_tokens: bool = False
 
 
 def model_mode_spec(name: str) -> ModelModeSpec:
@@ -233,19 +246,19 @@ def model_mode_errors(config: ModelConfigLike) -> list[str]:
         "enable_interaction_context",
         "enable_visual_context",
         "enable_multitask",
+        "enable_partner_tokens",
     ):
         expected = getattr(spec, field)
-        observed = bool(getattr(config, field))
+        observed = bool(getattr(config, field, False))
         if observed != expected:
-            errors.append(
-                f"model_mode_flag_mismatch={field}:"
-                f"expected:{expected},observed:{observed}"
-            )
+            msg = f"model_mode_flag_mismatch={field}:expected:{expected},observed:{observed}"
+            errors.append(msg)
     if config.temporal_encoder_name not in spec.allowed_temporal_encoders:
-        errors.append(
-            "model_mode_temporal_encoder_mismatch="
+        msg = (
+            f"model_mode_temporal_encoder_mismatch="
             f"mode:{spec.name},encoder:{config.temporal_encoder_name}"
         )
+        errors.append(msg)
     errors.extend(
         visual_backbone_errors(
             config.backbone_name,
@@ -290,10 +303,11 @@ def build_multimodal_model(
         )
     ]
     if dimension_errors:
-        raise ValueError(
+        msg = (
             "model input dimensions do not match canonical spatial schema: "
             f"{dimension_errors}"
         )
+        raise ValueError(msg)
     if spec.enable_interaction_context and interaction_context_dim is None:
         raise ValueError("model mode requires interaction_context_dim")
     if not spec.enable_interaction_context:
@@ -318,6 +332,9 @@ def build_multimodal_model(
             enable_spatial=spec.enable_spatial,
             enable_interaction_context=spec.enable_interaction_context,
             enable_visual_context=spec.enable_visual_context,
+            enable_partner_tokens=spec.enable_partner_tokens,
+            partner_token_dim=int(getattr(config, "partner_token_dim", 6)),
+            partner_embedding_dim=max(8, config.hidden_dim // 2),
         ),
         enable_auxiliary_heads=spec.enable_multitask,
     )
@@ -330,15 +347,14 @@ def model_parameter_report(model: nn.Module) -> dict[str, Any]:
         name: int(sum(parameter.numel() for parameter in module.parameters()))
         for name, module in sorted(model.named_children())
     }
+    trainable_count = sum(
+        parameter.numel()
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    )
     return {
         "total": int(sum(parameter.numel() for parameter in model.parameters())),
-        "trainable": int(
-            sum(
-                parameter.numel()
-                for parameter in model.parameters()
-                if parameter.requires_grad
-            )
-        ),
+        "trainable": int(trainable_count),
         "by_top_level_module": by_module,
     }
 
@@ -355,6 +371,7 @@ def model_mode_contract(name: str) -> dict[str, Any]:
         "enable_interaction_context": spec.enable_interaction_context,
         "enable_visual_context": spec.enable_visual_context,
         "enable_multitask": spec.enable_multitask,
+        "enable_partner_tokens": spec.enable_partner_tokens,
         "allowed_temporal_encoders": sorted(spec.allowed_temporal_encoders),
         "availability_encoded_as_behavior_feature": False,
     }

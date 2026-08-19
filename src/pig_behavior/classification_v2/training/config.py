@@ -80,6 +80,10 @@ class DatasetConfig:
     window_major_rgb_cache: Path | None = None
     window_major_union_mask: Path | None = None
     window_major_window_index: Path | None = None
+    spatial_bundle_npz: Path | None = None
+    spatial_audit_json: Path | None = None
+    frame_context_csv: Path | None = None
+    window_context_csv: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +111,10 @@ class ModelConfig:
     enable_interaction_context: bool = True
     enable_visual_context: bool = True
     enable_multitask: bool = True
+    enable_partner_tokens: bool = False
+    partner_token_dim: int = 6
+    partner_k: int = 2
+    partner_embedding_dim: int = 32
 
 
 @dataclass(frozen=True, slots=True)
@@ -494,6 +502,7 @@ def _infer_legacy_model_mode(payload: dict[str, Any]) -> str:
         ),
         "enable_visual_context": bool(payload.get("enable_visual_context", True)),
         "enable_multitask": bool(payload.get("enable_multitask", True)),
+        "enable_partner_tokens": bool(payload.get("enable_partner_tokens", False)),
     }
     candidates = [
         name
@@ -507,6 +516,7 @@ def _infer_legacy_model_mode(payload: dict[str, Any]) -> str:
                 "enable_interaction_context",
                 "enable_visual_context",
                 "enable_multitask",
+                "enable_partner_tokens",
             )
         )
         and not (

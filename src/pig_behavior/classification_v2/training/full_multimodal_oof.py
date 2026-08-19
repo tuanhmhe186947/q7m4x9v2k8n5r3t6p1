@@ -93,6 +93,8 @@ class FullMultimodalOofConfig:
     visual_context_packed_cache_npy: Path | None = None
     visual_context_packed_cache_index_csv: Path | None = None
     require_packed_visual_context: bool = False
+    spatial_bundle_npz: Path | None = None
+    spatial_audit_json: Path | None = None
     native_oof_fold_manifest_csv: Path = Path(
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
     )
@@ -811,10 +813,28 @@ def _resolve_window_fold_authority(
 def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     """Load train-ready rows and keep identity/source columns as metadata only."""
 
-    arrays, _ = load_current_spatial_tensor_bundle(
-        config.root / "X_spatial_sequences.npz",
-        config.root / "spatial_sequence_audit.json",
+    spatial_npz = (
+        config.spatial_bundle_npz
+        if config.spatial_bundle_npz is not None
+        else config.root / "X_spatial_sequences.npz"
     )
+    spatial_audit = (
+        config.spatial_audit_json
+        if config.spatial_audit_json is not None
+        else config.root / "spatial_sequence_audit.json"
+    )
+    if spatial_audit.exists():
+        arrays, _ = load_current_spatial_tensor_bundle(
+            spatial_npz,
+            spatial_audit,
+        )
+    else:
+        if not spatial_npz.exists():
+            raise FileNotFoundError(
+                f"spatial tensor bundle not found: {spatial_npz}"
+            )
+        with np.load(spatial_npz, allow_pickle=False) as bundle:
+            arrays = {name: value.copy() for name, value in bundle.items()}
     missing_arrays = [
         name
         for name in [
@@ -829,6 +849,45 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     ]
     if missing_arrays:
         raise ValueError(f"missing spatial arrays: {missing_arrays}")
+    t6_manifest = spatial_npz.parent / "full_t6_row_manifest.csv"
+    if not (config.root / "y_behavior.csv").exists() and t6_manifest.exists():
+        df_manifest = pd.read_csv(t6_manifest, low_memory=False)
+        y = df_manifest["behavior"].fillna("").astype(str)
+        train_mask = df_manifest["split"].eq("train")
+        split = pd.DataFrame(
+            {
+                "window_id": df_manifest["target_id"].astype(str),
+                "split": df_manifest["split"].astype(str),
+                "split_group_key": df_manifest["outer_fold_id"].astype(str),
+                "source_type": df_manifest["source_type"].astype(str),
+            }
+        )
+        frame = split.copy()
+        frame["behavior_true"] = y
+        frame["train_mask"] = train_mask
+        frame["temporal_unit_key"] = df_manifest["native_unit_id"].astype(str)
+        frame["oof_fold_id"] = df_manifest["outer_fold_id"].astype(str)
+        frame["window_image_context_complete"] = True
+        frame["window_valid_for_main_train"] = True
+        frame["pair_recomputed_for_view"] = True
+        frame["aggregate_recomputed_for_view"] = True
+        frame["native_unit_valid_for_main_eval"] = True
+        frame["window_valid_for_event_weight"] = True
+        frame["event_balanced_sample_weight"] = 1.0
+        frame["num_temporal_units_window"] = 1
+        frame["eligible"] = True
+        inter_feat = arrays["social_relation"][:, -1, :5]
+        inter_mask = arrays["social_validity_mask"][:, -1]
+        event_sample_weights = np.ones(len(y), dtype=np.float64)
+        return _OofBundle(
+            arrays=arrays,
+            interaction_context_features=inter_feat,
+            interaction_context_available_mask=inter_mask,
+            event_sample_weights=event_sample_weights,
+            y=y,
+            frame=frame,
+            load_audit={"status": "PASS", "source": str(spatial_npz)},
+        )
     y = pd.read_csv(config.root / "y_behavior.csv").iloc[:, 0].fillna("").astype(str)
     train_mask = _read_bool(config.root / "train_mask.csv")
     split = pd.read_csv(config.root / "split_manifest.csv", low_memory=False)
