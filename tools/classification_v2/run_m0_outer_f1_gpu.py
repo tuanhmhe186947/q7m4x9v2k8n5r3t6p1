@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import random
+import shutil
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -41,6 +42,7 @@ EXPECTED_PARAM_COUNT = 43136168
 EXPECTED_TRAIN_COUNT = 18694
 EXPECTED_TEST_COUNT = 14593
 HELDOUT_DATE = "2019-11-29"
+FULL_EPOCH_BUDGET = 30
 DATA_EXTERNAL_PREFIX = "EXTERNAL_M0_F1_DATA_ROOT"
 RGB_EXTERNAL_PREFIX = "EXTERNAL_M0_F1_RGB_ROOT"
 
@@ -195,6 +197,13 @@ def _save_checkpoint(
     optimizer: torch.optim.Optimizer,
     metrics: dict[str, Any],
     config: ClassificationV2TrainingConfig,
+    selection_policy: str,
+    selected_completed_epochs: int,
+    selected_epoch_index: int,
+    outer_test_used_for_selection: bool,
+    scientific_outer_test_evaluated: bool,
+    scientific_result: bool,
+    purpose: str,
 ) -> None:
     torch.save(
         {
@@ -205,6 +214,13 @@ def _save_checkpoint(
             "seed": SEED,
             "fold": "F1",
             "config": training_config_to_jsonable(config),
+            "selection_policy": selection_policy,
+            "selected_completed_epochs": selected_completed_epochs,
+            "selected_epoch_index": selected_epoch_index,
+            "outer_test_used_for_selection": outer_test_used_for_selection,
+            "scientific_outer_test_evaluated": scientific_outer_test_evaluated,
+            "scientific_result": scientific_result,
+            "purpose": purpose,
         },
         path,
     )
@@ -234,7 +250,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         optimization=replace(
             config.optimization,
-            epochs=2 if args.preflight else config.optimization.epochs,
+            epochs=2 if args.preflight else FULL_EPOCH_BUDGET,
         ),
     )
     random.seed(SEED)
@@ -304,8 +320,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         output_dir = _repo_path(args.output_dir or default_output).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, Any]] = []
-        best_score: tuple[float, float] | None = None
-        stale_epochs = 0
         global_step = 0
         for epoch in range(runtime_config.optimization.epochs):
             train_result, global_step = _train_epoch(
@@ -322,26 +336,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 epoch=epoch,
                 global_step=global_step,
             )
-            _, _, val_metrics, _ = _evaluate(
-                model, data, test_indices, runtime_config, device, split="test"
-            )
-            macro_f1 = float(val_metrics["test_native_unit_macro_f1_global"])
-            nll = float(val_metrics["test_native_unit_nll"])
-            score = (macro_f1, -nll)
-            improved = best_score is None or score > best_score
-            if improved:
-                best_score = score
-                stale_epochs = 0
-            else:
-                stale_epochs += 1
             record = {
                 "epoch": epoch,
                 "train_loss": train_result["train_loss_mean"],
-                "val_macro_f1": macro_f1,
-                "val_nll": nll,
-                "validation_ran": True,
-                "selected_as_best_validation": improved,
-                "stale_epochs": stale_epochs,
+                "completed_epochs": epoch + 1,
+                "global_step": global_step,
+                "scientific_result": not args.preflight,
+                "purpose": (
+                    "checkpoint_and_evaluator_lifecycle_gate"
+                    if args.preflight
+                    else "fixed_30_epoch_outer_protocol"
+                ),
             }
             history.append(record)
             (output_dir / "epoch_history.json").write_text(
@@ -354,35 +359,74 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 optimizer=optimizer,
                 metrics=record,
                 config=runtime_config,
+                selection_policy=(
+                    "checkpoint_and_evaluator_lifecycle_gate"
+                    if args.preflight
+                    else "fixed_30_epoch_outer_protocol"
+                ),
+                selected_completed_epochs=runtime_config.optimization.epochs,
+                selected_epoch_index=epoch,
+                outer_test_used_for_selection=False,
+                scientific_outer_test_evaluated=False,
+                scientific_result=not args.preflight,
+                purpose=(
+                    "checkpoint_and_evaluator_lifecycle_gate"
+                    if args.preflight
+                    else "fixed_30_epoch_outer_protocol"
+                ),
             )
-            if improved:
-                _save_checkpoint(
-                    output_dir / "best_validation.pt",
-                    epoch=epoch,
-                    model=model,
-                    optimizer=optimizer,
-                    metrics=record,
-                    config=runtime_config,
-                )
             print(
-                f"EPOCH_{epoch}_VALIDATION = PASS | macro_f1={macro_f1:.6f} "
-                f"| nll={nll:.6f} | stale_epochs={stale_epochs}",
+                f"EPOCH_{epoch}_COMPLETED = PASS | global_step={global_step}",
                 flush=True,
             )
-            if (
-                not args.preflight
-                and stale_epochs >= runtime_config.optimization.early_stopping_patience
-            ):
-                print("EARLY_STOPPING = PASS", flush=True)
-                break
         best_path = output_dir / "best_validation.pt"
         last_path = output_dir / "last.pt"
-        best = torch.load(best_path, map_location=device, weights_only=False)
-        torch.load(last_path, map_location=device, weights_only=False)
-        model.load_state_dict(best["model_state_dict"])
+        if not last_path.exists():
+            raise RuntimeError("last.pt missing after fixed training budget")
+        shutil.copyfile(last_path, best_path)
+        selected = torch.load(best_path, map_location=device, weights_only=False)
+        if selected["selected_completed_epochs"] != runtime_config.optimization.epochs:
+            raise RuntimeError("selected checkpoint epoch budget mismatch")
+        model.load_state_dict(selected["model_state_dict"])
         model.eval()
-        _, _, final_metrics, _ = _evaluate(
+        predictions, native_predictions, final_metrics, _ = _evaluate(
             model, data, test_indices, runtime_config, device, split="test"
+        )
+        if not args.preflight and len(predictions) != EXPECTED_TEST_COUNT:
+            raise RuntimeError("full F1 outer-test evaluation row count mismatch")
+        prediction_name = (
+            "preflight_predictions.csv"
+            if args.preflight
+            else "f1_outer_test_predictions.csv"
+        )
+        native_prediction_name = (
+            "preflight_native_predictions.csv"
+            if args.preflight
+            else "f1_outer_test_native_predictions.csv"
+        )
+        predictions.to_csv(output_dir / prediction_name, index=False)
+        native_predictions.to_csv(output_dir / native_prediction_name, index=False)
+        metrics_artifact = {
+            "metrics": final_metrics,
+            "scientific_result": not args.preflight,
+            "purpose": (
+                "checkpoint_and_evaluator_lifecycle_gate"
+                if args.preflight
+                else "fixed_30_epoch_outer_protocol"
+            ),
+            "selection_policy": (
+                "checkpoint_and_evaluator_lifecycle_gate"
+                if args.preflight
+                else "fixed_30_epoch_outer_protocol"
+            ),
+            "selected_completed_epochs": runtime_config.optimization.epochs,
+            "selected_epoch_index": runtime_config.optimization.epochs - 1,
+            "outer_test_evaluation_count": 1,
+            "outer_test_used_for_selection": False,
+            "scientific_outer_test_evaluated": not args.preflight,
+        }
+        (output_dir / "f1_outer_test_metrics.json").write_text(
+            json.dumps(metrics_artifact, indent=2), encoding="utf-8"
         )
         summary = {
             "status": "PASS",
@@ -401,7 +445,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "sample_weight_policy": runtime_config.loss.sample_weight_policy,
             "final_metrics": final_metrics,
             "epoch_history": history,
-            "stale_epochs": stale_epochs,
+            "scientific_result": not args.preflight,
+            "purpose": (
+                "checkpoint_and_evaluator_lifecycle_gate"
+                if args.preflight
+                else "fixed_30_epoch_outer_protocol"
+            ),
+            "selection_policy": (
+                "checkpoint_and_evaluator_lifecycle_gate"
+                if args.preflight
+                else "fixed_30_epoch_outer_protocol"
+            ),
+            "selected_completed_epochs": runtime_config.optimization.epochs,
+            "selected_epoch_index": runtime_config.optimization.epochs - 1,
+            "outer_test_evaluation_count": 1,
+            "outer_test_used_for_selection": False,
+            "scientific_outer_test_evaluated": not args.preflight,
             "best_checkpoint_load": "PASS",
             "last_checkpoint_load": "PASS",
             "final_evaluator_loads_best": True,
