@@ -157,3 +157,12 @@ docs/writing_skills_bundle/
 
 # Superseded ad hoc note retained outside current versioned authority
 .agents/memory/extensions/ad_hoc/notes/2026-08-05-plan-authority-overrides-prior-pause.md
+
+*.npy
+*.npz
+scratch/
+temp/
+runtime_*/
+.codex_runs/
+.tokensave/
+ruff.exe
