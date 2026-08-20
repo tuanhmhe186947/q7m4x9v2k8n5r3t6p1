@@ -200,6 +200,7 @@ def _save_checkpoint(
     selection_policy: str,
     selected_completed_epochs: int,
     selected_epoch_index: int,
+    checkpoint_completed_epochs: int,
     outer_test_used_for_selection: bool,
     scientific_outer_test_evaluated: bool,
     scientific_result: bool,
@@ -217,6 +218,7 @@ def _save_checkpoint(
             "selection_policy": selection_policy,
             "selected_completed_epochs": selected_completed_epochs,
             "selected_epoch_index": selected_epoch_index,
+            "checkpoint_completed_epochs": checkpoint_completed_epochs,
             "outer_test_used_for_selection": outer_test_used_for_selection,
             "scientific_outer_test_evaluated": scientific_outer_test_evaluated,
             "scientific_result": scientific_result,
@@ -364,8 +366,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     if args.preflight
                     else "fixed_30_epoch_outer_protocol"
                 ),
-                selected_completed_epochs=runtime_config.optimization.epochs,
+                selected_completed_epochs=(
+                    epoch + 1
+                    if args.preflight
+                    else runtime_config.optimization.epochs
+                ),
                 selected_epoch_index=epoch,
+                checkpoint_completed_epochs=epoch + 1,
                 outer_test_used_for_selection=False,
                 scientific_outer_test_evaluated=False,
                 scientific_result=not args.preflight,
@@ -375,6 +382,35 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     else "fixed_30_epoch_outer_protocol"
                 ),
             )
+            if args.preflight:
+                history_state = json.loads(
+                    (output_dir / "epoch_history.json").read_text(encoding="utf-8")
+                )
+                expected_epochs = epoch + 1
+                if [item["epoch"] for item in history_state] != list(
+                    range(expected_epochs)
+                ):
+                    raise RuntimeError("preflight epoch history persistence mismatch")
+                best_path = output_dir / "best_validation.pt"
+                shutil.copyfile(output_dir / "last.pt", best_path)
+                checkpoint_states = [
+                    torch.load(output_dir / "last.pt", map_location=device, weights_only=False),
+                    torch.load(best_path, map_location=device, weights_only=False),
+                ]
+                for checkpoint_state in checkpoint_states:
+                    if checkpoint_state["checkpoint_completed_epochs"] != expected_epochs:
+                        raise RuntimeError("preflight checkpoint epoch metadata mismatch")
+                    if checkpoint_state["scientific_result"] is not False:
+                        raise RuntimeError("preflight checkpoint marked scientific")
+                    if checkpoint_state["purpose"] != "checkpoint_and_evaluator_lifecycle_gate":
+                        raise RuntimeError("preflight checkpoint purpose mismatch")
+                    if checkpoint_state["outer_test_used_for_selection"] is not False:
+                        raise RuntimeError("preflight checkpoint selection leakage")
+                print(
+                    f"PREFLIGHT_EPOCH_{epoch}_CHECKPOINT_LIFECYCLE = PASS | "
+                    f"completed_epochs={expected_epochs}",
+                    flush=True,
+                )
             print(
                 f"EPOCH_{epoch}_COMPLETED = PASS | global_step={global_step}",
                 flush=True,
