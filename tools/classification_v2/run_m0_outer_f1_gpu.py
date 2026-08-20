@@ -36,6 +36,9 @@ from pig_behavior.classification_v2.training.trainer import (  # noqa: E402
     _task_specs,
     _train_epoch,
 )
+from pig_behavior.classification_v2.training.visual_freeze import (  # noqa: E402
+    build_visual_optimizer_groups,
+)
 
 SEED = 240494961
 EXPECTED_PARAM_COUNT = 43633832
@@ -302,11 +305,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         print(f"MODEL_PARAMETER_COUNT = {parameter_count}", flush=True)
         if parameter_count != EXPECTED_PARAM_COUNT:
             raise ValueError("canonical M0 parameter count mismatch")
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=runtime_config.optimization.learning_rate,
+        optimizer_groups, _ = build_visual_optimizer_groups(
+            model,
+            learning_rate=runtime_config.optimization.learning_rate,
+            backbone_lr_multiplier=runtime_config.model.visual_backbone_lr_multiplier,
             weight_decay=runtime_config.optimization.weight_decay,
         )
+        optimizer = torch.optim.AdamW(optimizer_groups)
         scaler = torch.amp.GradScaler(
             "cuda",
             enabled=(device.type == "cuda" and runtime_config.optimization.precision == "amp"),
