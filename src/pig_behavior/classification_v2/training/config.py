@@ -37,6 +37,7 @@ T = TypeVar("T")
 # reading the primary observed-time inputs.
 TEMPORAL_VIEW_SELECTION_CONTRACT = {
     "fixed6_observed_time": "fixed6_keep",
+    "fixed_slot_30fps": "all_selected",
     **{
         view_name: str(spec["selection_column"])
         for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
@@ -44,6 +45,7 @@ TEMPORAL_VIEW_SELECTION_CONTRACT = {
 }
 TEMPORAL_VIEW_MANIFEST_FILENAMES = {
     "fixed6_observed_time": "fixed6_observed_time_manifest.csv",
+    "fixed_slot_30fps": None,
     **{
         view_name: str(spec["slot_manifest_filename"])
         for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
@@ -51,6 +53,7 @@ TEMPORAL_VIEW_MANIFEST_FILENAMES = {
 }
 TEMPORAL_VIEW_SEQUENCE_LENGTHS = {
     "fixed6_observed_time": 6,
+    "fixed_slot_30fps": 6,
     **{
         view_name: int(spec["sequence_length"])
         for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
@@ -70,8 +73,8 @@ class DatasetConfig:
     visual_packed_index: Path
     native_oof_fold_manifest: Path
     grouped_fold_roles: Path
-    temporal_view_selection_manifest: Path
     auxiliary_targets_csv: Path
+    temporal_view_selection_manifest: Path | None = None
     fold_event_weight_manifest: Path | None = None
     temporal_view_manifest: Path | None = None
     temporal_view_selection_col: str = "fixed6_keep"
@@ -359,7 +362,8 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
             f"{config.dataset.augmentation_policy}"
         )
     if (
-        expected_selection_col is not None
+        config.model.temporal_view != "fixed_slot_30fps"
+        and expected_selection_col is not None
         and config.dataset.temporal_view_selection_col
         != expected_selection_col
     ):
@@ -443,25 +447,27 @@ def training_config_to_jsonable(config: ClassificationV2TrainingConfig) -> dict[
             for section in ["dataset", "model", "optimization", "loss", "execution"]
         },
     }
-    payload["dataset"]["temporal_view_manifest"] = str(
-        resolve_temporal_view_manifest(config)
+    manifest_resolved = resolve_temporal_view_manifest(config)
+    payload["dataset"]["temporal_view_manifest"] = (
+        str(manifest_resolved) if manifest_resolved is not None else None
     )
     return payload
 
 
 def resolve_temporal_view_manifest(
     config: ClassificationV2TrainingConfig,
-) -> Path:
+) -> Path | None:
     """Resolve an old config safely while new configs name the slot manifest."""
 
+    if config.model.temporal_view == "fixed_slot_30fps":
+        return None
     if config.dataset.temporal_view_manifest is not None:
         return config.dataset.temporal_view_manifest
     filename = TEMPORAL_VIEW_MANIFEST_FILENAMES.get(config.model.temporal_view)
     if filename is None:
-        raise ValueError(
-            "no temporal view manifest mapping for "
-            f"{config.model.temporal_view}"
-        )
+        return None
+    if config.dataset.temporal_view_selection_manifest is None:
+        return None
     return config.dataset.temporal_view_selection_manifest.parent / filename
 
 

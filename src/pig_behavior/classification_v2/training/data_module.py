@@ -755,13 +755,12 @@ class StrictTrainingDataModule:
     def _attach_temporal_view_selection(self) -> None:
         """Restrict every loss policy to the same ordered primary temporal view."""
 
-        path = self.config.dataset.temporal_view_selection_manifest
-        if not path.exists():
+        if self.config.model.temporal_view == "fixed_slot_30fps":
             selected = np.ones(len(self.bundle.frame), dtype=np.bool_)
             self.bundle.frame["temporal_view_selected"] = selected
             self.bundle.frame["eligible"] &= selected
             self.temporal_view_selection_audit = {
-                "path": str(path),
+                "path": None,
                 "sha256": None,
                 "selection_col": "all_selected",
                 "rows": int(len(self.bundle.frame)),
@@ -772,6 +771,12 @@ class StrictTrainingDataModule:
                 "errors": [],
             }
             return
+
+        path = self.config.dataset.temporal_view_selection_manifest
+        if path is None or not path.exists():
+            raise FileNotFoundError(
+                f"temporal view selection manifest required for view {self.config.model.temporal_view}: {path}"
+            )
 
         df_selection = pd.read_csv(path, low_memory=False)
         id_col = (
@@ -822,66 +827,63 @@ class StrictTrainingDataModule:
     def _attach_temporal_view_tensors(self) -> None:
         """Load slot timing against the exact full window order."""
 
+        if self.config.model.temporal_view == "fixed_slot_30fps":
+            seq_len = self.config.model.temporal_input_frames
+            row_count = len(self.bundle.frame)
+            if "observed_mask" in self.bundle.arrays:
+                obs_mask = self.bundle.arrays["observed_mask"][
+                    :, :seq_len
+                ].astype(np.bool_)
+            else:
+                obs_mask = np.ones((row_count, seq_len), dtype=np.bool_)
+
+            time_delta = np.zeros((row_count, seq_len), dtype=np.float32)
+            for i in range(seq_len):
+                time_delta[:, i] = float(i) / 30.0
+
+            timing_valid_mask = obs_mask.copy()
+            time_delta[~timing_valid_mask] = np.nan
+
+            audit = {
+                "schema_version": "classification_v2.temporal_view_tensors.v1",
+                "path": None,
+                "sha256": None,
+                "temporal_view_name": "fixed_slot_30fps",
+                "sequence_length": seq_len,
+                "window_universe_rows": row_count,
+                "selected_window_rows": row_count,
+                "manifest_slot_rows": row_count * seq_len,
+                "timing_valid_slots": int(timing_valid_mask.sum()),
+                "observed_without_timing_slots": int(
+                    (obs_mask & ~timing_valid_mask).sum()
+                ),
+                "ordered_selected_window_id_sha256": _ids_hash(
+                    self.bundle.frame["window_id"]
+                ),
+                "unselected_rows_preserved": 0,
+                "errors": [],
+            }
+            self.temporal_view_tensors = TemporalViewTensors(
+                time_delta=time_delta,
+                timing_valid_mask=timing_valid_mask,
+                observed_mask=obs_mask,
+                audit=audit,
+            )
+            return
+
         manifest_path = resolve_temporal_view_manifest(self.config)
-        if manifest_path is not None and manifest_path.exists():
-            try:
-                self.temporal_view_tensors = load_temporal_view_tensors(
-                    manifest_path,
-                    expected_window_ids=self.bundle.frame["window_id"],
-                    selected_mask=self.bundle.frame["temporal_view_selected"],
-                    expected_view_name=self.config.model.temporal_view,
-                    expected_sequence_length=(
-                        self.config.model.temporal_input_frames
-                    ),
-                )
-                return
-            except Exception:
-                pass
-
-        seq_len = self.config.model.temporal_input_frames
-        row_count = len(self.bundle.frame)
-        if "observed_mask" in self.bundle.arrays:
-            obs_mask = self.bundle.arrays["observed_mask"][
-                :, :seq_len
-            ].astype(np.bool_)
-        else:
-            obs_mask = np.ones((row_count, seq_len), dtype=np.bool_)
-
-        time_delta = np.zeros((row_count, seq_len), dtype=np.float32)
-        for i in range(1, seq_len):
-            time_delta[:, i] = float(i) / 30.0
-
-        timing_valid_mask = obs_mask.copy()
-        time_delta[~timing_valid_mask] = np.nan
-
-        audit = {
-            "schema_version": "classification_v2.temporal_view_tensors.v1",
-            "path": (
-                str(manifest_path)
-                if manifest_path
-                else "full_t6_canonical_46d"
+        if manifest_path is None or not manifest_path.exists():
+            raise FileNotFoundError(
+                f"observed temporal manifest not found for view {self.config.model.temporal_view}: {manifest_path}"
+            )
+        self.temporal_view_tensors = load_temporal_view_tensors(
+            manifest_path,
+            expected_window_ids=self.bundle.frame["window_id"],
+            selected_mask=self.bundle.frame["temporal_view_selected"],
+            expected_view_name=self.config.model.temporal_view,
+            expected_sequence_length=(
+                self.config.model.temporal_input_frames
             ),
-            "sha256": None,
-            "temporal_view_name": self.config.model.temporal_view,
-            "sequence_length": seq_len,
-            "window_universe_rows": row_count,
-            "selected_window_rows": row_count,
-            "manifest_slot_rows": row_count * seq_len,
-            "timing_valid_slots": int(timing_valid_mask.sum()),
-            "observed_without_timing_slots": int(
-                (obs_mask & ~timing_valid_mask).sum()
-            ),
-            "ordered_selected_window_id_sha256": _ids_hash(
-                self.bundle.frame["window_id"]
-            ),
-            "unselected_rows_preserved": 0,
-            "errors": [],
-        }
-        self.temporal_view_tensors = TemporalViewTensors(
-            time_delta=time_delta,
-            timing_valid_mask=timing_valid_mask,
-            observed_mask=obs_mask,
-            audit=audit,
         )
 
     def _enforce_temporal_input_shape(self, raw: dict[str, Any]) -> None:

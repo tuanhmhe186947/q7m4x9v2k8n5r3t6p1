@@ -52,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=REPO_ROOT / "configs/classification_v2/m0_outer_f1_scientific_v4.json",
+        default=REPO_ROOT / "configs/classification_v2/m0_rb1_outer_f1_scientific_v1.json",
     )
     parser.add_argument(
         "--data-root",
