@@ -20,13 +20,15 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from pig_behavior.classification_v2.training.config import (
+from pig_behavior.classification_v2.training.config import (  # noqa: E402
     ClassificationV2TrainingConfig,
     load_training_config,
     training_config_to_jsonable,
 )
-from pig_behavior.classification_v2.training.data_module import StrictTrainingDataModule
-from pig_behavior.classification_v2.training.trainer import (
+from pig_behavior.classification_v2.training.data_module import (  # noqa: E402
+    StrictTrainingDataModule,
+)
+from pig_behavior.classification_v2.training.trainer import (  # noqa: E402
     _behavior_class_weights,
     _build_model,
     _evaluate,
@@ -39,7 +41,8 @@ EXPECTED_PARAM_COUNT = 43136168
 EXPECTED_TRAIN_COUNT = 18694
 EXPECTED_TEST_COUNT = 14593
 HELDOUT_DATE = "2019-11-29"
-EXTERNAL_PREFIX = "EXTERNAL_M0_F1_DATA_ROOT"
+DATA_EXTERNAL_PREFIX = "EXTERNAL_M0_F1_DATA_ROOT"
+RGB_EXTERNAL_PREFIX = "EXTERNAL_M0_F1_RGB_ROOT"
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,13 +59,22 @@ def parse_args() -> argparse.Namespace:
         help="Root for the explicit external M0 data artifacts.",
     )
     parser.add_argument(
+        "--rgb-root",
+        type=Path,
+        default=None,
+        help="Root for the explicit external window-major RGB artifacts.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
-        default=REPO_ROOT
-        / "outputs/classification_v2/m0_outer_folds_20260820/m0_outer_f1_v4_run",
+        default=None,
     )
-    parser.add_argument("--device", choices=("cpu",), default="cpu")
-    parser.add_argument("--epochs", type=int, default=2)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Run the bounded two-epoch CPU preflight subset.",
+    )
     return parser.parse_args()
 
 
@@ -75,22 +87,35 @@ def _external_root(args: argparse.Namespace) -> Path | None:
     return _repo_path(Path(raw)).resolve() if raw else None
 
 
+def _rgb_root(args: argparse.Namespace) -> Path | None:
+    raw = args.rgb_root or os.environ.get("M0_F1_RGB_ROOT")
+    return _repo_path(Path(raw)).resolve() if raw else None
+
+
 def _resolve_external_paths(
     config: ClassificationV2TrainingConfig,
     data_root: Path | None,
+    rgb_root: Path | None,
 ) -> ClassificationV2TrainingConfig:
     dataset = config.dataset
     updates: dict[str, Path] = {}
-    marker = f"{EXTERNAL_PREFIX}/"
+    data_marker = f"{DATA_EXTERNAL_PREFIX}/"
+    rgb_marker = f"{RGB_EXTERNAL_PREFIX}/"
     for field_name in dataset.__dataclass_fields__:
         value = getattr(dataset, field_name)
         if not isinstance(value, Path):
             continue
         text = value.as_posix()
-        if text.startswith(marker):
+        if text.startswith(data_marker):
             updates[field_name] = (
-                data_root / text[len(marker) :]
+                data_root / text[len(data_marker) :]
                 if data_root is not None
+                else REPO_ROOT / text
+            )
+        elif text.startswith(rgb_marker):
+            updates[field_name] = (
+                rgb_root / text[len(rgb_marker) :]
+                if rgb_root is not None
                 else REPO_ROOT / text
             )
         elif field_name in {
@@ -117,12 +142,30 @@ def _manifest_counts(config: ClassificationV2TrainingConfig) -> tuple[int, int]:
 
 
 def _require_external_artifacts(config: ClassificationV2TrainingConfig) -> list[str]:
+    fast_path = config.dataset.window_major_rgb_cache is not None
+    skipped_fast_path_fields = {
+        "actor_packed_cache",
+        "actor_packed_index",
+        "visual_cache_manifest",
+        "visual_packed_cache",
+        "visual_packed_index",
+        "frame_context_csv",
+        "window_context_csv",
+    }
     missing: list[str] = []
     for field_name in config.dataset.__dataclass_fields__:
+        if fast_path and field_name in skipped_fast_path_fields:
+            continue
         value = getattr(config.dataset, field_name)
         if isinstance(value, Path) and not value.exists():
             missing.append(f"dataset.{field_name}={value}")
     return missing
+
+
+def _resolve_device(name: str) -> torch.device:
+    if name == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but no CUDA device is available")
+    return torch.device(name)
 
 
 def _stats(tensor: torch.Tensor) -> list[float | int]:
@@ -169,102 +212,136 @@ def _save_checkpoint(
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     config_path = _repo_path(args.config).resolve()
-    data_root = _external_root(args)
-    config = _resolve_external_paths(load_training_config(config_path), data_root)
+    config = _resolve_external_paths(
+        load_training_config(config_path),
+        _external_root(args),
+        _rgb_root(args),
+    )
     train_count, test_count = _manifest_counts(config)
     missing = _require_external_artifacts(config)
     if missing:
-        print("M0_F1_V4_LOCAL_GATE = BLOCKED", flush=True)
+        print("M0_F1_V4_RUN = BLOCKED", flush=True)
         print("EXTERNAL_DATA_DEPENDENCIES =", json.dumps(missing), flush=True)
-        print("MISSING_EXTERNAL_DATA_ARTIFACTS =", json.dumps(missing), flush=True)
         raise RuntimeError("required production data artifacts are missing")
-
-    device = torch.device("cpu")
+    if args.preflight and args.device != "cpu":
+        raise ValueError("--preflight requires --device cpu")
+    device = _resolve_device(args.device)
+    runtime_config = replace(
+        config,
+        execution=replace(
+            config.execution,
+            mode="smoke" if args.preflight else "full_oof",
+        ),
+        optimization=replace(
+            config.optimization,
+            epochs=2 if args.preflight else config.optimization.epochs,
+        ),
+    )
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
-    data = StrictTrainingDataModule(config, device=device)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(SEED)
+    data = StrictTrainingDataModule(runtime_config, device=device)
     try:
-        train_indices = data.split_indices("train")
-        test_indices = data.split_indices("test")
-        if len(train_indices) != train_count or len(test_indices) != test_count:
+        full_train_indices = data.split_indices("train")
+        full_test_indices = data.split_indices("test")
+        if len(full_train_indices) != train_count or len(full_test_indices) != test_count:
             raise ValueError(
-                f"DataModule F1 counts mismatch: train={len(train_indices)}, "
-                f"test={len(test_indices)}"
+                f"DataModule F1 counts mismatch: train={len(full_train_indices)}, "
+                f"test={len(full_test_indices)}"
             )
+        train_indices = (
+            data.balanced_smoke_indices(train=True)
+            if args.preflight
+            else full_train_indices
+        )
+        test_indices = (
+            data.balanced_smoke_split("test")
+            if args.preflight
+            else full_test_indices
+        )
         preprocessing = data.fit_fold_preprocessor()
         fit_rows = int(preprocessing.train_row_count)
         if fit_rows != EXPECTED_TRAIN_COUNT:
             raise ValueError(f"fold preprocessing fit rows mismatch: {fit_rows}")
-
-        train_subset = data.balanced_smoke_indices(train=True)
-        test_subset = data.balanced_smoke_split("test")
-        probe = data.batch(train_subset)
-        print(
-            "INTERACTION_CONTEXT_SOURCE = REAL_DATA_MODULE",
-            flush=True,
-        )
+        probe = data.batch(train_indices[: min(len(train_indices), 2)])
+        print("INTERACTION_CONTEXT_SOURCE = REAL_DATA_MODULE", flush=True)
         print(
             "INTERACTION_CONTEXT_STATS = "
             f"{_stats(probe.model_inputs['interaction_context_features'])}",
             flush=True,
         )
         print(f"SAMPLE_WEIGHT_STATS = {_weight_stats(probe.sample_weight)}", flush=True)
-        print(
-            "UNION_AVAILABILITY_SOURCE = REAL_DATA_MODULE",
-            flush=True,
-        )
+        print("UNION_AVAILABILITY_SOURCE = REAL_DATA_MODULE", flush=True)
         print(
             "UNION_AVAILABILITY_STATS = "
             f"{_stats(probe.model_inputs['visual_context_available_mask'])}",
             flush=True,
         )
-
-        model = _build_model(config, probe, data).to(device)
+        model = _build_model(runtime_config, probe, data).to(device)
         parameter_count = sum(parameter.numel() for parameter in model.parameters())
         print(f"MODEL_PARAMETER_COUNT = {parameter_count}", flush=True)
         if parameter_count != EXPECTED_PARAM_COUNT:
             raise ValueError("canonical M0 parameter count mismatch")
         optimizer = torch.optim.AdamW(
             model.parameters(),
-            lr=config.optimization.learning_rate,
-            weight_decay=config.optimization.weight_decay,
+            lr=runtime_config.optimization.learning_rate,
+            weight_decay=runtime_config.optimization.weight_decay,
         )
-        scaler = torch.amp.GradScaler("cuda", enabled=False)
+        scaler = torch.amp.GradScaler(
+            "cuda",
+            enabled=(device.type == "cuda" and runtime_config.optimization.precision == "amp"),
+        )
         behavior_weights = _behavior_class_weights(
-            data, train_indices, config, device
+            data, full_train_indices, runtime_config, device
         )
-        output_dir = _repo_path(args.output_dir).resolve()
+        task_specs = _task_specs(runtime_config)
+        default_output = REPO_ROOT / (
+            "outputs/classification_v2/m0_outer_folds_20260820/"
+            + ("m0_outer_f1_v4_preflight" if args.preflight else "m0_outer_f1_v4_run")
+        )
+        output_dir = _repo_path(args.output_dir or default_output).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, Any]] = []
         best_score: tuple[float, float] | None = None
-        task_specs = _task_specs(config)
-        for epoch in range(args.epochs):
-            train_result, _ = _train_epoch(
+        stale_epochs = 0
+        global_step = 0
+        for epoch in range(runtime_config.optimization.epochs):
+            train_result, global_step = _train_epoch(
                 model,
                 optimizer,
                 scaler,
                 data,
-                train_subset,
+                train_indices,
                 behavior_weights,
                 {},
                 task_specs,
-                config,
+                runtime_config,
                 device,
                 epoch=epoch,
-                global_step=0,
+                global_step=global_step,
             )
             _, _, val_metrics, _ = _evaluate(
-                model, data, test_subset, config, device, split="test"
+                model, data, test_indices, runtime_config, device, split="test"
             )
             macro_f1 = float(val_metrics["test_native_unit_macro_f1_global"])
             nll = float(val_metrics["test_native_unit_nll"])
+            score = (macro_f1, -nll)
+            improved = best_score is None or score > best_score
+            if improved:
+                best_score = score
+                stale_epochs = 0
+            else:
+                stale_epochs += 1
             record = {
                 "epoch": epoch,
                 "train_loss": train_result["train_loss_mean"],
                 "val_macro_f1": macro_f1,
                 "val_nll": nll,
                 "validation_ran": True,
+                "selected_as_best_validation": improved,
+                "stale_epochs": stale_epochs,
             }
             history.append(record)
             (output_dir / "epoch_history.json").write_text(
@@ -276,24 +353,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 model=model,
                 optimizer=optimizer,
                 metrics=record,
-                config=config,
+                config=runtime_config,
             )
-            score = (macro_f1, -nll)
-            if best_score is None or score > best_score:
-                best_score = score
+            if improved:
                 _save_checkpoint(
                     output_dir / "best_validation.pt",
                     epoch=epoch,
                     model=model,
                     optimizer=optimizer,
                     metrics=record,
-                    config=config,
+                    config=runtime_config,
                 )
             print(
-                f"EPOCH_{epoch}_VALIDATION = PASS | macro_f1={macro_f1:.6f} | nll={nll:.6f}",
+                f"EPOCH_{epoch}_VALIDATION = PASS | macro_f1={macro_f1:.6f} "
+                f"| nll={nll:.6f} | stale_epochs={stale_epochs}",
                 flush=True,
             )
-
+            if (
+                not args.preflight
+                and stale_epochs >= runtime_config.optimization.early_stopping_patience
+            ):
+                print("EARLY_STOPPING = PASS", flush=True)
+                break
         best_path = output_dir / "best_validation.pt"
         last_path = output_dir / "last.pt"
         best = torch.load(best_path, map_location=device, weights_only=False)
@@ -301,21 +382,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         model.load_state_dict(best["model_state_dict"])
         model.eval()
         _, _, final_metrics, _ = _evaluate(
-            model, data, test_subset, config, device, split="test"
+            model, data, test_indices, runtime_config, device, split="test"
         )
         summary = {
             "status": "PASS",
             "runner": "M0-F1-V4",
+            "preflight": args.preflight,
+            "device": str(device),
             "seed": SEED,
             "heldout_date": HELDOUT_DATE,
             "train_count": train_count,
             "test_count": test_count,
+            "train_rows_used": int(len(train_indices)),
+            "test_rows_used": int(len(test_indices)),
             "preprocessing_fit_rows": fit_rows,
             "parameter_count": parameter_count,
-            "temporal_encoder": config.model.temporal_encoder_name,
-            "sample_weight_policy": config.loss.sample_weight_policy,
+            "temporal_encoder": runtime_config.model.temporal_encoder_name,
+            "sample_weight_policy": runtime_config.loss.sample_weight_policy,
             "final_metrics": final_metrics,
             "epoch_history": history,
+            "stale_epochs": stale_epochs,
             "best_checkpoint_load": "PASS",
             "last_checkpoint_load": "PASS",
             "final_evaluator_loads_best": True,
