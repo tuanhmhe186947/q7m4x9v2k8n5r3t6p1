@@ -119,7 +119,12 @@ models/
 # 6. Runtime Outputs, Logs & Experiments
 # ==========================================
 configs/tracking_paths_experiment_local.json
-outputs/
+outputs/*
+!outputs/classification_v2/
+outputs/classification_v2/*
+!outputs/classification_v2/m0_outer_folds_20260820/
+outputs/classification_v2/m0_outer_folds_20260820/*
+!outputs/classification_v2/m0_outer_folds_20260820/m0_outer_f1_manifest.csv
 .agents/authorizations/
 .agents/runtime/
 human_review_workspace/
