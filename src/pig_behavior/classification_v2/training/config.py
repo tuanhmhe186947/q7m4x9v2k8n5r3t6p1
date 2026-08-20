@@ -349,10 +349,10 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
             f"unsupported_sample_weight_policy={config.loss.sample_weight_policy}"
         )
     if (
-        config.loss.sample_weight_policy != "uniform"
+        config.loss.sample_weight_policy == "event"
         and config.dataset.fold_event_weight_manifest is None
     ):
-        errors.append("event_weight_policy_requires_fold_event_weight_manifest")
+        errors.append("event_policy_requires_fold_event_weight_manifest")
     if config.dataset.augmentation_policy != "none":
         errors.append(
             "unsupported_augmentation_policy="
