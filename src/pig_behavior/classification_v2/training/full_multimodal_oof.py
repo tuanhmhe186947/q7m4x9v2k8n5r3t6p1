@@ -60,6 +60,9 @@ from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionConfig,
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+from pig_behavior.classification_v2.splits.date_grouped_split import (
+    canonical_calendar_date,
+)
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 ABLATION_VARIANTS = (
@@ -863,6 +866,15 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
             }
         )
         frame = split.copy()
+        frame["video_key"] = df_manifest["video_key"].astype(str)
+        frame["recording_date_token"] = [
+            canonical_calendar_date(value)[0] if is_train else ""
+            for value, is_train in zip(
+                frame["video_key"],
+                train_mask,
+                strict=True,
+            )
+        ]
         frame["behavior_true"] = y
         frame["train_mask"] = train_mask
         frame["temporal_unit_key"] = df_manifest["native_unit_id"].astype(str)

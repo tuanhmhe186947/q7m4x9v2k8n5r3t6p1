@@ -481,10 +481,22 @@ def _train_epoch(
             else:
                 auxiliary_loss = behavior_loss.new_zeros(())
                 consistency = behavior_loss.new_zeros(())
+            if config.model.enable_date_adversarial:
+                if output.domain is None:
+                    raise ValueError("M1-DG1 training forward omitted domain logits")
+                if batch.recording_date_target is None:
+                    raise ValueError("M1-DG1 training batch omitted train date target")
+                domain_loss = F.cross_entropy(
+                    output.domain,
+                    batch.recording_date_target,
+                )
+            else:
+                domain_loss = behavior_loss.new_zeros(())
             total = (
                 config.loss.behavior_weight * behavior_loss
                 + auxiliary_loss
                 + config.loss.hierarchy_consistency_weight * consistency
+                + config.model.domain_loss_weight * domain_loss
             )
         scaler.scale(total).backward()
         scaler.unscale_(optimizer)

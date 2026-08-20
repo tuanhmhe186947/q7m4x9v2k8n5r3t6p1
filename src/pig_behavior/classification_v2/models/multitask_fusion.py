@@ -33,6 +33,7 @@ class MultitaskFusionOutput:
     motion_context: torch.Tensor
     roi_intent: torch.Tensor
     interaction: torch.Tensor
+    domain: torch.Tensor | None = None
 
     def auxiliary_logits(self) -> dict[str, torch.Tensor]:
         return {

@@ -11,6 +11,9 @@ from pig_behavior.classification_v2.features.spatial_schema import (
     SPATIAL_PREDICTIVE_FEATURES,
     SPATIAL_PREDICTIVE_GROUP_NAMES,
 )
+from pig_behavior.classification_v2.models.date_adversarial import (
+    DateAdversarialFusionClassifier,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionConfig,
 )
@@ -214,6 +217,9 @@ class ModelConfigLike(Protocol):
     enable_visual_context: bool
     enable_multitask: bool
     enable_partner_tokens: bool = False
+    enable_date_adversarial: bool = False
+    domain_classes: int = 12
+    domain_loss_weight: float = 0.10
 
 
 def model_mode_spec(name: str) -> ModelModeSpec:
@@ -312,8 +318,7 @@ def build_multimodal_model(
         raise ValueError("model mode requires interaction_context_dim")
     if not spec.enable_interaction_context:
         interaction_context_dim = None
-    return MultitaskFusionClassifier(
-        MultimodalFusionConfig(
+    backbone_config = MultimodalFusionConfig(
             spatial_input_dims=spatial_input_dims,
             num_classes=num_classes,
             interaction_context_dim=interaction_context_dim,
@@ -335,7 +340,15 @@ def build_multimodal_model(
             enable_partner_tokens=spec.enable_partner_tokens,
             partner_token_dim=int(getattr(config, "partner_token_dim", 6)),
             partner_embedding_dim=max(8, config.hidden_dim // 2),
-        ),
+        )
+    if config.enable_date_adversarial:
+        return DateAdversarialFusionClassifier(
+            backbone_config,
+            domain_classes=int(config.domain_classes),
+            grl_lambda=float(config.domain_loss_weight),
+        )
+    return MultitaskFusionClassifier(
+        backbone_config,
         enable_auxiliary_heads=spec.enable_multitask,
     )
 

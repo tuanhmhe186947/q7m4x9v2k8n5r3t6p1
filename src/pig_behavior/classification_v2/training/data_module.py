@@ -99,6 +99,7 @@ class StrictTrainingBatch:
     auxiliary_masks: dict[str, torch.Tensor]
     sample_weight: torch.Tensor
     metadata: dict[str, Any]
+    recording_date_target: torch.Tensor | None = None
 
 
 class StrictTrainingDataModule:
@@ -110,6 +111,7 @@ class StrictTrainingDataModule:
         self.full_config = _to_full_config(config, device)
         self.bundle = _load_bundle(self.full_config)
         self._attach_grouped_roles()
+        self._attach_date_domains()
         self._attach_temporal_view_selection()
         self._attach_temporal_view_tensors()
         self._attach_fold_event_weights()
@@ -462,6 +464,7 @@ class StrictTrainingDataModule:
         else:
             auxiliary_targets, auxiliary_masks = {}, {}
         selected = self.bundle.frame.iloc[indices]
+        recording_date_target = self._recording_date_target(indices)
         return StrictTrainingBatch(
             model_inputs=model_inputs,
             behavior_target=raw["target"],
@@ -475,7 +478,17 @@ class StrictTrainingDataModule:
                 "oof_fold_id": selected["oof_fold_id"].astype(str).tolist(),
                 "source_type": selected["source_type"].astype(str).tolist(),
                 "split_group_key": selected["split_group_key"].astype(str).tolist(),
+                "recording_date_token": selected.get(
+                    "recording_date_token",
+                    pd.Series([""] * len(selected), index=selected.index),
+                ).astype(str).tolist(),
+                "recording_date_target_source": (
+                    "FULL_T6_train_manifest_video_key"
+                    if recording_date_target is not None
+                    else None
+                ),
             },
+            recording_date_target=recording_date_target,
         )
 
     def audit(self) -> dict[str, Any]:
@@ -676,6 +689,68 @@ class StrictTrainingDataModule:
                 f"eligible window rows missing grouped role: {int(eligible_missing.sum())}"
             )
         self.bundle.frame.loc[missing, "grouped_role"] = "not_eligible"
+
+    def _attach_date_domains(self) -> None:
+        """Fit the M1-DG1 domain vocabulary from eligible train rows only."""
+
+        self.recording_date_to_index: dict[str, int] = {}
+        if not self.config.model.enable_date_adversarial:
+            self.date_domain_audit = {
+                "enabled": False,
+                "target_source": None,
+                "fit_scope": None,
+            }
+            return
+        if "recording_date_token" not in self.bundle.frame.columns:
+            raise ValueError(
+                "M1-DG1 requires recording dates from FULL-T6 row metadata"
+            )
+        train_rows = (
+            self.bundle.frame["eligible"]
+            & self.bundle.frame["grouped_role"].eq("train")
+        )
+        tokens = self.bundle.frame.loc[
+            train_rows,
+            "recording_date_token",
+        ].astype(str)
+        if tokens.eq("unknown_date").any() or tokens.eq("").any():
+            raise ValueError("M1-DG1 train rows contain unresolved dates")
+        classes = tuple(sorted(tokens.unique()))
+        if len(classes) != self.config.model.domain_classes:
+            raise ValueError(
+                "M1-DG1 train date class count mismatch: "
+                f"observed={len(classes)}, "
+                f"expected={self.config.model.domain_classes}"
+            )
+        self.recording_date_to_index = {
+            token: index for index, token in enumerate(classes)
+        }
+        self.date_domain_audit = {
+            "enabled": True,
+            "target_source": "FULL_T6_train_manifest_video_key",
+            "fit_scope": "eligible_grouped_train_rows_only",
+            "class_count": len(classes),
+            "classes": list(classes),
+            "train_rows": int(train_rows.sum()),
+        }
+
+    def _recording_date_target(
+        self,
+        indices: np.ndarray,
+    ) -> torch.Tensor | None:
+        if not self.config.model.enable_date_adversarial:
+            return None
+        selected = self.bundle.frame.iloc[indices]
+        if not selected["grouped_role"].eq("train").all():
+            return None
+        tokens = selected["recording_date_token"].astype(str)
+        unknown = sorted(set(tokens).difference(self.recording_date_to_index))
+        if unknown:
+            raise ValueError(
+                f"M1-DG1 batch has dates outside train vocabulary: {unknown}"
+            )
+        target = [self.recording_date_to_index[token] for token in tokens]
+        return torch.tensor(target, dtype=torch.long, device=self.device)
 
     def _attach_temporal_view_selection(self) -> None:
         """Restrict every loss policy to the same ordered primary temporal view."""

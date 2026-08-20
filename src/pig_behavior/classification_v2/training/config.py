@@ -112,6 +112,9 @@ class ModelConfig:
     enable_visual_context: bool = True
     enable_multitask: bool = True
     enable_partner_tokens: bool = False
+    enable_date_adversarial: bool = False
+    domain_classes: int = 12
+    domain_loss_weight: float = 0.10
     partner_token_dim: int = 6
     partner_k: int = 2
     partner_embedding_dim: int = 32
@@ -227,6 +230,15 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     ]
     if not config.model.enable_multitask and any(value != 0.0 for value in auxiliary_loss_values):
         errors.append("behavior_only_model_requires_zero_auxiliary_loss_weights")
+    if config.model.enable_date_adversarial:
+        if config.model.model_mode != "full_multimodal":
+            errors.append("date_adversarial_mode_requires_full_multimodal_m0")
+        if config.model.enable_multitask:
+            errors.append("date_adversarial_mode_must_remain_behavior_only_m0")
+        if config.model.domain_classes != 12:
+            errors.append("date_adversarial_mode_requires_12_domains")
+        if config.model.domain_loss_weight != 0.10:
+            errors.append("date_adversarial_mode_requires_lambda_0.10")
     if config.model.enable_spatial and not config.model.spatial_feature_groups:
         errors.append("spatial_feature_groups_empty")
     unknown_standardized = sorted(
