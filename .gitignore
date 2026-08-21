@@ -110,10 +110,10 @@ data/annotations/scene/background.png
 *.weights
 *.pkl
 *.joblib
-models/
-!models/README.md
-!models/behavior/README.md
-!models/detector/README.md
+/models/
+!/models/README.md
+!/models/behavior/README.md
+!/models/detector/README.md
 
 # ==========================================
 # 6. Runtime Outputs, Logs & Experiments
