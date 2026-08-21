@@ -1,0 +1,235 @@
+{
+  "status": "PASS",
+  "version": "video_group_balanced_5fold_authority_v1",
+  "total_rows": 33287,
+  "total_video_keys": 678,
+  "n_splits": 5,
+  "optimizer_method": "deterministic_multi_start_simulated_annealing_and_hill_climbing",
+  "optimizer_seed": 12345,
+  "test_fold_counts": {
+    "VG1": 5963,
+    "VG2": 7522,
+    "VG3": 6560,
+    "VG4": 5820,
+    "VG5": 7422
+  },
+  "test_union_rows": 33287,
+  "test_duplicate_rows": 0,
+  "video_overlap_by_fold": {
+    "VG1": 0,
+    "VG2": 0,
+    "VG3": 0,
+    "VG4": 0,
+    "VG5": 0
+  },
+  "native_or_window_overlap_by_fold": {
+    "VG1": 0,
+    "VG2": 0,
+    "VG3": 0,
+    "VG4": 0,
+    "VG5": 0
+  },
+  "all_classes_present_in_every_test_fold": true,
+  "all_classes_present_in_every_train_fold": true,
+  "class_test_counts": {
+    "drink": {
+      "VG1": 80,
+      "VG2": 142,
+      "VG3": 155,
+      "VG4": 79,
+      "VG5": 175
+    },
+    "eat": {
+      "VG1": 366,
+      "VG2": 860,
+      "VG3": 367,
+      "VG4": 553,
+      "VG5": 926
+    },
+    "fight": {
+      "VG1": 441,
+      "VG2": 754,
+      "VG3": 642,
+      "VG4": 516,
+      "VG5": 442
+    },
+    "social-nose": {
+      "VG1": 289,
+      "VG2": 359,
+      "VG3": 208,
+      "VG4": 333,
+      "VG5": 328
+    },
+    "explore": {
+      "VG1": 1743,
+      "VG2": 1824,
+      "VG3": 1961,
+      "VG4": 1468,
+      "VG5": 1458
+    },
+    "lying": {
+      "VG1": 604,
+      "VG2": 593,
+      "VG3": 605,
+      "VG4": 605,
+      "VG5": 591
+    },
+    "stand": {
+      "VG1": 172,
+      "VG2": 186,
+      "VG3": 453,
+      "VG4": 172,
+      "VG5": 315
+    },
+    "move": {
+      "VG1": 235,
+      "VG2": 148,
+      "VG3": 231,
+      "VG4": 148,
+      "VG5": 149
+    },
+    "sitting": {
+      "VG1": 1992,
+      "VG2": 2639,
+      "VG3": 1921,
+      "VG4": 1929,
+      "VG5": 2991
+    },
+    "playwithtoy": {
+      "VG1": 41,
+      "VG2": 17,
+      "VG3": 17,
+      "VG4": 17,
+      "VG5": 47
+    }
+  },
+  "class_train_counts": {
+    "drink": {
+      "VG1": 551,
+      "VG2": 489,
+      "VG3": 476,
+      "VG4": 552,
+      "VG5": 456
+    },
+    "eat": {
+      "VG1": 2706,
+      "VG2": 2212,
+      "VG3": 2705,
+      "VG4": 2519,
+      "VG5": 2146
+    },
+    "fight": {
+      "VG1": 2354,
+      "VG2": 2041,
+      "VG3": 2153,
+      "VG4": 2279,
+      "VG5": 2353
+    },
+    "social-nose": {
+      "VG1": 1228,
+      "VG2": 1158,
+      "VG3": 1309,
+      "VG4": 1184,
+      "VG5": 1189
+    },
+    "explore": {
+      "VG1": 6711,
+      "VG2": 6630,
+      "VG3": 6493,
+      "VG4": 6986,
+      "VG5": 6996
+    },
+    "lying": {
+      "VG1": 2394,
+      "VG2": 2405,
+      "VG3": 2393,
+      "VG4": 2393,
+      "VG5": 2407
+    },
+    "stand": {
+      "VG1": 1126,
+      "VG2": 1112,
+      "VG3": 845,
+      "VG4": 1126,
+      "VG5": 983
+    },
+    "move": {
+      "VG1": 676,
+      "VG2": 763,
+      "VG3": 680,
+      "VG4": 763,
+      "VG5": 762
+    },
+    "sitting": {
+      "VG1": 9480,
+      "VG2": 8833,
+      "VG3": 9551,
+      "VG4": 9543,
+      "VG5": 8481
+    },
+    "playwithtoy": {
+      "VG1": 98,
+      "VG2": 122,
+      "VG3": 122,
+      "VG4": 122,
+      "VG5": 92
+    }
+  },
+  "class_test_support_ratios": {
+    "drink": 2.2152,
+    "eat": 2.5301,
+    "fight": 1.7098,
+    "social-nose": 1.726,
+    "explore": 1.345,
+    "lying": 1.0237,
+    "stand": 2.6337,
+    "move": 1.5878,
+    "sitting": 1.557,
+    "playwithtoy": 2.7647
+  },
+  "class_train_support_ratios": {
+    "drink": 1.2105,
+    "eat": 1.261,
+    "fight": 1.1534,
+    "social-nose": 1.1304,
+    "explore": 1.0775,
+    "lying": 1.0059,
+    "stand": 1.3325,
+    "move": 1.1287,
+    "sitting": 1.1262,
+    "playwithtoy": 1.3261
+  },
+  "playwithtoy_test_counts": {
+    "VG1": 41,
+    "VG2": 17,
+    "VG3": 17,
+    "VG4": 17,
+    "VG5": 47
+  },
+  "playwithtoy_test_video_keys": {
+    "VG1": 3,
+    "VG2": 9,
+    "VG3": 7,
+    "VG4": 13,
+    "VG5": 3
+  },
+  "fight_test_counts": {
+    "VG1": 441,
+    "VG2": 754,
+    "VG3": 642,
+    "VG4": 516,
+    "VG5": 442
+  },
+  "fight_test_video_keys": {
+    "VG1": 16,
+    "VG2": 5,
+    "VG3": 2,
+    "VG4": 7,
+    "VG5": 13
+  },
+  "worst_test_support_ratio": "playwithtoy: 2.7647 (min=17, max=47)",
+  "worst_train_support_ratio": "stand: 1.3325 (min=845, max=1126)",
+  "baseline_worst_test_support_ratio": 11.3095,
+  "baseline_worst_train_support_ratio": 1.4694,
+  "better_than_baseline_sgkf": true
+}
