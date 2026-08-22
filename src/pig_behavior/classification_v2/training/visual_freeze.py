@@ -17,6 +17,7 @@ VISUAL_FREEZE_CONTRACT_VERSION = "classification_v2_visual_freeze_v1"
 VISUAL_FREEZE_POLICIES = frozenset(
     {
         "all_trainable",
+        "frozen_then_full",
         "frozen_then_layer4",
         "frozen_then_layer4_then_full",
     }
@@ -71,6 +72,11 @@ def visual_freeze_schedule_errors(
     staged = policy != "all_trainable"
     if policy == "all_trainable" and (warmup != 0 or layer4_epochs != 0):
         errors.append("all_trainable_requires_zero_stage_durations")
+    if policy == "frozen_then_full":
+        if warmup < 1:
+            errors.append("frozen_then_full_requires_warmup_epoch")
+        if layer4_epochs != 0:
+            errors.append("frozen_then_full_requires_zero_layer4_duration")
     if policy == "frozen_then_layer4":
         if warmup < 1:
             errors.append("frozen_then_layer4_requires_warmup_epoch")
@@ -90,8 +96,8 @@ def visual_freeze_schedule_errors(
     if total_epochs is not None:
         if not _is_positive_int(total_epochs):
             errors.append("visual_freeze_total_epochs_must_be_positive_integer")
-        elif policy == "frozen_then_layer4" and total_epochs <= warmup:
-            errors.append("declared_epochs_never_reach_layer4_stage")
+        elif policy in {"frozen_then_full", "frozen_then_layer4"} and total_epochs <= warmup:
+            errors.append("declared_epochs_never_reach_unfrozen_stage")
         elif (
             policy == "frozen_then_layer4_then_full"
             and total_epochs <= warmup + layer4_epochs
@@ -134,6 +140,8 @@ def visual_freeze_stage_for_epoch(
         return "full"
     if epoch < config.visual_frozen_warmup_epochs:
         return "frozen"
+    if config.visual_freeze_policy == "frozen_then_full":
+        return "full"
     if config.visual_freeze_policy == "frozen_then_layer4":
         return "layer4_only"
     full_epoch = (
