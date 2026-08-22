@@ -542,7 +542,8 @@ def _evaluate(
         amp_enabled = device.type == "cuda" and config.optimization.precision == "amp"
         with torch.autocast(device_type=device.type, enabled=amp_enabled):
             output = model(**batch.model_inputs)
-        probabilities = torch.softmax(output.behavior.float(), dim=1).cpu().numpy()
+        behavior_logits = output.behavior if hasattr(output, "behavior") else output
+        probabilities = torch.softmax(behavior_logits.float(), dim=1).cpu().numpy()
         true_values = batch.behavior_target.cpu().numpy()
         predicted = probabilities.argmax(axis=1)
         for row_index in range(len(predicted)):
