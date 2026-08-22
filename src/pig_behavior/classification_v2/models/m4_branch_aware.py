@@ -222,10 +222,8 @@ class M4BranchAwareClassifier(MultimodalFusionClassifier):
         social_input = torch.cat([visual_embedding, interaction_embedding], dim=-1)
         social_logits = self.social_head(social_input)
 
-        if self.training:
-            return M4BranchAwareOutput(
-                behavior=behavior_logits,
-                locomotion=locomotion_logits,
-                social=social_logits,
-            )
-        return behavior_logits
+        return M4BranchAwareOutput(
+            behavior=behavior_logits,
+            locomotion=locomotion_logits,
+            social=social_logits,
+        )
