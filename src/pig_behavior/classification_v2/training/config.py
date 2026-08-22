@@ -215,7 +215,12 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     errors: list[str] = []
     if config.version != "classification_v2_training_config_v1":
         errors.append(f"unsupported_version={config.version}")
-    if config.model.architecture_version != MULTITASK_ARCHITECTURE_VERSION:
+    valid_archs = {
+        MULTITASK_ARCHITECTURE_VERSION,
+        "m3_functional_group_v1",
+        "m4_branch_aware_v1",
+    }
+    if config.model.architecture_version not in valid_archs:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
     errors.extend(model_mode_errors(config.model))
     errors.extend(
