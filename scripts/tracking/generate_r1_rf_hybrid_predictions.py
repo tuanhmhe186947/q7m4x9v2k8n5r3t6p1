@@ -14,7 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -70,9 +70,9 @@ class R1AuthorityError(RuntimeError):
 
 
 def utc_now() -> str:
-    """Return a stable UTC audit timestamp."""
+    """Return a stable timezone.utc audit timestamp."""
 
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def sha256_file(path: Path) -> str:

@@ -12,7 +12,7 @@ import stat
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -150,7 +150,7 @@ def write_json(path: Path, payload: Any) -> None:
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def git(repo: Path, *args: str) -> str:

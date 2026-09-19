@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -79,9 +79,9 @@ class FullFrameCacheError(RuntimeError):
 
 
 def utc_now() -> str:
-    """Return a stable UTC timestamp for audit-only run state."""
+    """Return a stable timezone.utc timestamp for audit-only run state."""
 
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def canonical_hash(payload: Any) -> str:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -45,7 +45,7 @@ def create_stage_authorization(
     path = authorization_path(root, config, stage_id)
     if path.exists():
         raise FileExistsError(f"ACTIVE_AUTHORIZATION_EXISTS:{path}")
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     payload = {
         "schema_version": SCHEMA_VERSION,
         "authorization_id": uuid4().hex,
@@ -113,7 +113,7 @@ def validate_stage_authorization(
         expires = datetime.fromisoformat(str(payload["expires_at_utc"]))
     except (KeyError, ValueError):
         return False, "RUN_LOCAL_AUTHORIZATION_EXPIRY_INVALID", path
-    if expires <= datetime.now(UTC):
+    if expires <= datetime.now(timezone.utc):
         return False, "RUN_LOCAL_AUTHORIZATION_EXPIRED", path
     return True, "RUN_LOCAL_AUTHORIZATION_VALID", path
 
@@ -125,7 +125,7 @@ def consume_stage_authorization(path: Path) -> Path:
     )
     path.replace(consumed)
     payload["status"] = "CONSUMED"
-    payload["consumed_at_utc"] = datetime.now(UTC).isoformat()
+    payload["consumed_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_json_atomic(consumed, payload)
     return consumed
 

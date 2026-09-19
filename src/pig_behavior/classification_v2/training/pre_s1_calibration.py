@@ -17,7 +17,7 @@ import time
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -1134,11 +1134,11 @@ def _restore_rng_state(state: Mapping[str, object]) -> None:
 
 def _new_run_id(engineering_smoke: bool) -> str:
     prefix = "engineering_smoke" if engineering_smoke else "pre_s1_calibration"
-    return f"{prefix}_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid.uuid4().hex[:10]}"
+    return f"{prefix}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{uuid.uuid4().hex[:10]}"
 
 
 def _utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _git_sha() -> str | None:

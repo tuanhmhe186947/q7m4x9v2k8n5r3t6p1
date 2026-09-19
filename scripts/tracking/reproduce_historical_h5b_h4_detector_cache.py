@@ -12,7 +12,7 @@ import stat
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -186,9 +186,9 @@ def git_output(repo: Path, *args: str) -> str:
 
 
 def utc_now() -> str:
-    """Return a stable UTC timestamp string."""
+    """Return a stable timezone.utc timestamp string."""
 
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def script_sha256() -> str:

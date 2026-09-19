@@ -18,7 +18,7 @@ import stat
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -110,9 +110,9 @@ class PredictionGenerationError(RuntimeError):
 
 
 def utc_now() -> str:
-    """Return one timezone-explicit UTC timestamp."""
+    """Return one timezone-explicit timezone.utc timestamp."""
 
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def canonical_hash(payload: Any) -> str:

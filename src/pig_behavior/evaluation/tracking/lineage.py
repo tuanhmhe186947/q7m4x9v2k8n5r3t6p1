@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -262,7 +262,7 @@ def prepare_run_manifest(
     manifest = {
         "schema_version": 1,
         "status": "planned",
-        "created_at_utc": datetime.now(UTC).isoformat(),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "git": _git_state(find_project_root(Path(__file__))),
         "command": [sys.executable, *sys.argv],
         "cwd": str(Path.cwd().resolve()),
@@ -313,7 +313,7 @@ def finalize_run_manifest(run_dir: Path) -> Path:
             f"{manifest_path}"
         )
     payload["status"] = "completed"
-    payload["completed_at_utc"] = datetime.now(UTC).isoformat()
+    payload["completed_at_utc"] = datetime.now(timezone.utc).isoformat()
     manifest_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -411,7 +411,7 @@ def write_artifact_manifest(
     ]
     payload = {
         "schema_version": 1,
-        "created_at_utc": datetime.now(UTC).isoformat(),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "run_manifest_sha256": file_sha256(run_dir / "run_manifest.json"),
         "artifacts": _artifact_records(
             [

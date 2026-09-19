@@ -17,7 +17,7 @@ import os
 import platform
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
 from typing import Any
@@ -142,7 +142,7 @@ class _ProgressReporter:
 
 
 def _utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def parse_args() -> argparse.Namespace:

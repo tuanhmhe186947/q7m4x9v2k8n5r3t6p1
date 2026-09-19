@@ -13,7 +13,7 @@ import json
 import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -248,7 +248,7 @@ def create_stage1_execution_permits(
         expected_views=seed_authorization.confirmation_candidates or VIEWS,
     )
     code_sha = _git_sha(root)
-    created_at = datetime.now(UTC)
+    created_at = datetime.now(timezone.utc)
     expires_at = created_at + timedelta(hours=ttl_hours)
     directory = permit_directory(outputs_root)
     directory.mkdir(parents=True, exist_ok=True)
@@ -354,7 +354,7 @@ def rotate_stage1_execution_permits(
                 "confirmation provenance repair requires a changed binding bundle"
             )
     code_sha = _git_sha(root)
-    created_at = datetime.now(UTC)
+    created_at = datetime.now(timezone.utc)
     expires_at = created_at + timedelta(hours=ttl_hours)
     directory = permit_directory(outputs_root)
     if not directory.is_dir():
@@ -607,7 +607,7 @@ def consume_stage1_execution_permit(
             "Stage-1 permit was consumed by another process"
         ) from error
     current["status"] = "CONSUMED"
-    current["consumed_at_utc"] = datetime.now(UTC).isoformat()
+    current["consumed_at_utc"] = datetime.now(timezone.utc).isoformat()
     _write_json_atomic(consumed, current)
     return Stage1ExecutionPermit(
         path=consumed,
@@ -1051,7 +1051,7 @@ def _assert_not_expired(payload: Mapping[str, Any]) -> None:
         expires = datetime.fromisoformat(str(payload["expires_at_utc"]))
     except (KeyError, TypeError, ValueError) as error:
         raise Stage1ExecutionAuthorizationError("Stage-1 permit expiry is invalid") from error
-    if expires.tzinfo is None or expires <= datetime.now(UTC):
+    if expires.tzinfo is None or expires <= datetime.now(timezone.utc):
         raise Stage1ExecutionAuthorizationError("Stage-1 permit is expired")
 
 

@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from math import isfinite
 from pathlib import Path
 from typing import Any
@@ -631,7 +631,7 @@ def audit_tracking_repeatability(
     result = {
         "schema_version": 3,
         "status": "PASS",
-        "created_at_utc": datetime.now(UTC).isoformat(),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "auditor": auditor,
         "source_commit": primary_run["git"]["commit"],
         "semantic_config_sha256": primary_run["semantic_config_sha256"],

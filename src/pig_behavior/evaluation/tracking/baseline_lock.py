@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import subprocess
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -286,7 +286,7 @@ def lock_historical_baselines(
     payload = {
         "schema_version": 1,
         "status": "INCOMPLETE" if incomplete else "PASS",
-        "created_at_utc": datetime.now(UTC).isoformat(),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "generator_commit": _git_commit(project_root),
         "source_commit": None,
         "source_commit_status": "unavailable_for_historical_runs",
