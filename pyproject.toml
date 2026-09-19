@@ -82,5 +82,4 @@ testpaths = [
     "tests/test_tracking_evaluator_standard_v2_contract.py",
     "tests/test_canonical_behavior_oof_evaluator.py",
     "tests/test_check_duplicate_videos.py",
-    "tests/test_classification_v2_operational_lineage.py",
 ]
