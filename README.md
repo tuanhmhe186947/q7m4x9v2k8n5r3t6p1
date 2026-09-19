@@ -1,372 +1,155 @@
-# Pig Behavior Project
+# Identity-Preserving Tracking and Multimodal Pig Behavior Recognition
 
-AI research code for pig detection, tracking, and behavior recognition from
-video. The maintained runtime code lives under `src/pig_behavior`; notebooks are
-kept as archived experiment history.
+> An end-to-end computer-vision pipeline for preserving individual identity and recognizing behavior over time in group-housed pigs.
+
+[![CI](https://github.com/tuanhmhe186947/q7m4x9v2k8n5r3t6p1/actions/workflows/ci.yml/badge.svg)](https://github.com/tuanhmhe186947/q7m4x9v2k8n5r3t6p1/actions/workflows/ci.yml)
+[![Python 3.10 | 3.11](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+![System Pipeline](docs/assets/system_pipeline.svg)
+
+---
+
+## Highlights
+
+| Component | Baseline | Proposed Causal | Proposed Retrospective | Key Metric Target |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tracking Evaluation**<br>(12 held-out videos) | **Raw ByteTrack**<br>HOTA: 89.41%<br>IDF1: 94.23%<br>IDSW: 64 | **RealTime-Fast**<br>HOTA: 90.33%<br>IDF1: 95.03%<br>IDSW: 39 (-39.1%) | **Hybrid-ByteTrack**<br>HOTA: **93.55%**<br>IDF1: **98.41%**<br>IDSW: **8** (-87.5%) | Identity switch reduction from 64 to 8 switches |
+| **Behavior Recognition**<br>(Group-aware 5-fold CV) | **Model A**: 0.677789 ± 0.026822<br>**Model B**: 0.670838 ± 0.034919 | — | **Model J**: 0.684646 ± 0.029199<br>**E0**: 0.692609 ± 0.040212<br>**E_J_FIXED50**: **0.693905 ± 0.037650** | Sample SD across five held-out video folds |
+| **Downstream Profile Distortion**<br>(A1 Total Variation distance) | **Raw ByteTrack**<br>TV = 0.0953 | **RealTime-Fast**<br>TV = 0.0309 | **Hybrid-ByteTrack**<br>TV = **0.0001** | Measured on 12-video behavior-overlap subset |
+
+---
+
+## System Overview
+
+Continuous precision livestock monitoring requires observing animals over extended periods without confusing individual subjects. This repository implements an integrated two-stage framework:
+1. **Identity-Preserving Multi-Object Tracking**: Detects individuals via YOLOv8 and preserves identities across dense interactions using causal online association (`RealTime-Fast`) or retrospective two-pass smoothing (`Hybrid-ByteTrack`).
+2. **Multimodal Spatio-Temporal Behavior Recognition**: Classifies individual time units into 10 behavior classes by integrating bounding-box motion dynamics, local spatial attention, and social context.
+3. **Downstream Longitudinal Profiling**: Demonstrates how tracking identity errors distort downstream individual time budgets and proves that minimizing ID switches preserves longitudinal behavior statistics.
+
+---
+
+## Tracking Results
+
+Tracking performance was evaluated on a held-out confirmatory cohort of 12 videos (21,600 frames, 96 individual pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`. System-level baseline comparisons show substantial reduction in identity switches without compromising detection accuracy.
+
+![Tracking Summary](docs/assets/tracking_summary.svg)
+
+- Full evaluation metrics and 95% bootstrap confidence intervals are available in [docs/paper/tables/tracking_confirmatory.md](docs/paper/tables/tracking_confirmatory.md).
+
+---
+
+## Behavior Recognition
+
+Behavior recognition evaluates 10 mutually exclusive behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to prevent video leakage across train and validation splits. No separate distinct outer cohort was materialized.
+
+![Behavior CV Summary](docs/assets/behavior_cv_summary.svg)
+
+- **Model A**: High-ceiling spatiotemporal baseline (Macro-F1: `0.677789 ± 0.026822`).
+- **Model B**: Joint relational representation (Macro-F1: `0.670838 ± 0.034919`).
+- **Model J**: Multimodal pre-GAP spatial attention with class-aware gating (`0.684646 ± 0.029199`).
+- **E_J_FIXED50**: Locked final ensemble combining Model J with Model B logits (`0.693905 ± 0.037650`).
+- Detailed fold-by-fold results and statistical conventions are documented in [docs/paper/tables/behavior_cv.md](docs/paper/tables/behavior_cv.md).
+
+---
+
+## Identity Preservation and Profile Distortion
+
+Tracking errors directly degrade longitudinal behavioral monitoring: when two animals swap identities, their accumulated activity budgets cross-contaminate. Using the 12-video development behavior-overlap subset (DEV12), we quantify profile distortion using the Total Variation ($L_1$) distance across fixed human annotations.
+
+![Profile Distortion Summary](docs/assets/profile_distortion_summary.svg)
+
+- **Raw ByteTrack**: Produces high profile distortion ($\text{TV} = 0.0953$).
+- **RealTime-Fast**: Reduces distortion by 67.6% ($\text{TV} = 0.0309$) in online causal streaming.
+- **Hybrid-ByteTrack**: Reduces distortion by 99.9% ($\text{TV} = 0.0001$), establishing near-lossless longitudinal profile propagation.
+- Dataset cohort definitions are detailed in [docs/paper/tables/dataset_roles.md](docs/paper/tables/dataset_roles.md).
+
+---
 
 ## Repository Structure
 
 ```text
 .
-|-- configs/               # Experiment configurations for tracking & classification
-|-- data/                  # Annotation schemas, ROI COCO, scene masks (see data/README.md)
-|-- docs/
-|   |-- figures/           # Lightweight publication-ready figures
-|   |-- paper/             # Scientific manuscript, evidence ledger, claim registry, and frozen tables
-|   |   |-- evidence/      # Mirrored lightweight final authority summaries
-|   |   |-- freeze_corrected_20260917/ # Authoritative freeze manifests and protocols
-|   |   `-- manuscript/    # Full paper draft sections, tables, and figure plans
-|   `-- repo_audit/        # Repository hygiene audits and pre/post cleanup inventories
-|-- models/                # Checkpoint catalog and instructions (see models/README.md)
-|-- notebooks/             # Archived research and exploratory notebooks
-|-- scripts/               # Entrypoint runners, evaluations, benchmarks, and audit utilities
-|   |-- paper/             # Manuscript numeric claim checkers and validation scripts
-|   |-- classification_v2/ # Modular behavior classification stages (00-09)
-|   `-- tracking/          # Multi-object tracking evaluation and profile reproduction
-|-- src/pig_behavior/      # Core installable Python package (tracking, models, api, evaluation)
-|-- tests/                 # Comprehensive unit and regression test suite
-`-- uv.lock, pyproject.toml # Dependency definitions and build configuration
+├── configs/            # Parameter configurations (configs/release/config_manifest.md)
+├── data/               # Manifests, splits, and sample video sequences
+├── docs/               # Technical guides, paper tables, and reproduction docs
+│   ├── assets/         # Vector diagrams and benchmark plots
+│   ├── paper/tables/   # Authoritative paper result tables
+│   ├── api.md          # REST API reference documentation
+│   ├── reproduction.md # Scientific claim and experiment reproduction guide
+│   └── usage.md        # Command-line interface and profile usage
+├── models/             # Detector and behavior classification model weights
+├── scripts/            # CLI runners, evaluation tools, and paper checks
+├── src/pig_behavior/   # Core library (tracking, behavior models, API)
+└── tests/              # Bounded public unit and contract test suite
 ```
 
-## Reproducing Paper Results
+---
 
-All empirical claims and numbers in the manuscript are strictly verified against the
-master evidence ledger:
+## Quick Start
 
-1. **Verify All Manuscript Numeric Claims**:
-   ```cmd
-   python scripts/paper/check_claim_numbers.py
-   ```
-   Ensures 100% numerical parity across the abstract, introduction, related work, methods,
-   results, discussion, limitations, and conclusion against `docs/paper/master_evidence_ledger.csv`.
-
-2. **Tracking Evaluation**:
-   Run confirmatory evaluation across the held-out tracking videos:
-   ```cmd
-   python scripts/run_tracking_mode.py --mode hybrid_bytetrack --task eval -v Pigs291119_000263_30fps
-   ```
-
-3. **Behavior Classification Evaluation**:
-   Evaluate 5-fold cross-validation results across models A, B, J, and the fixed 50/50 ensemble:
-   ```cmd
-   python scripts/classification_v2/04_baselines_smokes/classification_v2_run_q2_baseline_smokes.py --help
-   ```
-
-## Data Availability
-
-Due to privacy, farm agreements, and bandwidth considerations, raw video files and
-full CVAT annotation bundles are stored locally and omitted from Git tracking.
-- Instructions for organizing local data are in [data/README.md](data/README.md).
-- Expected video filenames and roles are cataloged in `docs/paper/dataset_role_table.csv`.
-- Spatial polygon masks and ROI coordinates are tracked in `data/annotations/`.
-
-## Model Checkpoints
-
-Model checkpoint weights (`*.pt`) are preserved locally on disk and documented with
-hashes and training configurations in:
-- [models/README.md](models/README.md)
-- `docs/paper/freeze_corrected_20260917/checkpoint_manifest.csv`
-
-## Paper Artifacts
-
-The complete paper draft, evidence matrices, and publication-ready figures are maintained under `docs/paper/`:
-- **Manuscript Draft**: `docs/paper/manuscript/` (`master_draft.md`, `results.md`, `methods.md`, etc.)
-- **Master Evidence Ledger**: `docs/paper/master_evidence_ledger.csv`
-- **Master Claim Registry**: `docs/paper/master_claim_registry.csv`
-- **Frozen Tables**: `docs/paper/final_behavior_cv_table.csv`, `docs/paper/final_tracking_confirmatory_table.csv`
-- **Lightweight Evidence Summaries**: `docs/paper/evidence/`
-
-
-## Repository Layout
-
-```text
-.
-|-- artifacts/              # Artifact manifest with checksums and URL slots
-|-- data/
-|   |-- annotations/        # Source annotations grouped by workflow
-|   |-- processed/          # Generated datasets grouped by workflow/run
-|   |-- raw/                # Local extracted images, ignored by Git
-|   `-- videos/             # Local videos, ignored by Git
-|-- docs/                   # Model card, dataset card, reproducibility notes
-|-- models/
-|   |-- behavior/           # Behavior sequence classifier weights, ignored
-|   `-- detector/           # YOLO detector weights, ignored
-|-- notebooks/              # Archived research notebooks
-|-- src/pig_behavior/       # Installable package
-|   |-- api/                # FastAPI app, routes, schemas, dashboard HTML
-|   |-- data_preparation/   # CVAT cleaning and tracking annotation workflows
-|   |-- evaluation/         # Tracking metrics and report generation
-|   |-- models/             # Model architectures and checkpoint loaders
-|   `-- services/           # Inference, detection, and video tracking services
-|-- tests/
-`-- tools/
-```
-
-Large `.pt` and `.mp4` files are not committed. Publish them through an
-external registry, then update `artifacts/manifest.yaml`.
-
-## Runtime Artifacts
-
-Place local artifacts at these paths:
-
-```text
-models/behavior/pig_behavior_sequence.pt
-models/detector/pig_detector_yolo.pt
-data/videos/pigs101219_full.mp4
-```
-
-Roles:
-
-- `pig_behavior_sequence.pt` is the behavior sequence classifier.
-- `pig_detector_yolo.pt` is the detector/tracker model for bounding boxes and
-  track IDs.
-- `pigs101219_full.mp4` is the demo video for the dashboard.
-
-Verify files against `artifacts/manifest.yaml` before running experiments.
-
-## Setup
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/tuanhmhe186947/q7m4x9v2k8n5r3t6p1.git
+cd q7m4x9v2k8n5r3t6p1
+
+# Create virtual environment and install lightweight tooling
 python -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -e .[pt]
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
 ```
 
-For notebooks and development checks:
+### Run Tracking
 
 ```bash
-pip install -r requirements-dev.txt
+# Execute Hybrid-ByteTrack on a sample video
+python scripts/run_tracking_mode.py --mode hybrid_bytetrack --video data/videos/sample.mp4
+
+# Run causal real-time online tracking
+python scripts/run_tracking_mode.py --mode realtime_fast --video data/videos/sample.mp4
 ```
 
-## Tracking Scripts
+For advanced CLI options, batch tracking, and parameter search, consult the [Usage Guide](docs/usage.md).
 
-Detailed tracking, evaluation, optimizer, benchmark, and debug commands are kept in `scripts/README.md`.
-Use that file as the source of truth for command order and current opt-in tracking candidates.
+---
 
-Current command split:
+## Reproducing the Paper
 
-- `scripts\track_videos.py`: tracking-only runs and CVAT prediction/XML export.
-- `scripts\evaluate_tracking.py`: tracking plus GT evaluation metrics.
-- `scripts\optimize_tracking_metrics.py`: automated tracking config search.
-
-The current best hard 5-video candidate is still opt-in. It is documented in `scripts/README.md` with the full `--profile-override` stack and has not been promoted into the base/default config yet.
-## Dashboard
-
-Start the API:
+To verify quantitative metric tokens against the frozen evidence ledger:
 
 ```bash
-set PIG_BEHAVIOR_MODEL_BACKEND=pt
-set PIG_BEHAVIOR_PT_MODEL_PATH=models\behavior\pig_behavior_sequence.pt
-set PIG_BEHAVIOR_DETECT_MODEL_PATH=models\detector\pig_detector_yolo.pt
-set PIG_BEHAVIOR_VIDEO_PATH=data\videos\pigs101219_full.mp4
-set PIG_BEHAVIOR_BEHAVIOR_STRIDE_FRAMES=3
-pig-behavior-api
+python scripts/paper/check_claim_numbers.py
 ```
 
-Open:
+Expected output: `PASS: 100% of metric tokens in manuscript narratives match the master evidence ledger.`
 
-```text
-http://127.0.0.1:8000/dashboard
+Complete reproduction instructions for tracking, cross-validation, and profile distortion experiments are provided in the [Reproduction Guide](docs/reproduction.md).
+
+---
+
+## Data and Model Availability
+
+- **Model Weights**: Detection and spatiotemporal behavior model weights are structured in `models/`.
+- **Dataset Manifests**: Cohort splits, unit manifests, and annotation specifications are located under `data/` and documented in [docs/paper/tables/dataset_roles.md](docs/paper/tables/dataset_roles.md).
+- **FastAPI Service**: An interactive inference server is documented in [docs/api.md](docs/api.md).
+
+---
+
+## Citation
+
+```bibtex
+@article{pig_behavior_2026,
+  title={Identity-Preserving Tracking and Multimodal Pig Behavior Recognition},
+  author={Tuan, H. M.},
+  year={2026},
+  url={https://github.com/tuanhmhe186947/q7m4x9v2k8n5r3t6p1}
+}
 ```
 
-The dashboard pipeline is:
+---
 
-```text
-video frame
-  -> YOLO detector/tracker creates pig boxes and track IDs
-  -> collect each tracked pig's temporal crop sequence
-  -> behavior classifier receives 6 cropped frames plus tabular features
-  -> dashboard aggregates behavior counts over time
-```
+## License
 
-The behavior classifier follows the notebook training contract:
-
-```text
-sequence_length = 6
-offsets = [-3, -2, -1, 0, 1, 2] * behavior_stride_frames
-default behavior_stride_frames = 3
-```
-
-Default frame window around the center frame:
-
-```text
-center-9, center-6, center-3, center, center+3, center+6
-```
-
-Behavior labels appear with a small delay because the window includes future
-frames.
-
-## API
-
-Run locally:
-
-```bash
-pig-behavior-api
-```
-
-The service exposes:
-
-- `GET /` and `GET /metadata`
-- `GET /health`
-- `GET /ready`
-- `POST /predict`
-- `GET /dashboard`
-- `POST /tracking/start`
-- `POST /tracking/stop`
-- `GET /tracking/status`
-- `GET /tracking/stream`
-
-`uvicorn pig_behavior.api:app` remains supported.
-
-## CLI
-
-Build classification training data from CVAT native exports:
-
-```bash
-pig-build-classification-data
-```
-
-Generate tracking predictions for annotation/evaluation:
-
-```bash
-pig-track-for-annotation --video data\videos\Pigs281119_000085_30fps.mp4
-```
-
-Evaluate tracking predictions against CVAT XML ground truth:
-
-```bash
-pig-tracking-eval --run-missing-tracker
-```
-
-Training smoke test:
-
-```bash
-pig-behavior --mode train --dry-run
-```
-
-Export TFLite models:
-
-```bash
-pig-behavior --mode export
-```
-
-Behavior classifier inference from one crop uses padded sequence mode:
-
-```bash
-pig-behavior --mode infer ^
-  --backend pt ^
-  --pt-model models\behavior\pig_behavior_sequence.pt ^
-  --image data\raw\images_clean\example.jpg
-```
-
-## Roboflow Workflow Integration
-
-You can integrate Roboflow's serverless workflows to run detections side-by-side or as an alternative to the local YOLOv8 pipeline. The project integrates the "Detect, Count, and Visualize 3" workflow.
-
-### Setup API Key
-
-To run the Roboflow workflow, you must provide your Roboflow API key. You can pass it via command-line arguments or define the `ROBOFLOW_API_KEY` environment variable:
-
-```cmd
-set ROBOFLOW_API_KEY=your_api_key_here
-```
-
-### Running Detection on a Single Frame
-
-To detect pigs on a single frame (e.g., frame 979) with a workspace mask applied:
-
-```cmd
-python scripts\detect_pig_frame.py ^
-  --roboflow ^
-  --roboflow-api-key your_api_key_here ^
-  --start-frame 979
-```
-
-This will call the Roboflow Workflow API and save the annotated visualization image to:
-`outputs\detections\detect_frame_979_roboflow.png`
-
-### Running Detection on a Frame Range
-
-To process a range of frames and generate a comparison video:
-
-```cmd
-python scripts\detect_pig_frame.py ^
-  --roboflow ^
-  --start-frame 800 ^
-  --end-frame 1000 ^
-  --save-images
-```
-
-The output video will be saved to:
-`outputs\detections\detect_range_800_1000_roboflow.mp4`
-
-### Running Integration Tests
-
-To run the smoke tests for Roboflow integration, make sure your API key is set in the environment:
-
-```cmd
-set ROBOFLOW_API_KEY=your_api_key_here
-pytest tests\test_roboflow_integration.py
-```
-
-## Docker
-
-```bash
-docker compose up --build
-```
-
-Compose mounts:
-
-```text
-./models/behavior/pig_behavior_sequence.pt
-./models/detector/pig_detector_yolo.pt
-./data/videos/pigs101219_full.mp4
-./outputs
-```
-
-## Data Contract
-
-Default processed CSV resolver:
-
-```text
-data/processed/classification/<YYYYMMDD_HHMMSS>/behavior_with_feats_rectROI.csv
-```
-
-Training images:
-
-```text
-data/raw/images_clean/
-```
-
-Required tabular sequence features:
-
-```text
-cx_n, cy_n, bw_n, bh_n, speed_feat,
-min_dist_other, num_close_other, in_feeder, in_drinker, in_toy
-```
-
-Annotation folders:
-
-```text
-data/annotations/roi/             # static feeder/drinker/toy ROI COCO
-data/annotations/scene/           # background.png and mask.png
-data/annotations/tracking/        # CVAT video XML ground truth
-data/annotations/classification/  # classification label assets
-data/annotations/schemas/         # CVAT label schemas
-```
-
-## Quality Checks
-
-```bash
-python -m compileall src main.py
-ruff check src main.py tools tests
-pytest -q
-python tools/clean_notebooks.py --check notebooks
-```
-
-## Release Notes
-
-Code is MIT licensed. Model and video artifacts are marked research-use until
-redistribution rights are confirmed. See `docs/MODEL_CARD.md`,
-`docs/DATASET_CARD.md`, and `docs/reproducibility.md`.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

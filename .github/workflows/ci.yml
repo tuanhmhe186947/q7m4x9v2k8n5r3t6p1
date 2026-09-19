@@ -26,6 +26,8 @@ jobs:
           python -m pip install -e . --no-deps
           python -m pip install ruff==0.15.18 pytest
       - name: Lint
-        run: ruff check src main.py tools tests
+        run: ruff check src main.py tests
+      - name: Compile
+        run: python -m compileall -q src scripts tests main.py
       - name: Test
         run: pytest -q

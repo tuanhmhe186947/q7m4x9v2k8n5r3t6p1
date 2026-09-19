@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" width="100%" height="100%">
+  <defs>
+    <style>
+      .label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #475569; }
+      .bold-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
+      .val-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 700; fill: #0f172a; text-anchor: middle; }
+      .chart-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #0f172a; }
+      .sub-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #64748b; }
+      .grid { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2,2; }
+      .axis { stroke: #94a3b8; stroke-width: 1.2; }
+    </style>
+  </defs>
+
+  <rect width="640" height="280" fill="#ffffff" rx="8" stroke="#e2e8f0" stroke-width="1"/>
+
+  <g transform="translate(30, 20)">
+    <text class="chart-title" x="0" y="15">A1 Total Variation Distance (Lower is Better)</text>
+    <text class="sub-title" x="0" y="32">Downstream profile distortion on development behavior-overlap subset (DEV12)</text>
+
+    <!-- Y-axis 0.00 to 0.12 (160px range, y=60 is 0.12, y=220 is 0.00) -->
+    <!-- scale = 160 / 0.12 = 1333.33 px per unit -->
+    <line class="grid" x1="50" y1="60" x2="550" y2="60"/>
+    <text class="label" x="45" y="64" text-anchor="end">0.12</text>
+
+    <line class="grid" x1="50" y1="100" x2="550" y2="100"/>
+    <text class="label" x="45" y="104" text-anchor="end">0.09</text>
+
+    <line class="grid" x1="50" y1="140" x2="550" y2="140"/>
+    <text class="label" x="45" y="144" text-anchor="end">0.06</text>
+
+    <line class="grid" x1="50" y1="180" x2="550" y2="180"/>
+    <text class="label" x="45" y="184" text-anchor="end">0.03</text>
+
+    <line class="axis" x1="50" y1="220" x2="550" y2="220"/>
+    <text class="label" x="45" y="224" text-anchor="end">0.00</text>
+    <line class="axis" x1="50" y1="60" x2="50" y2="220"/>
+
+    <!-- Bar 1: Raw (0.0953) -> height = 0.0953 * 1333.33 = 127.07 px -> y = 220 - 127.07 = 92.93 -->
+    <rect x="100" y="92.9" width="70" height="127.1" fill="#f87171" rx="4"/>
+    <text class="val-label" x="135" y="84">0.0953</text>
+    <text class="bold-label" x="135" y="240">Raw</text>
+    <text class="label" x="135" y="254" text-anchor="middle">Baseline</text>
+
+    <!-- Bar 2: RealTime (0.0309) -> height = 0.0309 * 1333.33 = 41.20 px -> y = 220 - 41.20 = 178.80 -->
+    <rect x="250" y="178.8" width="70" height="41.2" fill="#60a5fa" rx="4"/>
+    <text class="val-label" x="285" y="170">0.0309</text>
+    <text class="bold-label" x="285" y="240">RealTime</text>
+    <text class="label" x="285" y="254" text-anchor="middle" fill="#2563eb">-67.6%</text>
+
+    <!-- Bar 3: Hybrid (0.0001) -> height = 0.0001 * 1333.33 = 0.13 px -> min visual height 4px -->
+    <rect x="400" y="216" width="70" height="4" fill="#10b981" rx="2"/>
+    <text class="val-label" x="435" y="208" fill="#047857">0.0001</text>
+    <text class="bold-label" x="435" y="240">Hybrid</text>
+    <text class="label" x="435" y="254" text-anchor="middle" font-weight="600" fill="#059669">-99.9%</text>
+  </g>
+</svg>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 260" width="100%" height="100%">
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; rx: 8; }
+      .box-track { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; rx: 8; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: #0f172a; text-anchor: middle; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #64748b; text-anchor: middle; }
+      .sub-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 6; }
+      .sub-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 600; text-anchor: middle; }
+      .arrow { stroke: #64748b; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+      .branch { stroke: #94a3b8; stroke-width: 1.2; fill: none; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <!-- 1. Video Input -->
+  <g transform="translate(20, 90)">
+    <rect class="box" width="110" height="70"/>
+    <text class="title" x="55" y="32">Video Stream</text>
+    <text class="subtitle" x="55" y="50">Group-housed pigs</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line class="arrow" x1="130" y1="125" x2="162" y2="125"/>
+
+  <!-- 2. Detection -->
+  <g transform="translate(165, 90)">
+    <rect class="box" width="110" height="70"/>
+    <text class="title" x="55" y="32">Detection</text>
+    <text class="subtitle" x="55" y="50">YOLOv8 Detector</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line class="arrow" x1="275" y1="125" x2="307" y2="125"/>
+
+  <!-- 3. Identity-Preserving Tracking Container -->
+  <g transform="translate(310, 25)">
+    <rect class="box-track" width="185" height="200"/>
+    <text class="title" x="92" y="28">Identity-Preserving</text>
+    <text class="title" x="92" y="44">Tracking</text>
+
+    <!-- Branch 3A: RealTime-Fast -->
+    <g transform="translate(15, 60)">
+      <rect class="sub-box" width="155" height="52" stroke="#3b82f6"/>
+      <text class="sub-title" x="77" y="24" fill="#1d4ed8">RealTime-Fast</text>
+      <text class="subtitle" x="77" y="40">Causal Online (39 IDSW)</text>
+    </g>
+
+    <!-- Branch 3B: Hybrid-ByteTrack -->
+    <g transform="translate(15, 128)">
+      <rect class="sub-box" width="155" height="52" stroke="#10b981"/>
+      <text class="sub-title" x="77" y="24" fill="#047857">Hybrid-ByteTrack</text>
+      <text class="subtitle" x="77" y="40">Offline 2-Pass (8 IDSW)</text>
+    </g>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line class="arrow" x1="495" y1="125" x2="527" y2="125"/>
+
+  <!-- 4. Identity-Linked Observations -->
+  <g transform="translate(530, 90)">
+    <rect class="box" width="125" height="70"/>
+    <text class="title" x="62" y="32">Identity-Linked</text>
+    <text class="title" x="62" y="48">Observations</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <line class="arrow" x1="655" y1="125" x2="687" y2="125"/>
+
+  <!-- 5. Multimodal Behavior Recognition -->
+  <g transform="translate(690, 85)">
+    <rect class="box" width="115" height="80"/>
+    <text class="title" x="57" y="28">Multimodal</text>
+    <text class="title" x="57" y="44">Behavior</text>
+    <text class="title" x="57" y="60">Recognition</text>
+  </g>
+
+  <!-- Arrow 5 -> 6 -->
+  <line class="arrow" x1="805" y1="125" x2="837" y2="125"/>
+
+  <!-- 6. Individual Profiles -->
+  <g transform="translate(840, 90)">
+    <rect class="box" width="90" height="70" stroke="#6366f1"/>
+    <text class="title" x="45" y="30" fill="#4338ca">Individual</text>
+    <text class="title" x="45" y="46" fill="#4338ca">Behavior</text>
+    <text class="title" x="45" y="62" fill="#4338ca">Profiles</text>
+  </g>
+</svg>
