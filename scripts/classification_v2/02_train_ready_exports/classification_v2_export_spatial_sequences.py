@@ -1,0 +1,226 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_SCHEMA_DIMENSION,
+)
+from pig_behavior.classification_v2.features.spatial_schema import (
+    require_spatial_tensor_bundle,
+)
+from pig_behavior.classification_v2.spatial_sequence_export import (
+    CANONICAL_SOCIAL_IDENTITY_COLUMN,
+    DERIVATION_COLUMNS,
+    SPATIAL_FRAME_FEATURES,
+    export_spatial_sequences,
+)
+
+
+def read_current_frame_projection(
+    frame_features_csv: Path,
+) -> tuple[pd.DataFrame, list[str], list[str]]:
+    """Read the exact current exporter projection without identity fallback."""
+    header = pd.read_csv(frame_features_csv, nrows=0).columns.tolist()
+    if CANONICAL_SOCIAL_IDENTITY_COLUMN not in header:
+        raise ValueError(
+            "Missing canonical social identity column in frame source: "
+            f"{CANONICAL_SOCIAL_IDENTITY_COLUMN}"
+        )
+    needed = {
+        "object_track_key",
+        "frame_index",
+        CANONICAL_SOCIAL_IDENTITY_COLUMN,
+        "nearest_pig_id",
+        "nearest_track_id",
+        "motion_schema_id",
+        "motion_schema_version",
+        "motion_schema_dimension",
+        "motion_schema_feature_names",
+        "motion_schema_hash",
+    }
+    needed.update(DERIVATION_COLUMNS)
+    needed.update(
+        feature
+        for group in SPATIAL_FRAME_FEATURES.values()
+        for feature in group
+    )
+    usecols = [column for column in header if column in needed]
+    if CANONICAL_SOCIAL_IDENTITY_COLUMN not in usecols:
+        raise ValueError(
+            "Current frame projection omitted canonical social identity "
+            f"column: {CANONICAL_SOCIAL_IDENTITY_COLUMN}"
+        )
+    frames = pd.read_csv(
+        frame_features_csv,
+        usecols=usecols,
+        low_memory=False,
+    )
+    if CANONICAL_SOCIAL_IDENTITY_COLUMN not in frames.columns:
+        raise ValueError(
+            "Projected frame data omitted canonical social identity column: "
+            f"{CANONICAL_SOCIAL_IDENTITY_COLUMN}"
+        )
+    return frames, header, usecols
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Export leakage-safe per-frame spatial arrays for reviewed "
+            "classification_v2 windows."
+        )
+    )
+    parser.add_argument(
+        "--window-manifest-csv",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/sequence_features_reviewed/"
+            "sequence_window_manifest.csv"
+        ),
+    )
+    parser.add_argument(
+        "--frame-features-csv",
+        type=Path,
+        default=Path("outputs/classification_v2/review_policy/reviewed_frame_features.csv"),
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows"),
+    )
+    parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument("--compress", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived spatial export artifacts explicitly.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    npz_path = args.output_dir / "X_spatial_sequences.npz"
+    audit_path = args.output_dir / "spatial_sequence_audit.json"
+    require_output_paths_available(
+        [npz_path, audit_path],
+        overwrite=args.overwrite,
+    )
+    if not args.window_manifest_csv.exists():
+        raise FileNotFoundError(args.window_manifest_csv)
+    if not args.frame_features_csv.exists():
+        raise FileNotFoundError(args.frame_features_csv)
+
+    windows = pd.read_csv(args.window_manifest_csv, low_memory=False)
+    if args.max_rows is not None:
+        if args.max_rows <= 0:
+            raise ValueError("--max-rows must be > 0")
+        windows = windows.head(args.max_rows).copy()
+
+    frames, header, usecols = read_current_frame_projection(
+        args.frame_features_csv
+    )
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    staged_npz: Path | None = None
+    staged_audit: Path | None = None
+    try:
+        export = export_spatial_sequences(windows, frames)
+        with tempfile.NamedTemporaryFile(
+            dir=args.output_dir,
+            prefix=".phase2_spatial_",
+            suffix=".npz",
+            delete=False,
+        ) as handle:
+            staged_npz = Path(handle.name)
+        with tempfile.NamedTemporaryFile(
+            dir=args.output_dir,
+            prefix=".phase2_spatial_",
+            suffix=".json",
+            delete=False,
+        ) as handle:
+            staged_audit = Path(handle.name)
+
+        save_fn = np.savez_compressed if args.compress else np.savez
+        save_fn(staged_npz, **export.arrays)
+        audit = {
+            "window_manifest_csv": str(args.window_manifest_csv),
+            "frame_features_csv": str(args.frame_features_csv),
+            "outputs": {
+                "X_spatial_sequences_npz": str(npz_path),
+                "audit_json": str(audit_path),
+            },
+            "input_projection": {
+                "source_columns": header,
+                "selected_columns": usecols,
+                "canonical_social_identity_column": (
+                    CANONICAL_SOCIAL_IDENTITY_COLUMN
+                ),
+                "canonical_social_identity_source_present": (
+                    CANONICAL_SOCIAL_IDENTITY_COLUMN in header
+                ),
+                "canonical_social_identity_selected": (
+                    CANONICAL_SOCIAL_IDENTITY_COLUMN in usecols
+                ),
+            },
+            **export.audit,
+        }
+        staged_audit.write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        with np.load(staged_npz) as staged:
+            require_spatial_tensor_bundle(
+                arrays=staged,
+                feature_names=audit["feature_names"],
+                metadata=audit["spatial_schema"],
+            )
+            actual_shape = staged["motion_delta"].shape
+            if actual_shape[-1] != MOTION_SCHEMA_DIMENSION:
+                raise ValueError(
+                    "Staged motion tensor dimension mismatch: "
+                    f"{actual_shape[-1]} != {MOTION_SCHEMA_DIMENSION}"
+                )
+        if audit["errors"]:
+            raise ValueError(
+                f"Staged spatial audit has errors: {audit['errors']}"
+            )
+        os.replace(staged_npz, npz_path)
+        staged_npz = None
+        os.replace(staged_audit, audit_path)
+        staged_audit = None
+    finally:
+        for staged_path in (staged_npz, staged_audit):
+            if staged_path is not None and staged_path.exists():
+                staged_path.unlink()
+
+    print(f"[OK] wrote {npz_path}")
+    print(f"[OK] wrote {audit_path}")
+    summary_keys = [
+        "rows",
+        "max_window_length",
+        "array_shapes",
+        "observed_ratio",
+        "observed_within_length_ratio",
+        "padding_slots",
+        "missing_observed_slots_within_length",
+        "errors",
+        "warnings",
+    ]
+    print(json.dumps({k: audit[k] for k in summary_keys}, indent=2))
+    if audit["errors"]:
+        raise SystemExit(2)
+
+
+if __name__ == "__main__":
+    main()

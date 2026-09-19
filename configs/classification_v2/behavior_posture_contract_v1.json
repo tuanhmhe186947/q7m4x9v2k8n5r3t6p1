@@ -1,0 +1,86 @@
+{
+  "schema_version": "classification_v2_behavior_posture_contract.v1",
+  "target_granularity": "native_temporal_burst",
+  "behavior_target": {
+    "direct_supervision": true,
+    "class_order_source": "pig_behavior.classification_v2.schema.VALID_BEHAVIORS"
+  },
+  "posture_target": {
+    "class_order": [
+      "lying",
+      "sitting",
+      "upright"
+    ],
+    "unknown_is_learned_class": false,
+    "unknown_encoding": {
+      "posture_target": "",
+      "posture_valid_mask": false
+    }
+  },
+  "safe_derivations": {
+    "lying": "lying",
+    "sitting": "sitting",
+    "stand": "upright",
+    "eat": "upright"
+  },
+  "safe_derivation_behavior_label_authority": [
+    "FROZEN_HUMAN_REVIEWED",
+    "SYNTHETIC_TEST"
+  ],
+  "safe_derivation_scope": {
+    "eat": "current fixed pen, camera and feeder geometry only",
+    "revalidation_triggers": [
+      "feeder geometry change",
+      "pen geometry change",
+      "camera authority change",
+      "eat annotation definition change"
+    ]
+  },
+  "active_behavior_posture_policy": {
+    "fight": "independent",
+    "social-nose": "independent",
+    "explore": "independent",
+    "move": "independent",
+    "drink": "independent",
+    "playwithtoy": "independent"
+  },
+  "transition_policy": {
+    "posture_transition_flag": true,
+    "posture_valid_mask": false,
+    "majority_posture_allowed": false
+  },
+  "allowed_authorities": [
+    "HUMAN_REVIEWED",
+    "DERIVED_SAFE",
+    "AUTO_VALIDATED",
+    "UNRESOLVED"
+  ],
+  "model_contract": {
+    "behavior_head": "direct_ten_class",
+    "posture_head": "independent_three_class_masked",
+    "hard_auxiliary_routing": false,
+    "target_or_authority_fields_in_model_x": false
+  },
+  "auxiliary_target_artifact": {
+    "key_column": "window_id",
+    "required_columns": [
+      "window_id",
+      "behavior_target",
+      "behavior_label_authority",
+      "posture_target",
+      "has_posture_aux_target",
+      "posture_authority",
+      "posture_authority_version",
+      "posture_transition_flag",
+      "motion_context_target",
+      "has_motion_context_aux_target",
+      "roi_intent_target",
+      "has_roi_intent_aux_target",
+      "interaction_target",
+      "has_interaction_aux_target",
+      "aux_include_in_training"
+    ]
+  },
+  "review_status": "APPROVED_DESIGN_PREPARATORY_IMPLEMENTATION_ONLY",
+  "final_training_authority": false
+}

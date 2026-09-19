@@ -1,0 +1,171 @@
+# ==============================================================================
+# 1. Python
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==============================================================================
+# 2. IDE / OS
+# ==============================================================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db
+
+# ==============================================================================
+# 3. Local environments
+# ==============================================================================
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.uv-cache/
+.uv-tools/
+
+# ==============================================================================
+# 4. Agent / tool state
+# ==============================================================================
+.agents/
+.serena/
+.codex*
+.claude/
+.gemini/
+.tokensave/
+AGENTS.md
+PROJECT_MEMORY.md
+WORKFLOW.md
+Help_*/
+plans/
+plan_model/
+planning/
+docs/writing_skills_bundle/
+Kế Hoạch Tương Lai.md
+Updating Tracking Pipeline Plan.md
+markitdown
+
+# ==============================================================================
+# 5. Data
+# ==============================================================================
+data/raw/
+data/videos/
+data/processed/
+data/data/
+data/data_plus/
+data/annotations/tracking/
+data/annotations/classification/
+data/annotations.json
+data/annotations/scene/background.png
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Essential data schemas and guidelines
+!data/README.md
+!data/task.json
+!data/annotations/schemas/cvat_pig_8_labels.json
+!data/annotations/roi/ROI_annotations.coco.json
+!data/annotations/scene/mask.png
+
+# ==============================================================================
+# 6. Model checkpoints
+# ==============================================================================
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.safetensors
+*.tflite
+*.keras
+*.weights
+!models/README.md
+
+# ==============================================================================
+# 7. Generated outputs
+# ==============================================================================
+outputs/
+docs/classification_v2/
+docs/tracking/
+paper/
+human_review_workspace/
+logs/
+checkpoints/
+runs/
+wandb/
+.mlflow/
+lightning_logs/
+combined_final_behavior_*.csv
+
+# ==============================================================================
+# 8. Feature caches
+# ==============================================================================
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.pb
+*.joblib
+
+# ==============================================================================
+# 9. Temporary files
+# ==============================================================================
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+scratch/
+temp/
+tmp/
+.tmp/
+.tmp_thesis_template/
+backups/
+config/
+runtime_*/
+ruff.exe
+fusion
+python
+tatus
+run_demo_v2.bat
+run_demo_v2.py
+vg1_test.json
+joint_pre_integration_architecture_audit.json
+
+# ==============================================================================
+# 10. Paper exceptions
+# ==============================================================================
+!docs/paper/
+!docs/paper/**
+docs/paper/freeze_20260917/
+docs/paper/freeze_post_confirmatory/
+!docs/figures/
+!docs/figures/**
+!docs/repo_audit/
+!docs/repo_audit/**

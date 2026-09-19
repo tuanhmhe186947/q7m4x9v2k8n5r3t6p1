@@ -1,0 +1,78 @@
+{
+  "schema_version": "classification_v2.final_conservative_slow_finetune_recipe.v1",
+  "recipe_id": "FINAL_CONSERVATIVE_SLOW_FINETUNE_VIDEO_SAFE_PHOTOMETRIC_WD_COSINE",
+  "status": "LOCKED",
+  "control_model": "FinalJoint_MS-ActorUnion_LocalST_Residual",
+  "control_commit": "b6a9fdaeb17db50b939fc6cc45af3c9d528c093d",
+  "architecture_changed": false,
+  "data_changed": false,
+  "split_changed": false,
+  "pb_changed": false,
+  "seed": 240494961,
+  "max_epochs": 30,
+  "components": {
+    "augmentation": {
+      "policy": "video_safe_photometric_v1",
+      "train_only": true,
+      "temporal_coherence": "one_parameter_set_per_window",
+      "shared_actor_union_parameters": true,
+      "brightness_factor": [
+        0.9,
+        1.1
+      ],
+      "contrast_factor": [
+        0.9,
+        1.1
+      ],
+      "saturation_factor": [
+        0.9,
+        1.1
+      ],
+      "gamma_factor": [
+        0.9,
+        1.1
+      ],
+      "geometric_transform": false,
+      "gaussian_noise": false,
+      "blur": false
+    },
+    "optimizer": {
+      "name": "adamw",
+      "weight_decay": 0.0001,
+      "preserve_parameter_groups": true,
+      "visual_lr": 3e-05,
+      "nonvisual_and_new_module_lr": 0.0003
+    },
+    "scheduler": {
+      "name": "cosine_floor_0.1",
+      "max_epochs": 30,
+      "minimum_factor": 0.1,
+      "preserve_group_lr_ratio": true
+    }
+  },
+  "unchanged_controls": {
+    "dropout": 0.1,
+    "sampler": "deterministic_shuffle",
+    "early_stopping_patience": 8,
+    "class_weight_power": 0.5,
+    "class_weight_max": 5.0,
+    "sample_weight_policy": "event_class",
+    "sample_weight_max": 10.0,
+    "outer_test_evaluations": 0
+  },
+  "control_inner_f1": {
+    "VG1": 0.704274,
+    "VG2": 0.694757,
+    "VG3": 0.635705,
+    "VG4": 0.690224,
+    "VG5": 0.694461
+  },
+  "validation_contract": {
+    "step0_full_validation": true,
+    "step0_eligible_as_best": true,
+    "augmentation_active": false,
+    "data_plus_inner_val_count": 0,
+    "data_plus_outer_test_count": 0,
+    "required_interface": "full winning-model multimodal interface"
+  }
+}

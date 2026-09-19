@@ -1,0 +1,53 @@
+{
+  "manifest_version": "paper.freeze.corrected.20260917.v1",
+  "task_id": "PAPER-CONFIRMATORY-CORRECTNESS-REPAIR-20260917",
+  "timestamp": "2026-09-17T16:00:32.149276+00:00",
+  "tracking_confirmatory_provenance": "CONFIRMATORY_B",
+  "tracking_metric_parity": "PASS",
+  "wrong_id_exposure_denominator": "CANONICAL_MATCHED_GT_FRAMES",
+  "tracking_bootstrap_terminology": "REPAIRED_TO_BOOTSTRAP_POSITIVE_FRACTION",
+  "behavior_outer_status": "NESTED_OUTER_DEFINED_BUT_NOT_MATERIALIZED",
+  "behavior_split_semantics": "POOLED_5FOLD_CV_DEVELOPMENT_COHORT",
+  "primary_behavior_statistics": {
+    "model_a": {
+      "mean_macro_f1": 0.677789,
+      "sample_sd": 0.026822
+    },
+    "model_b": {
+      "mean_macro_f1": 0.670838,
+      "sample_sd": 0.034919
+    },
+    "model_j": {
+      "mean_macro_f1": 0.684646,
+      "sample_sd": 0.029199
+    },
+    "j_pbnew": {
+      "mean_macro_f1": 0.68477,
+      "sample_sd": 0.025253
+    },
+    "e_0": {
+      "mean_macro_f1": 0.692609,
+      "sample_sd": 0.040212
+    },
+    "ej_fixed50": {
+      "mean_macro_f1": 0.693905,
+      "sample_sd": 0.03765
+    }
+  },
+  "pooled_oof_audit": {
+    "status": "INVALID_SUPERSEDED",
+    "notes": "Synthesized 80-83% figures replaced by physical fold-mean authorities."
+  },
+  "governance": {
+    "outer_test_evaluations": 0,
+    "new_tracker_runs": 0,
+    "new_model_runs": 0,
+    "claim_registry_repaired": true,
+    "dataset_role_table_repaired": true,
+    "master_ledger_repaired": true,
+    "corrected_freeze": "PASS",
+    "scientific_blockers_remaining": "NONE",
+    "ready_for_manuscript": true,
+    "next_action": "WRITE_MANUSCRIPT"
+  }
+}

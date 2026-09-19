@@ -1,0 +1,159 @@
+{
+  "task_id": "PAPER-IDENTITY-PROFILE-RAW-BYTETRACK-BASELINE-20260917",
+  "gpu_used": false,
+  "studio_started": false,
+  "outer_test_evaluations": 0,
+  "raw_bytetrack_prediction_authority": "outputs/tracking/three_mode_historical_reconstruction_20260729/frozen_predictions/B0_historical",
+  "raw_bytetrack_method_id": "bytetrack_raw",
+  "raw_bytetrack_provenance": "PASS",
+  "raw_baseline_comparability": "PARTIAL",
+  "comparability_notes": "Raw ByteTrack (bytetrack_raw) uses the frozen B0 historical predictions across the identical 12 development videos, evaluated under the identical Standard V2 bipartite matching contract (IoU >= 0.5, include_hidden=True, 30 fps). However, upstream detector configuration differs from the current YOLO cadence (det_conf=0.25, max_raw_detections=32 vs historical 0.20/20 live topology as documented in B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json), so upstream detection inputs are not isolated solely to association differences. Therefore, comparability is scientifically PARTIAL, and differences are reported relative to the frozen baseline rather than claiming pure algorithmic ByteTrack dominance.",
+  "raw_standard_v2_parity": "PASS",
+  "realtime_existing_parity": "PASS",
+  "hybrid_existing_parity": "PASS",
+  "videos": 12,
+  "pig_video_units": 96,
+  "raw_a1_tv": {
+    "mean": 0.09528698338626056,
+    "median": 0.0,
+    "iqr": 0.06268379956676745,
+    "ci95": [
+      0.03943542147546779,
+      0.1586638761135961
+    ]
+  },
+  "realtime_a1_tv": {
+    "mean": 0.030909361966943407,
+    "median": 0.0,
+    "iqr": 0.0,
+    "ci95": [
+      0.004250272484239583,
+      0.06681671737232317
+    ]
+  },
+  "hybrid_a1_tv": {
+    "mean": 0.00013986592901962583,
+    "median": 0.0,
+    "iqr": 0.0,
+    "ci95": [
+      0.0,
+      0.0004195977870588775
+    ]
+  },
+  "pairwise_effects": {
+    "raw_minus_realtime": {
+      "mean": 0.06437762141931715,
+      "ci95": [
+        0.021647445919051222,
+        0.10730350786996126
+      ],
+      "loov": "PASS"
+    },
+    "raw_minus_hybrid": {
+      "mean": 0.09514711745724093,
+      "ci95": [
+        0.03934250182034658,
+        0.1585507688096788
+      ],
+      "loov": "PASS"
+    },
+    "realtime_minus_hybrid": {
+      "mean": 0.030769496037923783,
+      "ci95": [
+        0.004250272484239583,
+        0.06653698551428391
+      ],
+      "loov": "PASS"
+    }
+  },
+  "a2_tv_means": {
+    "raw": 0.09765724426668106,
+    "realtime": 0.03223916316163538,
+    "hybrid": 0.0035847230991690724
+  },
+  "coverage": {
+    "raw": 0.9913194444444445,
+    "realtime": 0.9966203703703704,
+    "hybrid": 0.9911458333333334
+  },
+  "tracking_metrics_dev12": {
+    "raw": {
+      "hota": 0.811056531328756,
+      "idf1": 0.8878761574074074,
+      "idsw": 64,
+      "wrong_id_exposure": 35008
+    },
+    "realtime": {
+      "hota": 0.8860378342029178,
+      "idf1": 0.9700107498915083,
+      "idsw": 25,
+      "wrong_id_exposure": 11765
+    },
+    "hybrid": {
+      "hota": 0.8982489662495374,
+      "idf1": 0.9910763888888888,
+      "idsw": 0,
+      "wrong_id_exposure": 24
+    }
+  },
+  "wrong_id_mass_conservation": "PASS",
+  "correlations": {
+    "raw": {
+      "exposure_rho": 0.9380520010103831,
+      "exposure_ci95": [
+        0.8849409445758835,
+        0.9696032407931573
+      ],
+      "idsw_rho": 0.8712107557764015,
+      "idsw_ci95": [
+        0.7627106211765026,
+        0.9415805558656619
+      ],
+      "delta_abs_rho": 0.0668412452339816,
+      "delta_abs_rho_ci95": [
+        0.011558313924117066,
+        0.15007125875937177
+      ]
+    },
+    "realtime": {
+      "exposure_rho": 0.9698105188253608,
+      "exposure_ci95": [
+        0.8748669172883522,
+        0.9997094325459762
+      ],
+      "idsw_rho": 0.9186400576256346,
+      "idsw_ci95": [
+        0.7895976520608862,
+        0.9970928966755735
+      ],
+      "delta_abs_rho": 0.051170461199726236,
+      "delta_abs_rho_ci95": [
+        -0.00056076365777602,
+        0.15766722788313692
+      ]
+    },
+    "hybrid": {
+      "exposure_rho": 1.0,
+      "exposure_ci95": [
+        0.9999999999999999,
+        1.0
+      ],
+      "idsw_rho": NaN,
+      "idsw_ci95": [
+        NaN,
+        NaN
+      ],
+      "delta_abs_rho": NaN,
+      "delta_abs_rho_ci95": [
+        NaN,
+        NaN
+      ],
+      "status": "DEGENERATE"
+    }
+  },
+  "decisions": {
+    "raw_vs_realtime": "SUPPORTED_IMPROVEMENT",
+    "raw_vs_hybrid": "SUPPORTED_IMPROVEMENT",
+    "realtime_vs_hybrid": "SUPPORTED_IMPROVEMENT"
+  }
+}

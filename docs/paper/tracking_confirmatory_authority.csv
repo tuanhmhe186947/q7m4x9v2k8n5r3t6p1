@@ -1,0 +1,4 @@
+method,role,video_count,access_status,prediction_status,evaluation_status,hota,deta,assa,idf1,idsw,wrong_id_exposure,notes
+RealTime-Fast,proposed_causal_online_tracker,12,ACCESSED_MEASURED,VERIFIED_PHYSICAL_PREDICTIONS,EVALUATION_COMPLETE_STANDARD_V2,90.33%,92.89%,87.90%,95.03%,39,23029 (13.33%),"Confirmed causal online performance on 12 held-out videos (39 IDSW, 15 Hz detector invocation)."
+Hybrid-ByteTrack,proposed_retrospective_offline_tracker,12,ACCESSED_MEASURED,VERIFIED_PHYSICAL_PREDICTIONS,EVALUATION_COMPLETE_STANDARD_V2,93.55%,93.72%,93.41%,98.41%,8,8597 (4.98%),Confirmed retrospective offline performance on 12 held-out videos (8 IDSW across 21600 frames).
+Raw ByteTrack,frozen_technical_baseline,12,ACCESSED_MEASURED,VERIFIED_PHYSICAL_PREDICTIONS,EVALUATION_COMPLETE_STANDARD_V2,89.41%,91.91%,87.02%,94.23%,64,28603 (16.55%),Technical baseline preregistered under TRACKING_UNSEEN_PREFLIGHT_AUTHORITY_20260730.json.

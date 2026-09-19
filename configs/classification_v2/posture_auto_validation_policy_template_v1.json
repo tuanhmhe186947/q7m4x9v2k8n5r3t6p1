@@ -1,0 +1,17 @@
+{
+  "schema_version": "classification_v2_posture_auto_validation_policy.v1",
+  "status": "PREDECLARATION_REQUIRED_BEFORE_REAL_AUDIT",
+  "auto_eligible_posture": "upright",
+  "confidence_threshold": null,
+  "minimum_audit_rows_per_stratum": null,
+  "upright_control_rows_per_stratum": null,
+  "review_scope_seed": 20260801,
+  "required_precision_lower_bound": 0.98,
+  "confidence_level": 0.95,
+  "one_sided_z": 1.6448536269514722,
+  "temporal_consistency_required": true,
+  "transition_auto_carry_allowed": false,
+  "non_upright_auto_carry_allowed": false,
+  "grouped_model_validation_required": true,
+  "real_execution_authorized": false
+}

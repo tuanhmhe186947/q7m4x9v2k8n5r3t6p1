@@ -1,0 +1,167 @@
+import importlib.util
+import inspect
+from pathlib import Path
+
+import pytest
+
+from pig_behavior.evaluation.tracking.cli import (
+    parse_args as parse_pipeline_args,
+)
+from pig_behavior.evaluation.tracking.cli import (
+    parse_profile_overrides,
+    selected_rule_combos,
+)
+from pig_behavior.evaluation.tracking.config import (
+    TrackingEvaluationPipelineConfig,
+)
+from pig_behavior.evaluation.tracking.contracts import (
+    EVALUATOR_CONTRACT_ID,
+    LEGACY_EVALUATOR_CONTRACT_ID,
+)
+from pig_behavior.evaluation.tracking.cvat_io import parse_cvat_video_xml
+from pig_behavior.evaluation.tracking.diagnostics import (
+    continuity_gaps_for_pair,
+    identity_events_for_pair,
+    identity_mapping_for_pair,
+)
+from pig_behavior.evaluation.tracking.evaluator import (
+    evaluate_dataset,
+    evaluate_pair,
+)
+from pig_behavior.evaluation.tracking.hard_scene import (
+    HardSceneEvalConfig,
+    _build_compare_parser,
+    _build_parser,
+    _parse_with_confidence,
+)
+from pig_behavior.tracking.config import TrackingConfig
+
+SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "evaluate_tracking.py"
+SPEC = importlib.util.spec_from_file_location("evaluate_tracking_script", SCRIPT_PATH)
+assert SPEC is not None
+evaluate_tracking_script = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(evaluate_tracking_script)
+parse_args = evaluate_tracking_script.parse_args
+_selected_rule_combos = evaluate_tracking_script._selected_rule_combos
+
+
+def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
+    allowed_fields = set(TrackingConfig.__dataclass_fields__.keys())
+
+    overrides = parse_profile_overrides(
+        [
+            "det_conf=0.20",
+            "max_raw_detections=64",
+            "identity_swap_guard=true",
+            "hidden_suffix_id_swap_use_overlap_persistence=true",
+            "hidden_suffix_id_swap_min_overlap_persistence_frames=2",
+            "mask_path=null",
+        ],
+        allowed_fields,
+    )
+
+    assert overrides == {
+        "det_conf": 0.20,
+        "max_raw_detections": 64,
+        "identity_swap_guard": True,
+        "hidden_suffix_id_swap_use_overlap_persistence": True,
+        "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
+        "mask_path": None,
+    }
+
+
+def test_direct_pipeline_cli_keeps_condarea_off_by_default() -> None:
+    args = parse_pipeline_args(["--video", "input.mp4"])
+
+    assert not args.use_conditional_area_occlusion_freeze
+
+
+def test_direct_pipeline_cli_uses_corrected_hidden_contract_by_default() -> None:
+    primary = parse_pipeline_args(["--video", "input.mp4"])
+    compatibility = parse_pipeline_args(
+        ["--video", "input.mp4", "--exclude-hidden"]
+    )
+
+    assert primary.include_hidden is True
+    assert compatibility.include_hidden is False
+
+
+def test_new_tracking_reports_default_to_standard_v2() -> None:
+    args = parse_pipeline_args(["--video", "input.mp4"])
+    config = TrackingEvaluationPipelineConfig()
+
+    assert args.evaluator_contract == EVALUATOR_CONTRACT_ID
+    assert config.evaluator_contract_id == EVALUATOR_CONTRACT_ID
+
+
+def test_legacy_evaluator_is_historical_read_only() -> None:
+    with pytest.raises(ValueError, match="historical read-only"):
+        TrackingEvaluationPipelineConfig(
+            evaluator_contract_id=LEGACY_EVALUATOR_CONTRACT_ID
+        )
+
+
+def test_tracking_evaluation_apis_default_to_corrected_hidden_contract() -> None:
+    functions = [
+        parse_cvat_video_xml,
+        identity_events_for_pair,
+        identity_mapping_for_pair,
+        continuity_gaps_for_pair,
+        evaluate_pair,
+        evaluate_dataset,
+        _parse_with_confidence,
+    ]
+
+    assert all(
+        inspect.signature(function).parameters["include_hidden"].default is True
+        for function in functions
+    )
+    assert HardSceneEvalConfig().include_hidden is True
+    assert _build_parser().parse_args([]).include_hidden is True
+    assert _build_compare_parser().parse_args([]).include_hidden is True
+    assert _build_parser().parse_args(["--exclude-hidden"]).include_hidden is False
+    assert (
+        _build_compare_parser().parse_args(["--exclude-hidden"]).include_hidden
+        is False
+    )
+
+
+def test_parse_profile_overrides_rejects_unknown_fields() -> None:
+    with pytest.raises(ValueError, match="Unknown TrackingConfig override"):
+        parse_profile_overrides(["not_a_tracking_field=1"], {"det_conf"})
+
+
+def test_evaluate_tracking_defaults_to_exact_single_config() -> None:
+    args, extra_args = parse_args(["-v", "Pigs291119_000263_30fps"])
+
+    assert args.benchmark_compatible is False
+    assert args.single_config is False
+    assert extra_args == []
+
+
+def test_evaluate_tracking_benchmark_matrix_is_explicit() -> None:
+    args, _ = parse_args(
+        ["-v", "Pigs291119_000263_30fps", "--benchmark-compatible"]
+    )
+
+    assert args.benchmark_compatible is True
+
+
+def test_evaluate_tracking_accepts_single_rule_combo() -> None:
+    args, _ = parse_args(
+        [
+            "-v",
+            "Pigs291119_000263_30fps",
+            "--rule-combo",
+            "iou0_area0_condarea0_merge0",
+        ]
+    )
+
+    assert _selected_rule_combos(args.rule_combo) == ["iou0_area0_condarea0_merge0"]
+
+
+def test_tracking_pipeline_normalizes_rule_combos() -> None:
+    assert selected_rule_combos(
+        ["iou0_area0_condarea0_merge0,iou1_area0_condarea0_merge0"]
+    ) == ["iou0_area0_condarea0_merge0", "iou1_area0_condarea0_merge0"]

@@ -1,0 +1,40 @@
+{
+  "version": "classification_v2_source_domain_control_v1",
+  "train_ready_root": "outputs/classification_v2/train_ready_windows",
+  "output_dir": "outputs/classification_v2/source_domain_controls",
+  "split_manifest": "split_manifest.csv",
+  "y_behavior": "y_behavior.csv",
+  "train_mask": "train_mask.csv",
+  "tabular_x": "X_window_features.csv",
+  "matching_policy": {
+    "strata": ["split", "behavior_label", "window_length_frames"],
+    "source_column": "source_type",
+    "selection": "deterministic_equal_quota_per_source_within_stratum",
+    "row_policy": "preserve_all_rows_in_selection_manifest; use domain_control_keep as experiment mask"
+  },
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "*label*",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "source_type",
+    "source_*",
+    "split",
+    "split_*",
+    "*_path"
+  ],
+  "rules": [
+    "Source/domain control views are audit masks, not replacements for the full reviewed train-ready dataset.",
+    "Never include source_type, split, recording/session identifiers, review fields, or labels in X.",
+    "Report source shortcut audits and source-balanced metrics under video/session-safe validation."
+  ]
+}

@@ -1,0 +1,5 @@
+dataset_name,path,count,status
+Tracking Development (13 videos),data/annotations/tracking,13,VERIFIED
+Tracking Confirmatory (12 videos),data/videos/video_test_tracking,12,CONFIRMATORY_B_VERIFIED
+Behavior CV Canonical Dataset,outputs/classification_v2/video_group_balanced_5fold_authority_20260821/full_t6_video_group_balanced_5fold_manifest.csv,33287,VERIFIED_DEVELOPMENT_5FOLD_CV
+Behavior Nested Outer Protocol,docs/classification_v2/corrected_pooled_route_20260806/outer_oof_contract.json,0,NESTED_OUTER_DEFINED_BUT_NOT_MATERIALIZED

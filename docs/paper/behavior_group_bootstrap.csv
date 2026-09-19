@@ -1,0 +1,5 @@
+comparison,baseline_model,comparison_model,point_delta_original,bootstrap_mean_delta,ci95_lower,ci95_upper,prob_positive,uncertainty_includes_zero,cluster_unit,bootstrap_replications,seed
+A_vs_J,Model A,Model J (Replay),+0.006856,+0.007062,-0.003694,+0.018904,0.9113,YES,video_key,10000,240494961
+A_vs_EJ,Model A,E_J Fixed 50/50,+0.016115,+0.017965,+0.002627,+0.036671,0.9876,NO,video_key,10000,240494961
+J_vs_EJ,Model J (Replay),E_J Fixed 50/50,+0.009259,+0.010903,-0.002694,+0.027286,0.9399,YES,video_key,10000,240494961
+J_vs_JPBNEW,Model J (Replay),J_PBNEW (E_J Teacher),+0.000124,+0.001086,-0.008222,+0.010703,0.5516,YES,video_key,10000,240494961

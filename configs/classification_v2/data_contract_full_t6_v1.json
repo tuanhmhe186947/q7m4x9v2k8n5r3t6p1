@@ -1,0 +1,194 @@
+{
+  "contract_version": "classification_v2_data_contract_full_t6_v1",
+  "snapshot_name": "classification_v2_full_t6_current_authority",
+  "root": ".",
+  "snapshot_output_dir": "outputs/classification_v2/training_snapshots",
+  "primary_key": "target_id",
+  "window_id_source_artifact": "full_t6_row_manifest",
+  "row_count_alignment_group": [
+    "full_t6_row_manifest",
+    "full_t6_spatial_bundle",
+    "rgb_window_index"
+  ],
+  "key_alignment_group": [
+    "full_t6_row_manifest",
+    "rgb_window_index"
+  ],
+  "key_coverage_groups": [
+    {
+      "source_artifact": "full_t6_row_manifest",
+      "artifacts": ["rgb_window_index"]
+    }
+  ],
+  "required_ordered_window_artifacts": [
+    "full_t6_row_manifest",
+    "rgb_window_index"
+  ],
+  "lineage_audit_artifact": "full_t6_build_evidence",
+  "artifacts": {
+    "full_t6_spatial_bundle": {
+      "path": "outputs/classification_v2/full_t6_canonical_46d_20260816/full_t6_canonical_46d.npz",
+      "type": "npz",
+      "required": true,
+      "required_arrays": [
+        "bbox_xywh_n",
+        "bbox_shape_n",
+        "motion_delta",
+        "roi_class_relation",
+        "social_relation",
+        "length_mask",
+        "observed_mask",
+        "spatial_quality_mask",
+        "motion_feature_validity_mask",
+        "social_feature_validity_mask",
+        "frame_index_sequence"
+      ]
+    },
+    "full_t6_row_manifest": {
+      "path": "outputs/classification_v2/full_t6_canonical_46d_20260816/full_t6_row_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "target_id",
+      "required_columns": [
+        "target_id",
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "object_track_key",
+        "behavior",
+        "outer_fold_id",
+        "split",
+        "native_unit_id",
+        "physical_frame_ids_json",
+        "observed_mask_json"
+      ]
+    },
+    "full_t6_build_evidence": {
+      "path": "outputs/classification_v2/full_t6_canonical_46d_20260816/build_evidence.json",
+      "type": "json",
+      "required": true,
+      "json_hash_fields": [
+        "artifacts.final_npz.sha256",
+        "artifacts.row_manifest.sha256"
+      ],
+      "required_json_values": {
+        "active_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"
+      }
+    },
+    "partner_frame_context": {
+      "path": "outputs/classification_v2/image_context_v2/image_frame_context_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "required_columns": [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "scene_frame_uid",
+        "frame_index",
+        "object_track_key",
+        "image_width",
+        "image_height",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "bbox_valid"
+      ]
+    },
+    "rgb_window_major_cache": {
+      "path": "outputs/classification_v2/m0_window_major_r128_t6/m0_rgb_window_major_u8.npy",
+      "type": "binary",
+      "required": true
+    },
+    "rgb_window_index": {
+      "path": "outputs/classification_v2/m0_window_major_r128_t6/m0_rgb_window_index.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "target_id",
+      "required_columns": [
+        "window_row",
+        "target_id",
+        "split",
+        "behavior",
+        "source_type",
+        "object_track_key"
+      ]
+    },
+    "union_availability_mask": {
+      "path": "outputs/classification_v2/m0_window_major_r128_t6/m0_union_available_mask.npy",
+      "type": "binary",
+      "required": true
+    },
+    "trainer_contract_v2": {
+      "path": "configs/classification_v2/trainer_contract_v2.json",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "version": "classification_v2_trainer_contract_v2"
+      }
+    }
+  },
+  "artifact_hash_bindings": [
+    {
+      "source_artifact": "full_t6_spatial_bundle",
+      "consumer_artifact": "full_t6_build_evidence",
+      "consumer_json_field": "artifacts.final_npz.sha256"
+    },
+    {
+      "source_artifact": "full_t6_row_manifest",
+      "consumer_artifact": "full_t6_build_evidence",
+      "consumer_json_field": "artifacts.row_manifest.sha256"
+    }
+  ],
+  "derived_authorities": {
+    "event_sample_weight": {
+      "source_artifact": "full_t6_row_manifest",
+      "source_key": "target_id",
+      "source_columns": ["split", "behavior"],
+      "derivation": "training_sample_weight[target_id] = 1.0 when split == 'train', else 0.0; class_weight[behavior] = min((N_train / (10 * class_count_train[behavior])) ** 0.5, 5.0), with absent classes fixed at 5.0",
+      "implementation": "StrictTrainingDataModule._attach_fold_event_weights",
+      "fit_scope": "FULL-T6 train-role rows only",
+      "fallback_used": false
+    }
+  },
+  "partner_metadata_authority": {
+    "frame_geometry_artifact": "partner_frame_context",
+    "window_identity_artifact": "full_t6_row_manifest",
+    "index_constructor": "PartnerTokenIndex.from_manifest(dataset.frame_context_csv)",
+    "window_metadata_constructor": "full_t6_row_manifest video_key, object_track_key, physical_frame_ids_json",
+    "frame_geometry_columns": [
+      "source_type",
+      "dataset_id",
+      "video_key",
+      "scene_frame_uid",
+      "frame_index",
+      "object_track_key",
+      "image_width",
+      "image_height",
+      "x1",
+      "y1",
+      "x2",
+      "y2",
+      "bbox_valid"
+    ]
+  },
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "*label*",
+    "window_id",
+    "target_id",
+    "video_key",
+    "dataset_id",
+    "object_track_key",
+    "split",
+    "*_path"
+  ],
+  "notes": [
+    "This scratch-only contract binds the frozen FULL-T6 M0/M1 runtime authority.",
+    "All repository-owned artifact identities are project-relative.",
+    "The partner frame manifest supplies same-frame geometry; the FULL-T6 row manifest supplies only actor/window/time identity.",
+    "No train_ready_windows, legacy Q2, 64px cache, or visual-interaction cache artifact is declared."
+  ]
+}

@@ -1,0 +1,50 @@
+# Classification V2 — pre-review / post-review reproduction contract
+# The current labels are PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW. Behavior review is a final quality gate for
+# residual ambiguity. Do NOT treat every label as suspicious; do NOT treat provisional results as final.
+
+meta:
+  schema_version: classification_v2.model_research.behavior_review_reproduction.v1
+  code_head_sha: 4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98
+  label_authority_status_pre: PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW
+  label_authority_status_post: REVIEWED_APPLIED (after behavior_decision_apply + temporal manifest published)
+
+trigger: behavior review complete AND behavior_decision_apply PASS AND temporal view re-manifested
+
+reproduction_steps:
+  1: rebuild train-ready data and tensors from reviewed frame-local primitives (per FINAL-VIEW COMPUTATION RULE)
+  2: calculate label changes vs the provisional snapshot
+  3: compare provisional vs reviewed class distributions (all units)
+  4: compare correction rates by class, source, and confusion pair
+  5: re-run ONLY {retained baselines, winning loss, BALANCED model, essential ablations} on the SAME outer folds/seeds
+  6: quantify metric drift before vs after review
+
+required_comparisons:
+  - TOTAL_LABEL_CHANGE_RATE
+  - PER_CLASS_CHANGE_RATE
+  - PER_CONFUSION_PAIR_CHANGE_RATE
+  - PER_SOURCE_CHANGE_RATE
+  - PRE_REVIEW_VS_POST_REVIEW_MACRO_F1
+  - PRE_REVIEW_VS_POST_REVIEW_MODEL_RANKING
+
+ranking_stability_rule: >
+  If model ranking changes materially after review, PROVISIONAL conclusions MUST be withdrawn and re-derived from the
+  reviewed lineage. A pre-review win is never promoted to a paper-grade claim without post-review confirmation.
+
+behavior_review_sensitivity_classes:
+  - ROBUST_PRE_REVIEW_FINDING                 # stable pre-review; expected to survive review
+  - LIKELY_STABLE_BUT_REQUIRES_CONFIRMATION
+  - LABEL_SENSITIVE_FINDING                    # in an expected label-sensitive area
+  - NOT_SUPPORTED
+
+expected_label_sensitive_areas:
+  - stand / move / explore
+  - fight / social-nose
+  - ROI behavior vs stand/explore
+  - playwithtoy
+  - low-visibility interaction cases
+
+paper_grade_gate:
+  PAPER_GRADE_USE_PRE_REVIEW: NO
+  PAPER_GRADE_USE_POST_REVIEW: conditional on reproduction PASS + ranking stability + all decision gates + measured runtime
+  forbidden_pre_review: [final paper headline results, final checkpoint promotion, definitive superiority claims,
+    final calibration/deployment thresholds, final rare-class conclusions, external comparison claims]

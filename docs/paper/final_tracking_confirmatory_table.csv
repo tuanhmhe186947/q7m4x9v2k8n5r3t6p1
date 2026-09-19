@@ -1,0 +1,4 @@
+method,role,provenance_class,videos,frames,agg_hota_pct,per_video_mean_hota_pct,hota_ci95,agg_deta_pct,agg_assa_pct,agg_idf1_pct,idf1_ci95,total_idsw,idsw_median,wrong_id_matched_frames,wrong_id_seconds,wrong_id_fraction_matched_pct,wrong_id_fraction_all_gt_pct,identity_error_episodes,persistent_swaps
+RealTime-Fast,proposed_causal_online_tracker,CONFIRMATORY_B,12,21600,90.33,89.89,"[84.13%, 94.43%]",92.89,87.9,95.03,"[89.49%, 99.16%]",39,0.0,23029,767.63,13.36,13.33,51,5
+Hybrid-ByteTrack,proposed_retrospective_offline_tracker,CONFIRMATORY_B,12,21600,93.55,93.47,"[89.85%, 96.24%]",93.72,93.41,98.41,"[96.26%, 99.70%]",8,0.0,8597,286.57,4.99,4.98,9,4
+Raw ByteTrack,frozen_technical_baseline,CONFIRMATORY_B,12,21600,89.41,89.11,"[83.21%, 94.03%]",91.91,87.02,94.23,"[89.61%, 97.96%]",64,3.0,28603,953.43,16.65,16.55,66,12

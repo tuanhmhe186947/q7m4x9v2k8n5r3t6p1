@@ -1,0 +1,620 @@
+"""Context and training policy normalization for classification_v2.
+
+This module recomputes final policy columns after all sources have been merged.
+
+Design rules:
+- Do not reject rows only because global_context_pig_count < 8.
+- Keep actor-only rows for non-interaction behaviors.
+- Require local partner context only for fight/social-nose.
+- Legacy Hidden retains prior-review provenance.
+- CVAT Hidden is tracking-derived and untrusted until human review.
+- Hidden does not reject or down-weight a sample by itself.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pandas as pd
+
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+    scene_frame_key,
+)
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
+from pig_behavior.classification_v2.schema import (
+    DEFAULT_PIG_IDS,
+    INTERACTION_BEHAVIORS,
+    MOTION_DOMINANT_BEHAVIORS,
+    QA_STATUSES,
+    ROI_DOMINANT_BEHAVIORS,
+    SHAPE_DOMINANT_BEHAVIORS,
+    TRAINING_TIERS,
+    VALID_BEHAVIOR_SET,
+    behavior_to_coarse,
+    normalize_behavior,
+    normalize_hidden,
+    normalize_pig_id,
+)
+
+REQUIRED_POLICY_COLUMNS: tuple[str, ...] = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "scene_frame_uid",
+    "frame_uid",
+    "frame_index",
+    "pig_id",
+    "behavior",
+    "hidden",
+    "bbox_valid",
+)
+
+
+def apply_context_policy(
+    frame_objects: pd.DataFrame,
+    *,
+    expected_pig_count: int = 8,
+    recompute_context: bool = True,
+    require_full_8_for_eval: bool = False,
+) -> pd.DataFrame:
+    """Apply final context/training policy to merged frame objects.
+
+    Parameters
+    ----------
+    frame_objects:
+        Merged canonical frame-object dataframe.
+    expected_pig_count:
+        Expected full context pig count. Default is 8.
+    recompute_context:
+        If True, recompute context columns from scene_frame_uid/pig_id.
+        This is recommended after merge.
+    require_full_8_for_eval:
+        If True, use_for_main_eval is True only for full-context rows.
+        Default False because legacy/selected annotations are valid partial context.
+    """
+    resolve_optional_lineage_claims(
+        frame_objects,
+        artifact_name="context policy input",
+    )
+    out = ensure_frame_object_identifiers(
+        frame_objects,
+        source_name="context_policy",
+    )
+    missing = [c for c in REQUIRED_POLICY_COLUMNS if c not in out.columns]
+    if missing:
+        raise ValueError(f"Missing required policy columns: {missing}")
+
+    out = _normalize_labels(out)
+    out = _ensure_bbox_valid(out)
+
+    if recompute_context or _needs_context_recompute(out):
+        out = _recompute_context_columns(
+            out,
+            expected_pig_count=expected_pig_count,
+        )
+
+    out = _apply_behavior_specific_context(
+        out,
+        expected_pig_count=expected_pig_count,
+    )
+
+    out = _apply_training_flags(
+        out,
+        require_full_8_for_eval=require_full_8_for_eval,
+    )
+
+    require_lineage_claims_preserved(
+        frame_objects,
+        out,
+        source_name="context policy input",
+        derived_name="context policy output",
+    )
+    return out
+
+
+def audit_context_policy(df: pd.DataFrame) -> dict[str, Any]:
+    """Return audit summary after applying context policy."""
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    missing = [c for c in REQUIRED_POLICY_COLUMNS if c not in df.columns]
+    if missing:
+        errors.append(f"missing_required_columns={missing}")
+
+    if "training_tier" in df.columns:
+        invalid_tiers = sorted(
+            set(df["training_tier"].dropna().astype(str)).difference(TRAINING_TIERS)
+        )
+        if invalid_tiers:
+            errors.append(f"invalid_training_tiers={invalid_tiers}")
+
+    if "qa_status" in df.columns:
+        invalid_qa = sorted(set(df["qa_status"].dropna().astype(str)).difference(QA_STATUSES))
+        if invalid_qa:
+            errors.append(f"invalid_qa_statuses={invalid_qa}")
+
+    if "bbox_valid" in df.columns:
+        bbox_valid = _to_bool_series(df["bbox_valid"])
+        invalid_bbox = int((~bbox_valid).sum())
+    else:
+        invalid_bbox = -1
+        errors.append("bbox_valid_missing")
+
+    if "behavior" in df.columns:
+        behavior_valid = df["behavior"].isin(VALID_BEHAVIOR_SET)
+        invalid_behavior = int((~behavior_valid).sum())
+    else:
+        invalid_behavior = -1
+        errors.append("behavior_missing")
+
+    if "training_tier" in df.columns and df["training_tier"].astype(str).eq("warning").any():
+        errors.append("training_tier_warning_should_not_exist")
+
+    if "social_missing_mask" in df.columns:
+        social_missing_count = int(_to_bool_series(df["social_missing_mask"]).sum())
+    else:
+        social_missing_count = 0
+
+    audit = {
+        "rows": int(len(df)),
+        "frames": int(scene_frame_key(df).nunique()),
+        "frame_objects": int(df["frame_uid"].nunique())
+        if "frame_uid" in df.columns
+        else 0,
+        "sources": _value_counts_dict(df, "source_type"),
+        "datasets": _value_counts_dict(df, "dataset_id"),
+        "behaviors": _value_counts_dict(df, "behavior"),
+        "hidden": _value_counts_dict(df, "hidden"),
+        "hidden_source": _value_counts_dict(df, "hidden_source"),
+        "hidden_review_status": _value_counts_dict(df, "hidden_review_status"),
+        "hidden_trust_status": _value_counts_dict(df, "hidden_trust_status"),
+        "hidden_is_trusted": _value_counts_dict(df, "hidden_is_trusted"),
+        "context_pig_count": _value_counts_dict(df, "global_context_pig_count"),
+        "annotation_scope": _value_counts_dict(df, "annotation_scope"),
+        "local_context_quality": _value_counts_dict(df, "local_context_quality"),
+        "social_feature_quality": _value_counts_dict(df, "social_feature_quality"),
+        "training_tier": _value_counts_dict(df, "training_tier"),
+        "qa_status": _value_counts_dict(df, "qa_status"),
+        "include_in_training": _value_counts_dict(df, "include_in_training"),
+        "use_for_visual_training": _value_counts_dict(df, "use_for_visual_training"),
+        "use_for_shape_training": _value_counts_dict(df, "use_for_shape_training"),
+        "use_for_motion_training": _value_counts_dict(df, "use_for_motion_training"),
+        "use_for_roi_training": _value_counts_dict(df, "use_for_roi_training"),
+        "use_for_social_training": _value_counts_dict(df, "use_for_social_training"),
+        "use_for_main_eval": _value_counts_dict(df, "use_for_main_eval"),
+        "bbox_valid": _value_counts_dict(df, "bbox_valid"),
+        "invalid_bbox": invalid_bbox,
+        "invalid_behavior": invalid_behavior,
+        "social_missing_count": social_missing_count,
+        "errors": errors,
+        "warnings": warnings,
+    }
+    return add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="context policy audit frame table",
+    )
+
+
+def _normalize_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize labels and assign source-aware Hidden trust provenance."""
+    out = df.copy()
+
+    out["behavior"] = out["behavior"].map(normalize_behavior)
+    out["behavior_coarse"] = out["behavior"].map(behavior_to_coarse)
+    out["pig_id"] = out["pig_id"].map(normalize_pig_id)
+
+    return normalize_hidden_provenance(out)
+
+
+def normalize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
+    """Canonicalize Hidden trust and reject stale CVAT trust flags.
+
+    CVAT Hidden starts as tracking-derived metadata. An existing boolean trust
+    column is insufficient evidence of human review; completed review status is
+    required. Legacy rows retain the settled prior-review trust policy unless a
+    current reviewer marked them unclear.
+    """
+
+    if "source_type" not in df.columns or "hidden" not in df.columns:
+        raise ValueError("source_type and hidden are required for Hidden provenance")
+    out = df.copy()
+    out["hidden"] = out["hidden"].map(normalize_hidden)
+
+    source = out["source_type"].fillna("").astype(str)
+    reviewed = _reviewed_hidden_mask(out)
+    unresolved = _unresolved_hidden_mask(out)
+    legacy = source.eq("legacy_recovered")
+    declared_trust = _optional_bool_column(out, "hidden_is_trusted")
+    explicit_untrusted_legacy = (
+        legacy & declared_trust.eq(False).fillna(False) & ~reviewed & ~unresolved
+    )
+    prior_review_legacy = legacy & ~explicit_untrusted_legacy & ~unresolved
+
+    declared_source = _declared_text(out, "hidden_source")
+    declared_review_status = _declared_text(out, "hidden_review_status")
+    declared_trust_status = _declared_text(out, "hidden_trust_status")
+    declared_visibility = _declared_text(out, "visibility_quality")
+
+    out["hidden_source"] = "unknown_unreviewed"
+    out.loc[prior_review_legacy, "hidden_source"] = "legacy_prior_review"
+    out.loc[explicit_untrusted_legacy, "hidden_source"] = declared_source.where(
+        declared_source.ne(""),
+        "legacy_cvat_seed",
+    )
+    out.loc[source.eq("cvat_tracking_xml"), "hidden_source"] = "cvat_tracking_derived"
+    out.loc[reviewed, "hidden_source"] = "current_human_review"
+    out.loc[unresolved, "hidden_source"] = "current_human_review_unclear"
+
+    out["hidden_review_status"] = "tracking_derived_unreviewed"
+    out.loc[prior_review_legacy, "hidden_review_status"] = "prior_review_trusted"
+    out.loc[explicit_untrusted_legacy, "hidden_review_status"] = (
+        declared_review_status.where(
+            declared_review_status.ne(""),
+            "seed_unreviewed",
+        )
+    )
+    out.loc[reviewed, "hidden_review_status"] = "reviewed"
+    out.loc[unresolved, "hidden_review_status"] = "unclear"
+
+    out["hidden_is_trusted"] = prior_review_legacy | reviewed
+    out["hidden_trust_status"] = "untrusted_tracking_derived"
+    out.loc[prior_review_legacy, "hidden_trust_status"] = "trusted_prior_review"
+    out.loc[explicit_untrusted_legacy, "hidden_trust_status"] = (
+        declared_trust_status.where(
+            declared_trust_status.ne(""),
+            "untrusted_cvat_seed",
+        )
+    )
+    out.loc[reviewed, "hidden_trust_status"] = "trusted_current_review"
+    out.loc[unresolved, "hidden_trust_status"] = "unclear_current_review"
+
+    out["visibility_quality"] = "unreviewed_tracking_derived"
+    out.loc[
+        prior_review_legacy & out["hidden"].eq("No"),
+        "visibility_quality",
+    ] = "visible_prior_review"
+    out.loc[
+        prior_review_legacy & out["hidden"].eq("Yes"),
+        "visibility_quality",
+    ] = "hidden_prior_review"
+    out.loc[explicit_untrusted_legacy, "visibility_quality"] = (
+        declared_visibility.where(
+            declared_visibility.ne(""),
+            "cvat_seed_unreviewed",
+        )
+    )
+    out.loc[reviewed & out["hidden"].eq("No"), "visibility_quality"] = "visible_reviewed"
+    out.loc[reviewed & out["hidden"].eq("Yes"), "visibility_quality"] = "hidden_reviewed"
+    out.loc[unresolved, "visibility_quality"] = "unclear"
+    out["hidden_effective_for_policy"] = out["hidden"].eq("Yes") & out["hidden_is_trusted"]
+
+    return out
+
+
+def _declared_text(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series("", index=df.index, dtype="object")
+    values = df[column].fillna("").astype(str).str.strip()
+    return values.mask(values.str.lower().isin({"nan", "none", "<na>"}), "")
+
+
+def _optional_bool_column(df: pd.DataFrame, column: str) -> pd.Series:
+    values = pd.Series(pd.NA, index=df.index, dtype="boolean")
+    if column not in df.columns:
+        return values
+    text = df[column].fillna("").astype(str).str.strip().str.lower()
+    values.loc[text.isin({"true", "1", "yes", "y", "t"})] = True
+    values.loc[text.isin({"false", "0", "no", "n", "f"})] = False
+    return values
+
+
+def _reviewed_hidden_mask(df: pd.DataFrame) -> pd.Series:
+    """Return rows carrying an explicit completed human Hidden decision."""
+    if "hidden_review_status" not in df.columns:
+        return pd.Series(False, index=df.index)
+    status = df["hidden_review_status"].fillna("").astype(str).str.lower()
+    return status.isin({"reviewed", "resolved", "complete"})
+
+
+def _unresolved_hidden_mask(df: pd.DataFrame) -> pd.Series:
+    """Return rows explicitly reviewed but left visibility-unclear."""
+    if "hidden_review_status" not in df.columns:
+        return pd.Series(False, index=df.index)
+    status = df["hidden_review_status"].fillna("").astype(str).str.lower()
+    return status.isin({"unclear", "ambiguous"})
+
+
+def _ensure_bbox_valid(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+
+    if "bbox_valid" in out.columns:
+        out["bbox_valid"] = _to_bool_series(out["bbox_valid"])
+        return out
+
+    for col in ["x1", "y1", "x2", "y2"]:
+        if col not in out.columns:
+            out["bbox_valid"] = False
+            return out
+        out[col] = pd.to_numeric(out[col], errors="coerce")
+
+    out["bbox_valid"] = (
+        out["x1"].notna()
+        & out["y1"].notna()
+        & out["x2"].notna()
+        & out["y2"].notna()
+        & out["x2"].gt(out["x1"])
+        & out["y2"].gt(out["y1"])
+    )
+
+    return out
+
+
+def _needs_context_recompute(df: pd.DataFrame) -> bool:
+    required = {
+        "global_context_pig_count",
+        "global_context_complete_8",
+        "local_context_pig_count",
+        "duplicate_pig_id_in_frame",
+        "context_overfull",
+        "missing_global_pig_ids",
+    }
+    return not required.issubset(set(df.columns))
+
+
+def _recompute_context_columns(
+    df: pd.DataFrame,
+    *,
+    expected_pig_count: int,
+) -> pd.DataFrame:
+    out = df.copy()
+
+    for col in [
+        "global_context_pig_count",
+        "global_context_complete_8",
+        "local_context_pig_count",
+        "duplicate_pig_id_in_frame",
+        "context_overfull",
+        "missing_global_pig_ids",
+    ]:
+        if col in out.columns:
+            out = out.drop(columns=[col])
+
+    counts = (
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
+        .nunique(dropna=True)
+        .rename("global_context_pig_count")
+    )
+
+    pig_sets = (
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
+        .apply(lambda values: set(values.dropna().astype(str)))
+        .rename("present_pig_ids")
+    )
+
+    duplicate = (
+        out.groupby(["scene_frame_uid", "pig_id"], dropna=False)
+        .size()
+        .gt(1)
+        .groupby("scene_frame_uid")
+        .any()
+        .rename("duplicate_pig_id_in_frame")
+    )
+
+    out = out.merge(
+        counts,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        pig_sets,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        duplicate,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+
+    expected_ids = set(DEFAULT_PIG_IDS[:expected_pig_count])
+
+    out["global_context_pig_count"] = pd.to_numeric(
+        out["global_context_pig_count"],
+        errors="coerce",
+    ).fillna(0)
+
+    out["global_context_complete_8"] = out["global_context_pig_count"].eq(expected_pig_count)
+    out["context_overfull"] = out["global_context_pig_count"].gt(expected_pig_count)
+    out["local_context_pig_count"] = out["global_context_pig_count"]
+
+    out["duplicate_pig_id_in_frame"] = out["duplicate_pig_id_in_frame"].fillna(False)
+
+    out["missing_global_pig_ids"] = out["present_pig_ids"].apply(
+        lambda present: (
+            "|".join(sorted(expected_ids.difference(present)))
+            if isinstance(present, set)
+            else "|".join(sorted(expected_ids))
+        )
+    )
+
+    out = out.drop(columns=["present_pig_ids"])
+
+    return out
+
+
+def _apply_behavior_specific_context(
+    df: pd.DataFrame,
+    *,
+    expected_pig_count: int,
+) -> pd.DataFrame:
+    out = df.copy()
+
+    count = pd.to_numeric(out["local_context_pig_count"], errors="coerce").fillna(0)
+    is_social = out["behavior"].isin(INTERACTION_BEHAVIORS)
+    has_partner = count.ge(2)
+    full_context = count.eq(expected_pig_count)
+
+    out["annotation_scope"] = "selected_actor_group"
+    out.loc[count.le(1), "annotation_scope"] = "actor_only"
+    out.loc[is_social & has_partner, "annotation_scope"] = "interaction_pair_or_group"
+    out.loc[full_context, "annotation_scope"] = "full_context"
+
+    out["local_context_quality"] = "selected_context_ok"
+    out.loc[count.le(1), "local_context_quality"] = "actor_only_ok"
+    out.loc[is_social & has_partner, "local_context_quality"] = "interaction_context_ok"
+    out.loc[is_social & ~has_partner, "local_context_quality"] = "missing_interaction_partner"
+    out.loc[full_context, "local_context_quality"] = "full_context"
+
+    out["social_feature_required"] = is_social
+    out["social_missing_mask"] = is_social & ~has_partner
+
+    out["social_feature_quality"] = "unknown"
+    out.loc[is_social & ~has_partner, "social_feature_quality"] = "missing_context"
+    out.loc[is_social & has_partner, "social_feature_quality"] = "interaction_context"
+    out.loc[is_social & full_context, "social_feature_quality"] = "full_context"
+
+    out["interaction_partner_count"] = 0
+    out.loc[is_social, "interaction_partner_count"] = (count[is_social] - 1).clip(lower=0)
+
+    out["interaction_partner_ids"] = _interaction_partner_ids(out)
+
+    out["context_quality"] = "partial_or_selected_context"
+    out.loc[full_context, "context_quality"] = "full_context"
+    out.loc[out["context_overfull"].fillna(False), "context_quality"] = "review_overfull_context"
+
+    return out
+
+
+def _apply_training_flags(
+    df: pd.DataFrame,
+    *,
+    require_full_8_for_eval: bool,
+) -> pd.DataFrame:
+    out = df.copy()
+
+    bbox_valid = _to_bool_series(out["bbox_valid"])
+    behavior_valid = out["behavior"].isin(VALID_BEHAVIOR_SET)
+
+    frame_uid_missing = out["frame_uid"].isna() | out["frame_uid"].astype(str).str.strip().eq("")
+
+    pig_id_missing = out["pig_id"].isna() | out["pig_id"].astype(str).str.strip().eq("")
+    required_missing = frame_uid_missing | pig_id_missing
+
+    is_social = out["behavior"].isin(INTERACTION_BEHAVIORS)
+    social_missing = _to_bool_series(out["social_missing_mask"])
+    duplicate_pig = _to_bool_series(out["duplicate_pig_id_in_frame"])
+    context_overfull = _to_bool_series(out["context_overfull"])
+    full_context = _to_bool_series(out["global_context_complete_8"])
+
+    invalid_bbox = ~bbox_valid
+    invalid_behavior = ~behavior_valid
+    rejected = invalid_bbox | invalid_behavior | required_missing
+
+    review = social_missing | duplicate_pig | context_overfull
+
+    include = ~rejected
+
+    out["include_in_training"] = include
+    out["qa_status"] = "ok"
+    out["training_tier"] = "clean"
+    out["sample_weight"] = 1.0
+
+    non_social = ~is_social
+    local_count = pd.to_numeric(out["local_context_pig_count"], errors="coerce").fillna(0)
+
+    out.loc[full_context & include, "training_tier"] = "clean_full_context"
+    out.loc[is_social & ~social_missing & include, "training_tier"] = "clean_interaction"
+    out.loc[non_social & local_count.le(1) & include, "training_tier"] = "actor_only"
+    out.loc[
+        non_social & local_count.between(2, 7, inclusive="both") & include,
+        "training_tier",
+    ] = "partial_context"
+
+    out.loc[review & include, "training_tier"] = "review"
+    out.loc[social_missing & include, "qa_status"] = "review_interaction_missing_partner"
+    out.loc[(duplicate_pig | context_overfull) & include, "qa_status"] = "review"
+
+    out.loc[invalid_bbox, "qa_status"] = "invalid_bbox"
+    out.loc[invalid_behavior, "qa_status"] = "invalid_behavior"
+    out.loc[required_missing, "qa_status"] = "missing_required_value"
+
+    out.loc[rejected, "training_tier"] = "rejected"
+    out.loc[rejected, "include_in_training"] = False
+    out.loc[rejected, "sample_weight"] = 0.0
+
+    # Lower weight only for context uncertainty, not for reviewed Hidden.
+    out.loc[social_missing & include, "sample_weight"] = 0.5
+    out.loc[(duplicate_pig | context_overfull) & include, "sample_weight"] = 0.5
+    out.loc[
+        non_social & local_count.le(1) & include & ~review,
+        "sample_weight",
+    ] = 0.9
+    out.loc[
+        non_social & local_count.between(2, 7, inclusive="both") & include & ~review,
+        "sample_weight",
+    ] = 0.95
+
+    out["use_for_visual_training"] = include
+    out["use_for_shape_training"] = include & out["behavior"].isin(SHAPE_DOMINANT_BEHAVIORS)
+    out["use_for_motion_training"] = include & out["behavior"].isin(MOTION_DOMINANT_BEHAVIORS)
+    out["use_for_roi_training"] = include & out["behavior"].isin(ROI_DOMINANT_BEHAVIORS)
+
+    out["use_for_social_training"] = (
+        include & is_social & ~social_missing & ~duplicate_pig & ~context_overfull
+    )
+
+    out["use_for_main_eval"] = include & ~social_missing & ~duplicate_pig & ~context_overfull
+
+    if require_full_8_for_eval:
+        out["use_for_main_eval"] = out["use_for_main_eval"] & full_context
+
+    return out
+
+
+def _interaction_partner_ids(df: pd.DataFrame) -> pd.Series:
+    partner_ids: dict[int, str] = {}
+
+    for _, group in df.groupby("scene_frame_uid", dropna=False):
+        ids = [str(v) for v in group["pig_id"].dropna().tolist()]
+
+        for idx, pig_id in zip(group.index, group["pig_id"], strict=True):
+            partners = sorted(pid for pid in ids if pid != str(pig_id))
+            partner_ids[int(idx)] = "|".join(partners)
+
+    return pd.Series(partner_ids)
+
+
+def _to_bool_series(series: pd.Series) -> pd.Series:
+    if series.dtype == bool:
+        return series.fillna(False).astype(bool)
+
+    truthy = {"true", "1", "yes", "y", "t"}
+    falsy = {"false", "0", "no", "n", "f", ""}
+
+    def parse(value: object) -> bool:
+        if pd.isna(value):
+            return False
+        text = str(value).strip().lower()
+        if text in truthy:
+            return True
+        if text in falsy:
+            return False
+        return False
+
+    return series.map(parse).astype(bool)
+
+
+def _value_counts_dict(df: pd.DataFrame, column: str) -> dict[str, int]:
+    if column not in df.columns:
+        return {}
+    counts = df[column].value_counts(dropna=False).sort_index()
+    return {str(key): int(value) for key, value in counts.items()}

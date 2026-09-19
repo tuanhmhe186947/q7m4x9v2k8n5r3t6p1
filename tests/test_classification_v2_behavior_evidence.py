@@ -1,0 +1,447 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
+import pandas.testing as pdt
+import pytest
+
+from pig_behavior.classification_v2.review.behavior_evidence import (
+    REVIEW_EVIDENCE_COLUMNS,
+    add_behavior_review_evidence,
+)
+from pig_behavior.classification_v2.review.behavior_review_selection import (
+    BehaviorReviewSelectionConfig,
+)
+from pig_behavior.classification_v2.review.review_unit_builder import (
+    ReviewUnitConfig,
+    _attach_native_review_evidence,
+    _base_units_from_intervals,
+    _finalize_unit_review_fields,
+    build_review_units,
+)
+from pig_behavior.classification_v2.train_ready_features import (
+    select_window_feature_columns,
+)
+
+
+def _unit(behavior: str, **overrides: float) -> dict[str, object]:
+    row: dict[str, object] = {
+        "temporal_unit_key": "unit-1",
+        "behavior_temporal_final": behavior,
+        "temporal_observation_ratio_unit": 1.0,
+        "temporal_pair_coverage_ratio_unit": 1.0,
+        "bbox_valid_ratio_interval": 1.0,
+        "motion_active_ratio_per_second_unit": 0.0,
+        "motion_stationary_ratio_per_second_unit": 1.0,
+        "motion_speed_n_per_second_p90_unit": 0.0,
+        "trajectory_straightness_unit": 0.0,
+        "bbox_shape_change_p90_unit": 0.0,
+        "roi_feeder_near_ratio_unit": 0.0,
+        "roi_feeder_availability_ratio_unit": 1.0,
+        "roi_feeder_contact_ratio_unit": 0.0,
+        "roi_feeder_contact_longest_run_ratio_unit": 0.0,
+        "roi_drinker_near_ratio_unit": 0.0,
+        "roi_drinker_availability_ratio_unit": 1.0,
+        "roi_drinker_contact_ratio_unit": 0.0,
+        "roi_drinker_contact_longest_run_ratio_unit": 0.0,
+        "roi_toy_near_ratio_unit": 0.0,
+        "roi_toy_availability_ratio_unit": 1.0,
+        "roi_toy_contact_ratio_unit": 0.0,
+        "roi_toy_contact_longest_run_ratio_unit": 0.0,
+        "social_pair_contact_ratio_unit": 0.0,
+        "social_neighbor_availability_ratio_unit": 0.0,
+        "social_partner_persistence_ratio_unit": 0.0,
+        "social_nearest_dist_p50_unit": 1.0,
+        "social_aggression_proxy_n_per_second_p90_unit": 0.0,
+    }
+    row.update(overrides)
+    return row
+
+
+def test_review_evidence_flags_stationary_move_without_changing_label() -> None:
+    units = pd.DataFrame([_unit("move")])
+    labels_before = units["behavior_temporal_final"].copy()
+
+    scored = add_behavior_review_evidence(units)
+
+    pdt.assert_series_equal(scored["behavior_temporal_final"], labels_before)
+    assert len(scored) == len(units)
+    assert scored.iloc[0]["review_evidence_conflict_score"] > 0.9
+    assert "move_with_weak_motion_evidence" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_target_roi_persistence_supports_eat_but_not_drink() -> None:
+    feeder_support = {
+        "roi_feeder_near_ratio_unit": 1.0,
+        "roi_feeder_contact_ratio_unit": 1.0,
+        "roi_feeder_contact_longest_run_ratio_unit": 1.0,
+    }
+    units = pd.DataFrame(
+        [
+            _unit("eat", **feeder_support),
+            _unit("drink", **feeder_support),
+        ]
+    )
+
+    scored = add_behavior_review_evidence(units)
+
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+    assert scored.iloc[1]["review_evidence_conflict_score"] == 1.0
+    assert "different_roi_has_stronger_support" in scored.iloc[1][
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_native_evidence_input_restores_roi_support(
+    tmp_path: Path,
+) -> None:
+    intervals = pd.DataFrame(
+        [
+            {
+                "temporal_unit_key": "unit-1",
+                "behavior_temporal_final": "eat",
+                "bbox_valid_ratio_interval": 1.0,
+            }
+        ]
+    )
+    native_row = _unit(
+        "eat",
+        roi_feeder_near_ratio_unit=1.0,
+        roi_feeder_contact_ratio_unit=1.0,
+        roi_feeder_contact_longest_run_ratio_unit=1.0,
+    )
+    native = pd.DataFrame(
+        [
+            {**native_row, "frame_index": 0},
+            {**native_row, "frame_index": 1},
+        ]
+    )
+    native_path = tmp_path / "native.csv"
+    native.to_csv(native_path, index=False)
+
+    attached, audit = _attach_native_review_evidence(
+        intervals,
+        native_path,
+    )
+    scored = add_behavior_review_evidence(attached)
+
+    assert audit["matched_temporal_units"] == 1
+    assert scored.iloc[0]["review_roi_support_score"] == 1.0
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+
+
+def test_native_evidence_rejects_temporal_unit_key_mismatch(
+    tmp_path: Path,
+) -> None:
+    intervals = pd.DataFrame(
+        [{"temporal_unit_key": "unit-2"}]
+    )
+    native_path = tmp_path / "native.csv"
+    pd.DataFrame([_unit("eat")]).to_csv(native_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Native review evidence key mismatch: missing=1 unused=1",
+    ):
+        _attach_native_review_evidence(intervals, native_path)
+
+
+def test_native_evidence_rejects_within_unit_variation(
+    tmp_path: Path,
+) -> None:
+    native_path = tmp_path / "native.csv"
+    pd.DataFrame(
+        [
+            _unit("eat", roi_feeder_near_ratio_unit=0.0),
+            _unit("eat", roi_feeder_near_ratio_unit=1.0),
+        ]
+    ).to_csv(native_path, index=False)
+    intervals = pd.DataFrame(
+        [{"temporal_unit_key": "unit-1"}]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Native unit evidence varies within temporal unit",
+    ):
+        _attach_native_review_evidence(intervals, native_path)
+
+
+def test_fight_without_partner_evidence_is_high_priority() -> None:
+    scored = add_behavior_review_evidence(pd.DataFrame([_unit("fight")]))
+
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 1.0
+    assert not bool(scored.iloc[0]["review_social_evidence_available"])
+    assert scored.iloc[0]["review_evidence_priority_auto"] >= 60.0
+    assert "social_evidence_unavailable" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+    assert "fight_vs_social-nose_stand_move" in scored.iloc[0][
+        "review_confusion_pairs_auto"
+    ]
+
+
+def test_available_social_context_can_contradict_fight_label() -> None:
+    scored = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "fight",
+                    social_neighbor_availability_ratio_unit=1.0,
+                )
+            ]
+        )
+    )
+
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 1.0
+    assert "fight_without_persistent_contact_or_aggression" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_pig_strenet_motion_support_is_validity_masked() -> None:
+    base = _unit("move")
+    base.update(
+        {
+            "review_pig_evidence_available": True,
+            "review_pig_diff_valid_ratio": 1.0,
+            "review_pig_diff_active_pixel_ratio": 1.0,
+            "review_pig_history_transition_available": False,
+            "review_pig_stationary_to_motion_score": 1.0,
+        }
+    )
+    valid_diff = add_behavior_review_evidence(pd.DataFrame([base])).iloc[0]
+    no_diff = dict(base)
+    no_diff["review_pig_diff_valid_ratio"] = 0.0
+    masked = add_behavior_review_evidence(pd.DataFrame([no_diff])).iloc[0]
+
+    assert valid_diff["review_evidence_conflict_score"] == 0.0
+    assert masked["review_evidence_conflict_score"] > 0.9
+    assert masked["review_temporal_phase_support_score"] == 0.0
+
+
+def test_explore_roi_contact_requires_stationary_pattern_for_conflict() -> None:
+    roi_contact = {
+        "roi_feeder_near_ratio_unit": 1.0,
+        "roi_feeder_contact_ratio_unit": 1.0,
+        "roi_feeder_contact_longest_run_ratio_unit": 1.0,
+    }
+    moving = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "explore",
+                    motion_active_ratio_per_second_unit=1.0,
+                    motion_stationary_ratio_per_second_unit=0.0,
+                    motion_speed_n_per_second_p90_unit=0.60,
+                    **roi_contact,
+                )
+            ]
+        )
+    ).iloc[0]
+    stationary = add_behavior_review_evidence(
+        pd.DataFrame([_unit("explore", **roi_contact)])
+    ).iloc[0]
+
+    assert moving["review_evidence_conflict_score"] < 0.45
+    assert stationary["review_evidence_conflict_score"] > 0.65
+    assert "stationary_persistent_roi_contact" in stationary[
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_missing_target_roi_is_insufficient_not_contradictory() -> None:
+    scored = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "eat",
+                    roi_feeder_availability_ratio_unit=0.0,
+                )
+            ]
+        )
+    )
+
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 1.0
+    assert "target_roi_evidence_unavailable" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+    assert json.loads(scored.iloc[0]["review_threshold_decisions"]) == []
+
+
+def test_review_scores_are_never_selected_for_model_x() -> None:
+    scored = add_behavior_review_evidence(pd.DataFrame([_unit("move")]))
+    scored["speed_n_per_second_mean_window"] = 0.0
+    scored["motion_active_ratio_per_second_window"] = 0.5
+    scored["roi_feeder_contact_ratio_window"] = 0.25
+    scored["social_partner_persistence_ratio_window"] = 0.75
+
+    selected = select_window_feature_columns(scored)
+
+    assert "speed_n_per_second_mean_window" in selected
+    assert "motion_active_ratio_per_second_window" in selected
+    assert "roi_feeder_contact_ratio_window" in selected
+    assert "social_partner_persistence_ratio_window" in selected
+    assert not set(REVIEW_EVIDENCE_COLUMNS).intersection(selected)
+
+
+def test_review_unit_builder_routes_evidence_conflict_without_relabeling() -> None:
+    interval = _unit("move")
+    interval.update(
+        {
+            "source_type": "cvat_tracking_xml",
+            "dataset_id": "fixture",
+            "video_key": "video",
+            "object_track_key": "fixture|video|track=4",
+            "pig_id": "ID_4",
+            "track_id": "4",
+            "label_window_start": 0,
+            "label_window_end": 5,
+            "temporal_label_mode": "cvat_anchor_6f_interval",
+            "label_anchor_frame_index": 0,
+            "temporal_consistency_status": "stable",
+            "behavior_consistency_in_interval": True,
+            "temporal_interval_complete": True,
+            "bbox_valid_ratio_interval": 1.0,
+        }
+    )
+    units = _base_units_from_intervals(pd.DataFrame([interval]))
+    units["window_review_hit_count"] = 0
+    units["review_templates_hit"] = ""
+    units["review_reasons_window"] = ""
+    units["review_priority_window_max"] = 0.0
+
+    finalized = _finalize_unit_review_fields(units)
+
+    assert finalized.iloc[0]["behavior_label"] == "move"
+    assert finalized.iloc[0]["review_template"] == "motion"
+    assert bool(finalized.iloc[0]["include_in_review"])
+    assert "move_with_weak_motion_evidence" in finalized.iloc[0]["review_reason"]
+    assert finalized.iloc[0]["apply_scope"] == "cvat_interval_6f"
+
+
+def test_stable_supported_legacy_label_is_not_selected_by_label_alone() -> None:
+    interval = _unit(
+        "eat",
+        roi_feeder_near_ratio_unit=1.0,
+        roi_feeder_contact_ratio_unit=1.0,
+        roi_feeder_contact_longest_run_ratio_unit=1.0,
+    )
+    interval.update(
+        {
+            "source_type": "legacy_recovered",
+            "dataset_id": "fixture",
+            "video_key": "video",
+            "object_track_key": "fixture|video|track=4",
+            "pig_id": "ID_4",
+            "track_id": "4",
+            "label_window_start": 0,
+            "label_window_end": 15,
+            "temporal_label_mode": "legacy_native_burst_16f",
+            "label_anchor_frame_index": 0,
+            "temporal_consistency_status": "stable",
+            "behavior_consistency_in_interval": True,
+            "temporal_interval_complete": True,
+            "bbox_valid_ratio_interval": 1.0,
+        }
+    )
+    units = _base_units_from_intervals(pd.DataFrame([interval]))
+    units["window_review_hit_count"] = 0
+    units["review_templates_hit"] = ""
+    units["review_reasons_window"] = ""
+    units["review_priority_window_max"] = 0.0
+
+    selected = _finalize_unit_review_fields(
+        units,
+        behavior_selection=BehaviorReviewSelectionConfig(
+            random_per_stratum=0
+        ),
+    )
+
+    assert not bool(selected.iloc[0]["include_in_review"])
+    assert selected.iloc[0]["review_template"] == "roi"
+    assert selected.iloc[0]["candidate_tier"] == "AUTO_CARRY_LOW_RISK"
+
+
+def test_builder_publishes_candidate_universe_and_auto_carry_partition(
+    tmp_path: Path,
+) -> None:
+    interval = _unit(
+        "playwithtoy",
+        roi_feeder_near_ratio_unit=1.0,
+        roi_feeder_contact_ratio_unit=1.0,
+        roi_feeder_contact_longest_run_ratio_unit=1.0,
+    )
+    interval.update(
+        {
+            "source_type": "legacy_recovered",
+            "dataset_id": "fixture",
+            "video_key": "video",
+            "object_track_key": "fixture|video|track=4",
+            "pig_id": "ID_4",
+            "track_id": "4",
+            "label_window_start": 0,
+            "label_window_end": 15,
+            "temporal_label_mode": "legacy_native_burst_16f",
+            "label_anchor_frame_index": 0,
+            "temporal_consistency_status": "stable",
+            "behavior_consistency_in_interval": True,
+            "temporal_interval_complete": True,
+            "bbox_valid_ratio_interval": 1.0,
+        }
+    )
+    window = {
+        "window_id": "window-1",
+        "source_type": "legacy_recovered",
+        "dataset_id": "fixture",
+        "video_key": "video",
+        "object_track_key": "fixture|video|track=4",
+        "pig_id": "ID_4",
+        "window_length_frames": 6,
+        "window_start_frame": 0,
+        "window_end_frame": 5,
+        "behavior_window_label": "playwithtoy",
+        "sequence_label_status": "stable",
+        "window_valid_for_main_train": True,
+    }
+    intervals_csv = tmp_path / "intervals.csv"
+    windows_csv = tmp_path / "windows.csv"
+    output_dir = tmp_path / "review"
+    pd.DataFrame([interval]).to_csv(intervals_csv, index=False)
+    pd.DataFrame([window]).to_csv(windows_csv, index=False)
+
+    audit = build_review_units(
+        ReviewUnitConfig(
+            intervals_csv=intervals_csv,
+            sequence_window_manifest_csv=windows_csv,
+            output_dir=output_dir,
+        )
+    )
+
+    universe = pd.read_csv(output_dir / "behavior_review_universe.csv")
+    candidates = pd.read_csv(
+        output_dir / "behavior_review_candidate_manifest.csv"
+    )
+    auto_carry = pd.read_csv(
+        output_dir / "behavior_review_auto_carry_manifest.csv"
+    )
+    assert len(universe) == 1
+    assert candidates["review_unit_id"].tolist() == ["unit-1"]
+    assert auto_carry.empty
+    assert audit["candidate_partition"]["valid"]
+    assert audit["candidate_partition"]["candidate_auto_carry_overlap"] == 0
+    assert audit["threshold_binding"]["valid"]
+    assert audit["threshold_binding"]["checked_threshold_comparisons"] >= 1
+    for filename in (
+        "threshold_registry_snapshot.json",
+        "threshold_binding_audit.json",
+        "threshold_sensitivity_analysis.csv",
+    ):
+        assert (output_dir / filename).is_file()

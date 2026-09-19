@@ -1,0 +1,47 @@
+[
+  {
+    "file": "tracking_confirmatory_authority.json",
+    "target_path": "docs/paper/evidence/tracking_confirmatory_authority.json",
+    "source_path": "outputs/paper_confirmatory/tracking/FINAL_TRACKING_CONFIRMATORY_AUTHORITY.json",
+    "source_sha256": "f4e63b4cf05907da49be5e93a71e32e14180bb499406a2f9fe010ebb28547360",
+    "source_commit": "db1cccb7",
+    "size_bytes": 18047,
+    "description": "Tracking confirmatory evaluation authority on 12 independent videos (Standard V2)"
+  },
+  {
+    "file": "profile_propagation_summary.json",
+    "target_path": "docs/paper/evidence/profile_propagation_summary.json",
+    "source_path": "outputs/paper_analysis/identity_profile_propagation_dev12_rawbaseline_v1/summary.json",
+    "source_sha256": "37301120c6cdc5363a38d66e96b4f9bdecb5c473ac369987578dc6e9f1e80e13",
+    "source_commit": "963bf60d",
+    "size_bytes": 4605,
+    "description": "Downstream identity profile propagation on 12 development videos under fixed GT"
+  },
+  {
+    "file": "behavior_model_summary.json",
+    "target_path": "docs/paper/evidence/behavior_model_summary.json",
+    "source_path": "outputs/classification_v2/final_model_j_pbnew_ejteacher_v1/summary.json",
+    "source_sha256": "36d1a91a6dc1b224c715186cf5e6381c66c4c48df0855ed086edc4d4a99d9fb5",
+    "source_commit": "963bf60d",
+    "size_bytes": 6118,
+    "description": "5-fold cross-validation summary for best single model J_PBNEW"
+  },
+  {
+    "file": "model_j_ablation_summary.json",
+    "target_path": "docs/paper/evidence/model_j_ablation_summary.json",
+    "source_path": "outputs/classification_v2/final_j_ablation_v1/summary.json",
+    "source_sha256": "8f8ee7461fd1df710ed0799c07b1c8b559cfc52f120f0aa34bbf4d6c32cddfab",
+    "source_commit": "963bf60d",
+    "size_bytes": 2217,
+    "description": "Model J 2x2 factorial ablation summary across 15 checkpoints"
+  },
+  {
+    "file": "ensemble_summary.json",
+    "target_path": "docs/paper/evidence/ensemble_summary.json",
+    "source_path": "outputs/classification_v2/final_model_j_replay_v1/ensemble_with_b_v1/summary.json",
+    "source_sha256": "ca4fb28b2c9003a0aba5c278371177a832dfbf8fed230b1909b82ebd55f1b5eb",
+    "source_commit": "963bf60d",
+    "size_bytes": 2952,
+    "description": "Validated best behavior ensemble system E_J (0.50*J + 0.50*B) summary"
+  }
+]

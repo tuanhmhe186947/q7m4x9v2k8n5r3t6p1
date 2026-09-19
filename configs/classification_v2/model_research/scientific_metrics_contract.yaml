@@ -1,0 +1,58 @@
+# Classification V2 — scientific metrics contract (BALANCED model study)
+# LABEL_AUTHORITY_STATUS: PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW   PAPER_GRADE_USE: NO
+
+meta:
+  schema_version: classification_v2.model_research.scientific_metrics_contract.v1
+  code_head_sha: 4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98
+  prediction_unit: native_temporal_unit
+  prediction_collapse_rule: "collapse overlapping model-window predictions to ONE prediction per native temporal unit (confidence-weighted vote) BEFORE claim-grade scoring; NEVER report window-level inflation as the primary result"
+
+primary_metric:
+  name: MACRO_F1_SUPPORTED_AT_NATIVE_TEMPORAL_UNIT
+  note: "macro over classes with adequate support; always report per-class support alongside"
+
+secondary_discrimination:
+  metrics: [macro_recall, balanced_accuracy, weighted_f1, per_class_precision, per_class_recall, per_class_f1,
+            confusion_matrix, one_vs_rest_pr_auc, one_vs_rest_auroc]
+  auroc_condition: "AUROC only where class support is adequate"
+  rare_class_rule: "for severe imbalance emphasize PR-AUC over AUROC for rare classes; always report class support"
+
+calibration_and_uncertainty:
+  metrics: [negative_log_likelihood, brier_score, expected_calibration_error, reliability_diagram,
+            class_wise_calibration_where_support, confidence_coverage_curve, selective_risk, abstention_performance]
+  flag_rule: "a loss/model that improves rare-class recall but produces unusable confidence scores MUST be identified explicitly"
+
+confusion_pair_metrics:
+  pairs: [lying_vs_sitting, stand_vs_move, move_vs_explore, fight_vs_social_nose, fight_vs_move,
+          eat_vs_stand_or_explore, drink_vs_stand_or_explore, playwithtoy_vs_explore_or_move_or_stand]
+  report: "pairwise confusion rate + conditional recalls for each pair"
+
+efficiency_metrics:
+  metrics: [parameter_count, trainable_parameter_count, macs_flops, peak_training_vram, peak_inference_vram,
+            image_preprocessing_time, numeric_feature_preparation_time, visual_backbone_latency, temporal_fusion_latency,
+            model_only_latency, end_to_end_latency, latency_per_pig_window, throughput_eight_pigs,
+            isolated_gpu_latency, latency_under_controlled_competing_gpu_load]
+  measurement_status: PROJECTED_UNTIL_MEASURED
+  measured_by: "measure_model_params_macs.py + runtime_benchmark.py on the implementation commit; do NOT present projected as measured"
+
+stratified_reporting_required:
+  strata: [by_class, by_source_legacy_vs_cvat, by_hidden_occlusion_quality, by_roi_availability,
+           by_interaction_context_availability, by_recording_date_per_outer_fold_and_worst_date]
+
+source_shortcut_controls_required:
+  controls: [source_stratified_results, source_balanced_results, train_one_source_test_other_281119_291119,
+             feature_only_source_decode_probe, gate_weight_source_decode_probe, remove_direct_source_identifiers, date_safe_split]
+  hard_gate: "any claimed gain that disappears under source-balanced date-safe evaluation is NOT a valid scientific model contribution"
+
+cross_length_evaluation_populations:   # (correction 2) every cross-length / view comparison reports BOTH
+  ALL_ELIGIBLE: "all native units/windows eligible for that specific view length"
+  COMMON_MATCHED_COHORT: "the native units eligible across ALL compared views (the intersection cohort)"
+  rule: "do NOT claim a temporal-length (target or history) gain unless it SURVIVES the COMMON_MATCHED_COHORT; ALL_ELIGIBLE differences may be a population/support artifact of longer views having fewer eligible windows"
+
+training_mass_note: "report metrics after the overlapping-window training-mass correction (fixed windows/unit or sample_weight=native_unit_class_weight/windows_from_same_native_unit); audit native-unit mass before/after"
+
+minimum_practical_effects:
+  PRIMARY_MACRO_F1_MIN_GAIN: 0.02
+  TARGET_CLASS_RECALL_MIN_GAIN: 0.03
+  LIGHTWEIGHT_MAX_MACRO_F1_DROP: 0.03
+  adjustment_rule: "may be adjusted BEFORE final test, never after, to favour a model"

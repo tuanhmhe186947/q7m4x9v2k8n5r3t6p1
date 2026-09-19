@@ -1,0 +1,51 @@
+{
+  "schema_version": "classification_v2.reviewed_q2_mixed_finalist_contract.v1",
+  "template_only": true,
+  "comparison_id": "REPLACE_AFTER_BEHAVIOR_COMPLETE_HANDOFF",
+  "profile": "mixed-reviewed",
+  "scientific_family": "temporal_base_finalist",
+  "temporal_view": "fixed6_observed_time",
+  "outer_predictions_used_for_model_selection": false,
+  "full_oof_requested": false,
+  "evaluation_controls": {
+    "paired_native_unit_evaluation": true,
+    "source_stratified_evaluation": true,
+    "source_matched_evaluation": true,
+    "missingness_stratified_evaluation": true,
+    "availability_only_control_predeclared": true
+  },
+  "arms": {
+    "SF128": {
+      "candidate_id": "SF128",
+      "role": "control",
+      "bindings": "REPLACE_WITH_HASHES_FROM_GENERATED_CONTRACT",
+      "protocol": "REPLACE_WITH_FROZEN_SHARED_PROTOCOL",
+      "model": {
+        "architecture": "cached_frame_feature_temporal_classifier_v1",
+        "backbone_name": "resnet18",
+        "input_resolution": 224,
+        "hidden_dim": 128,
+        "temporal_view": "fixed6_observed_time",
+        "expected_parameter_count": 68234,
+        "selected_slot_indices": [2],
+        "temporal_encoder_name": "masked_mean"
+      }
+    },
+    "A128": {
+      "candidate_id": "A128",
+      "role": "candidate",
+      "bindings": "REPLACE_WITH_THE_SAME_HASHES_AS_SF128",
+      "protocol": "REPLACE_WITH_THE_SAME_PROTOCOL_AS_SF128",
+      "model": {
+        "architecture": "cached_frame_feature_temporal_classifier_v1",
+        "backbone_name": "resnet18",
+        "input_resolution": 224,
+        "hidden_dim": 128,
+        "temporal_view": "fixed6_observed_time",
+        "expected_parameter_count": 68363,
+        "selected_slot_indices": [0, 1, 2, 3, 4, 5],
+        "temporal_encoder_name": "masked_attention"
+      }
+    }
+  }
+}

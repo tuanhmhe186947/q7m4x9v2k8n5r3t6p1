@@ -1,0 +1,3 @@
+method,metric,status,bootstrap_reps,seed,ci95
+RealTime-Fast,HOTA / IDF1 / IDSW,PENDING_CONFIRMATORY_EXECUTION,10000 (pre-registered),240494961,NOT_YET_EXECUTED
+Hybrid-ByteTrack,HOTA / IDF1 / IDSW,PENDING_CONFIRMATORY_EXECUTION,10000 (pre-registered),240494961,NOT_YET_EXECUTED

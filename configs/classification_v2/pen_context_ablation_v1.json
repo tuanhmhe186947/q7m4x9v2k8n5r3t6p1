@@ -1,0 +1,61 @@
+{
+  "version": "classification_v2_pen_context_ablation_v1",
+  "status": "engineering_candidate_not_promoted",
+  "scientific_family": "fixed_camera_pen_boundary_context",
+  "hypothesis": [
+    "Pen-boundary distance and persistence improve stand/move/explore",
+    "discrimination after actor cropping removes fixed-scene context."
+  ],
+  "mask_contract": {
+    "path": "data/annotations/scene/mask.png",
+    "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "width": 1280,
+    "height": 720,
+    "binary_threshold": 127,
+    "resize_interpolation": "nearest",
+    "camera_scope": "current_single_fixed_camera_only"
+  },
+  "paired_comparison": {
+    "reference_model_mode": "actor_geometry_motion",
+    "candidate_model_mode": "actor_geometry_motion_pen",
+    "only_changed_spatial_group": "pen_boundary_context",
+    "same_folds": true,
+    "same_native_units": true,
+    "same_temporal_view": true,
+    "same_backbone_resolution": true,
+    "same_seed_optimizer_loss_sampler": true
+  },
+  "confound_control": [
+    "Both models receive the same generic motion_delta group.",
+    "The candidate adds only pen_boundary_context.",
+    "actor_geometry versus actor_geometry_pen is diagnostic, not promotion evidence."
+  ],
+  "required_controls": [
+    "mask_hash_and_frame_size_audit",
+    "row_and_frame_object_key_preservation",
+    "per_source_feature_distribution",
+    "pen_context_availability_only_probe",
+    "paired_native_unit_predictions",
+    "stand_move_explore_confusion_group",
+    "global_and_rare_class_macro_f1"
+  ],
+  "gates": [
+    "synthetic_geometry_and_direction_tests",
+    "short_real_feature_build",
+    "one_batch_forward",
+    "tiny_overfit_and_resume",
+    "bounded_development_fold",
+    "paired_uncertainty_analysis"
+  ],
+  "authorization": {
+    "feature_extraction_authorized_after_short_gate": true,
+    "model_training_authorized": false,
+    "full_oof_authorized": false,
+    "promotion_authorized": false
+  },
+  "claim_boundary": [
+    "This mask is camera calibration, not a biological invariant.",
+    "No external camera, pen, farm, or cohort claim is allowed.",
+    "Do not merge this group into the default full model before promotion."
+  ]
+}
