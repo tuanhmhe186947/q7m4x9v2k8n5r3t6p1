@@ -6,12 +6,7 @@
 [![Python 3.10 | 3.11](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-```mermaid
-flowchart LR
-    A["Input Video<br><b>30 FPS Farm Stream</b>"] --> B["Multi-Object Tracking<br><b>RealTime-Fast / Hybrid-ByteTrack</b>"]
-    B --> C["Behavior Recognition<br><b>Spatial-Gated Ensemble</b>"]
-    C --> D["Longitudinal Analysis<br><b>Individual Time Budgets</b>"]
-```
+![System Architecture](docs/assets/system_pipeline.svg)
 
 ---
 
@@ -36,7 +31,9 @@ Continuous precision livestock monitoring requires observing animals over extend
 
 ## Tracking Confirmatory Results
 
-Evaluated on 12 held-out independent videos (21,600 frames, 96 pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`:
+Tracking performance was evaluated on a held-out confirmatory cohort of 12 videos (21,600 frames, 96 individual pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`:
+
+![Tracking Results](docs/assets/tracking_summary.svg)
 
 | System Variant | Execution Mode | HOTA (%) | IDF1 (%) | ID Switches | Key Characteristic |
 | :--- | :--- | :---: | :---: | :---: | :--- |
@@ -50,7 +47,9 @@ Evaluated on 12 held-out independent videos (21,600 frames, 96 pig trajectories)
 
 ## Behavior Recognition (5-Fold Cross-Validation)
 
-Evaluated across 10 behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to guarantee zero video leakage:
+Behavior recognition evaluates 10 mutually exclusive behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to guarantee zero video leakage:
+
+![Behavior Recognition Results](docs/assets/behavior_cv_summary.svg)
 
 | Model Architecture | Description | Macro-F1 (Mean ± SD) | Gain vs. Baseline |
 | :--- | :--- | :---: | :---: |
@@ -67,6 +66,8 @@ Evaluated across 10 behavioral categories using video-isolated 5-fold cross-vali
 ## Downstream Profile Preservation
 
 Tracking identity swaps corrupt longitudinal individual activity budgets. We quantify profile distortion on the 12-video development overlap subset (DEV12) using Total Variation ($L_1$) distance against human ground-truth annotations:
+
+![Profile Distortion Summary](docs/assets/profile_distortion_summary.svg)
 
 | Tracking Method | Profile Total Variation ($L_1$) | Distortion Reduction | Practical Impact |
 | :--- | :---: | :---: | :--- |
