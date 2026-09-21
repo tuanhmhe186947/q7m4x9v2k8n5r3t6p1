@@ -1,7 +1,0 @@
-module,commit,provenance
-Tracking Standard V2 Confirmatory Evaluator,db1cccb7,outputs/eval/mode_compare/video_test_tracking_20260820_020217/
-Identity Profile Propagation Runner,42256068,outputs/paper_analysis/identity_profile_propagation_dev12_rawbaseline_v1/summary.json
-Model J Factor Ablation Runner,42256068,outputs/classification_v2/model_j_factor_ablation_20260814_v1/model_j_factor_ablation_summary.json
-Ensemble E_J Replay Evaluator,42256068,outputs/classification_v2/final_model_j_replay_v1/ensemble_with_b_v1/summary.json
-J_PBNEW Teacher Distillation Runner,42256068,outputs/classification_v2/final_model_j_pbnew_ejteacher_v1/summary.json
-Correctness Repair and Audit Package,HEAD,docs/paper/freeze_corrected_20260917/

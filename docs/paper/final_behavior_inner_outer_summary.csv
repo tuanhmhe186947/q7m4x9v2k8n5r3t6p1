@@ -1,8 +1,0 @@
-system,evaluation_scope,sample_count,video_count,group_count,mean_macro_f1,sample_sd,role_or_status
-Model A (Baseline High-Ceiling),INNER_5FOLD_CV,33287,678,5,0.677789,0.026822,Primary 5-Fold Development Authority
-Model B (Joint Representation),INNER_5FOLD_CV,33287,678,5,0.670838,0.034919,Primary 5-Fold Development Authority
-Model J Replay (J_F2),INNER_5FOLD_CV,33287,678,5,0.684646,0.029199,Primary 5-Fold Development Authority
-J_PBNEW (Distilled Single Model),INNER_5FOLD_CV,33287,678,5,0.68477,0.025253,Primary 5-Fold Development Authority
-E_J_FIXED50 (0.50*J_F2 + 0.50*B),INNER_5FOLD_CV,33287,678,5,0.693905,0.03765,Locked Primary Final System
-Historical Synthetic Pooled Numbers,POOLED_OOF_AUDIT,33287,678,5,INVALID_SUPERSEDED,INVALID_SUPERSEDED,INVALID (Synthesized 80-83% numbers superseded by fold-mean authority)
-E_J_FIXED50,OUTER_HELD_OUT,0,0,0,NOT_MATERIALIZED,NOT_MATERIALIZED,NESTED_OUTER_DEFINED_BUT_NOT_MATERIALIZED

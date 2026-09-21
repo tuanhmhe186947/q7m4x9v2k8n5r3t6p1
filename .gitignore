@@ -70,28 +70,18 @@ Updating Tracking Pipeline Plan.md
 markitdown
 
 # ==============================================================================
-# 5. Data
+# 5. Excluded Data, Manuscripts, and Internal Pipelines
 # ==============================================================================
-data/raw/
-data/videos/
-data/processed/
-data/data/
-data/data_plus/
-data/annotations/tracking/
-data/annotations/classification/
-data/annotations.json
-data/annotations/scene/background.png
+data/
+docs/paper/
+scripts/paper/
+src/legacy_burst_recovery/
+docs/assets/
+scripts/visualization/
 *.mp4
 *.avi
 *.mov
 *.mkv
-
-# Essential data schemas and guidelines
-!data/README.md
-!data/task.json
-!data/annotations/schemas/cvat_pig_8_labels.json
-!data/annotations/roi/ROI_annotations.coco.json
-!data/annotations/scene/mask.png
 
 # ==============================================================================
 # 6. Model checkpoints
@@ -159,12 +149,8 @@ vg1_test.json
 joint_pre_integration_architecture_audit.json
 
 # ==============================================================================
-# 10. Paper exceptions
+# 10. Doc exceptions
 # ==============================================================================
-!docs/paper/
-!docs/paper/**
-docs/paper/freeze_20260917/
-docs/paper/freeze_post_confirmatory/
 !docs/figures/
 !docs/figures/**
 !docs/repo_audit/

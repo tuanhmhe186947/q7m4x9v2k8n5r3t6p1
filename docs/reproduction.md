@@ -1,12 +1,12 @@
 # Scientific Reproduction Guide
 
-This document outlines the protocol for verifying scientific claims, running confirmatory tracking evaluations, and inspecting cross-validation models reported in the paper.
+This document outlines the protocol for inspecting system nomenclature, running confirmatory tracking evaluations, and evaluating cross-validation models reported in the project.
 
 ---
 
 ## System & Model Nomenclature Mapping
 
-To bridge public-facing semantic names used in the manuscript and README with internal code identifiers and experimental run logs:
+To bridge public-facing semantic names with internal code identifiers and experimental run logs:
 
 | Public Name | Internal Experiment ID | Role |
 | :--- | :--- | :--- |
@@ -21,19 +21,7 @@ To bridge public-facing semantic names used in the manuscript and README with in
 
 ---
 
-## 1. Automated Claim & Metric Token Verification
-
-All quantitative numbers reported in the paper narrative are mechanically checked against the frozen evidence ledger:
-
-```bash
-python scripts/paper/check_claim_numbers.py
-```
-
-- **Expected Outcome**: 100% of numeric tokens match the master evidence ledger across 455 target metrics.
-
----
-
-## 2. Tracking Confirmatory Evaluation (12 Held-Out Videos)
+## 1. Tracking Confirmatory Evaluation (12 Held-Out Videos)
 
 The tracking results evaluate 12 held-out independent videos (21,600 frames, 96 pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`:
 
@@ -42,29 +30,29 @@ The tracking results evaluate 12 held-out independent videos (21,600 frames, 96 
 python scripts/evaluate_tracking.py \
     --mode hybrid_bytetrack \
     --eval-config hybrid_bytetrack_best \
-    --gt-dir data/ground_truth/confirmatory_12 \
     --output-dir outputs/reproduction/tracking_hybrid
 
 # Evaluate the causal online tracker (Online RealTime-Fast)
 python scripts/evaluate_tracking.py \
     --mode realtime \
     --eval-config realtime_fast \
-    --gt-dir data/ground_truth/confirmatory_12 \
     --output-dir outputs/reproduction/tracking_realtime
 
 # Evaluate the frozen technical baseline (Raw ByteTrack Baseline)
 python scripts/evaluate_tracking.py \
     --mode bytetrack_raw \
     --eval-config bytetrack_raw \
-    --gt-dir data/ground_truth/confirmatory_12 \
     --output-dir outputs/reproduction/tracking_raw
 ```
 
-- **Reference Numbers**: See [tracking_confirmatory.md](paper/tables/tracking_confirmatory.md).
+- **Reference Metrics**:
+  - Raw ByteTrack Baseline: HOTA 89.41%, IDF1 94.23%, 64 ID switches
+  - Online RealTime-Fast: HOTA 90.33%, IDF1 95.03%, 39 ID switches (-39.1%)
+  - Offline Hybrid-ByteTrack: HOTA 93.55%, IDF1 98.41%, 8 ID switches (-87.5%)
 
 ---
 
-## 3. Behavior Recognition 5-Fold Cross-Validation
+## 2. Behavior Recognition 5-Fold Cross-Validation
 
 The behavior recognition experiments utilize 5-fold group-aware cross-validation across video cohorts VG1–VG5 to ensure zero video leakage:
 
@@ -75,16 +63,21 @@ python scripts/classification_v2/08_multimodal_eval/evaluate_jpbnew_b_ensemble.p
     --output-dir outputs/reproduction/behavior_ej
 ```
 
-- **Reference Numbers**: See [behavior_cv.md](paper/tables/behavior_cv.md).
+- **Reference Metrics**:
+  - Multimodal Spatio-Temporal Baseline: Macro-F1 = 0.6778 ± 0.0268
+  - Joint-Representation Baseline: Macro-F1 = 0.6708 ± 0.0349
+  - Class-Aware Spatial-Gated Model: Macro-F1 = 0.6846 ± 0.0292
+  - Baseline Fixed Ensemble: Macro-F1 = 0.6926 ± 0.0402
+  - Final Spatial-Gated Ensemble: Macro-F1 = 0.6939 ± 0.0377
 
 ---
 
-## 4. Downstream Profile Distortion (DEV12 Cohort)
+## 3. Downstream Profile Distortion (DEV12 Cohort)
 
 To measure how identity switches distort longitudinal behavioral budgets, individual time budgets are projected across the 12-video development overlap cohort:
 
 ```bash
-python scripts/paper/generate_profile_distortion_metrics.py \
+python scripts/run_profile_distortion.py \
     --output-dir outputs/reproduction/profile_tv
 ```
 

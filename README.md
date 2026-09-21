@@ -6,7 +6,26 @@
 [![Python 3.10 | 3.11](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-![System Architecture](docs/assets/system_pipeline.svg)
+```mermaid
+graph LR
+    A["Input Video<br/>30 FPS Farm Stream"] --> B["Detection & Tracking<br/>YOLOv8 + Hybrid Association"]
+    B --> C["Behavior Recognition<br/>Spatial-Gated Ensemble"]
+    C --> D["Longitudinal Analysis<br/>Individual Time Budgets"]
+
+    style A fill:#f8fafc,stroke:#94a3b8,stroke-width:1.5px
+    style B fill:#eff6ff,stroke:#2563eb,stroke-width:2px
+    style C fill:#f5f3ff,stroke:#7c3aed,stroke-width:1.5px
+    style D fill:#ecfdf5,stroke:#059669,stroke-width:1.5px
+```
+
+```text
++-----------------------+     +-------------------------------+     +--------------------------------+     +-------------------------------+
+|      Input Video      |     |     Detection & Tracking      |     |      Behavior Recognition      |     |     Longitudinal Analysis     |
+| Continuous Farm Feed  | --> | • YOLOv8 Detector             | --> | • Spatio-Temporal Model        | --> | • 10 Behavior Time Budgets    |
+| 30 FPS Top-Down View  |     | • Online RealTime-Fast        |     | • Pre-GAP Spatial Gating       |     | • Near-Zero Profile Distortion|
+|                       |     | • Offline Hybrid-ByteTrack    |     | • Social Relational Context    |     |   (TV = 0.0001)               |
++-----------------------+     +-------------------------------+     +--------------------------------+     +-------------------------------+
+```
 
 ---
 
@@ -31,35 +50,27 @@ Continuous precision livestock monitoring requires observing animals over extend
 
 ## Tracking Confirmatory Results
 
-Tracking performance was evaluated on a held-out confirmatory cohort of 12 videos (21,600 frames, 96 individual pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`:
+Evaluated on 12 held-out independent videos (21,600 frames, 96 pig trajectories) under `TRACKING_EVALUATOR_STANDARD_V2`:
 
-![Tracking Results](docs/assets/tracking_summary.svg)
-
-| System Variant | Execution Mode | HOTA (%) | IDF1 (%) | ID Switches | Key Characteristic |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Raw ByteTrack Baseline** | Online | 89.41% | 94.23% | 64 | Unmodified baseline reference |
-| **Online RealTime-Fast** | Causal Streaming | 90.33% | 95.03% | 39 | Low-latency edge streaming (-39.1% ID switches) |
-| **Offline Hybrid-ByteTrack** | Retrospective | **93.55%** | **98.41%** | **8** | **Best overall accuracy (-87.5% ID switches)** |
-
-- Detailed metrics, MOTA, precision/recall, and 95% bootstrap confidence intervals are in [docs/paper/tables/tracking_confirmatory.md](docs/paper/tables/tracking_confirmatory.md).
+| System Variant | Pipeline Mode | HOTA (%) | IDF1 (%) | Identity Switches (Lower is better) | Key Impact |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Raw ByteTrack Baseline** | Online Reference | `89.41%` [█████████░] | `94.23%` [█████████▌] | `64`  [■■■■■■■■■■■■■■■■] | Unmodified baseline |
+| **Online RealTime-Fast** | Causal Streaming | `90.33%` [█████████░] | `95.03%` [█████████▌] | `39`  [■■■■■■■■■■] (-39.1%) | Real-time edge streaming |
+| **Offline Hybrid-ByteTrack** | Retrospective | **`93.55%`** [█████████▎] | **`98.41%`** [█████████▊] | **`8`**   [■■] **(-87.5%)** | **Best overall accuracy** |
 
 ---
 
 ## Behavior Recognition (5-Fold Cross-Validation)
 
-Behavior recognition evaluates 10 mutually exclusive behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to guarantee zero video leakage:
+Evaluated across 10 behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to guarantee zero video leakage:
 
-![Behavior Recognition Results](docs/assets/behavior_cv_summary.svg)
-
-| Model Architecture | Description | Macro-F1 (Mean ± SD) | Gain vs. Baseline |
-| :--- | :--- | :---: | :---: |
-| **Multimodal Spatio-Temporal Baseline** | High-ceiling baseline (motion dynamics + visual features) | 0.6778 ± 0.0268 | — |
-| **Joint-Representation Baseline** | Relational joint-feature representation across individuals | 0.6708 ± 0.0349 | -0.0070 |
-| **Class-Aware Spatial-Gated Model** | Pre-GAP spatial attention with class-aware gating | 0.6846 ± 0.0292 | +0.0068 |
-| **Baseline Fixed Ensemble** | Equal-weighted logit ensemble of baselines | 0.6926 ± 0.0402 | +0.0148 |
-| **Final Spatial-Gated Ensemble** | Authoritative production ensemble | **0.6939 ± 0.0377** | **+0.0161** |
-
-- Detailed fold-by-fold results and statistical conventions are in [docs/paper/tables/behavior_cv.md](docs/paper/tables/behavior_cv.md).
+| Model Architecture | Description | Macro-F1 (Mean ± SD) | Relative Visual Score | Gain vs. Baseline |
+| :--- | :--- | :---: | :--- | :---: |
+| **Joint-Representation Baseline** | Relational joint-feature representation | `0.6708 ± 0.0349` | `███████████████▌░░░` | -0.0070 |
+| **Multimodal Spatio-Temporal Baseline** | High-ceiling baseline (motion + visual) | `0.6778 ± 0.0268` | `████████████████░░░` | — |
+| **Class-Aware Spatial-Gated Model** | Pre-GAP spatial attention with class gating | `0.6846 ± 0.0292` | `████████████████▌░░` | +0.0068 |
+| **Baseline Fixed Ensemble** | Equal-weighted logit ensemble of baselines | `0.6926 ± 0.0402` | `█████████████████░░` | +0.0148 |
+| **Final Spatial-Gated Ensemble** | Authoritative production ensemble | **`0.6939 ± 0.0377`** | **`█████████████████▍` [Best]** | **+0.0161** |
 
 ---
 
@@ -67,15 +78,11 @@ Behavior recognition evaluates 10 mutually exclusive behavioral categories using
 
 Tracking identity swaps corrupt longitudinal individual activity budgets. We quantify profile distortion on the 12-video development overlap subset (DEV12) using Total Variation ($L_1$) distance against human ground-truth annotations:
 
-![Profile Distortion Summary](docs/assets/profile_distortion_summary.svg)
-
-| Tracking Method | Profile Total Variation ($L_1$) | Distortion Reduction | Practical Impact |
-| :--- | :---: | :---: | :--- |
-| **Raw ByteTrack Baseline** | `0.0953` | Baseline | Severe time-budget distortion from ID swaps |
-| **Online RealTime-Fast** | `0.0309` | **-67.6%** | Suitable for online behavioral anomaly detection |
-| **Offline Hybrid-ByteTrack** | **`0.0001`** | **-99.9%** | **Near-zero distortion; preserves true longitudinal budgets** |
-
-- Dataset cohort definitions and audit protocols are in [docs/paper/tables/dataset_roles.md](docs/paper/tables/dataset_roles.md).
+| Tracking Method | Profile Total Variation ($L_1$) | Visual Distortion Level (Lower is better) | Distortion Reduction | Practical Impact |
+| :--- | :---: | :--- | :---: | :--- |
+| **Raw ByteTrack Baseline** | `0.0953` | `████████████████████████` (0.0953) | Baseline | Severe time-budget distortion from ID swaps |
+| **Online RealTime-Fast** | `0.0309` | `████████` (0.0309) | **-67.6%** | Suitable for online behavioral anomaly detection |
+| **Offline Hybrid-ByteTrack** | **`0.0001`** | `▏` (**0.0001**) | **-99.9%** | **Near-zero distortion; preserves true budgets** |
 
 ---
 
@@ -84,15 +91,12 @@ Tracking identity swaps corrupt longitudinal individual activity budgets. We qua
 ```text
 .
 ├── configs/            # Tracking and behavior model configurations
-├── data/               # Manifests, splits, and sample video sequences
-├── docs/               # Technical guides, paper tables, and reproduction docs
-│   ├── assets/         # Vector diagrams, provenance, and benchmark plots
-│   ├── paper/tables/   # Authoritative paper result tables
+├── docs/               # Technical guides, API specifications, and usage docs
 │   ├── api.md          # REST API reference documentation
-│   ├── reproduction.md # Scientific claim and experiment reproduction guide
+│   ├── reproduction.md # System nomenclature and execution reproduction guide
 │   └── usage.md        # Command-line interface and profile usage
 ├── models/             # Detector and behavior classification model weights
-├── scripts/            # CLI runners, evaluation tools, and paper checks
+├── scripts/            # CLI runners and evaluation tools
 ├── src/pig_behavior/   # Core library (tracking, behavior models, API)
 └── tests/              # Bounded public unit and contract test suite
 ```
@@ -109,33 +113,25 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
 
 # Run Offline Hybrid-ByteTrack on a sample video
-python scripts/run_tracking_mode.py --mode hybrid_bytetrack --video data/videos/sample.mp4
+python scripts/run_tracking_mode.py --mode hybrid_bytetrack --video sample.mp4
 
 # Run causal real-time online tracking
-python scripts/run_tracking_mode.py --mode realtime_fast --video data/videos/sample.mp4
+python scripts/run_tracking_mode.py --mode realtime_fast --video sample.mp4
 ```
 
 For advanced CLI options and batch tracking, see the [Usage Guide](docs/usage.md).
 
 ---
 
-## Reproducing the Paper
+## Scientific Reproduction
 
-To verify quantitative metric tokens against the frozen evidence ledger:
-
-```bash
-python scripts/paper/check_claim_numbers.py
-```
-
-Expected output: `PASS: 100% of metric tokens in manuscript narratives match the master evidence ledger.`
-Complete reproduction instructions are provided in the [Reproduction Guide](docs/reproduction.md).
+Complete reproduction instructions for tracking, cross-validation, and profile distortion experiments are provided in the [Reproduction Guide](docs/reproduction.md).
 
 ---
 
 ## Data and Model Availability
 
 - **Model Weights**: Detection and spatiotemporal behavior model weights are structured in `models/`.
-- **Dataset Manifests**: Cohort splits, unit manifests, and annotation specifications are under `data/` and documented in [docs/paper/tables/dataset_roles.md](docs/paper/tables/dataset_roles.md).
 - **FastAPI Service**: Interactive inference server is documented in [docs/api.md](docs/api.md).
 
 ---
