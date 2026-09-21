@@ -6,18 +6,6 @@
 [![Python 3.10 | 3.11](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-```mermaid
-graph LR
-    A["Input Video<br/>30 FPS Farm Stream"] --> B["Detection & Tracking<br/>YOLOv8 + Hybrid Association"]
-    B --> C["Behavior Recognition<br/>Spatial-Gated Ensemble"]
-    C --> D["Longitudinal Analysis<br/>Individual Time Budgets"]
-
-    style A fill:#f8fafc,stroke:#94a3b8,stroke-width:1.5px
-    style B fill:#eff6ff,stroke:#2563eb,stroke-width:2px
-    style C fill:#f5f3ff,stroke:#7c3aed,stroke-width:1.5px
-    style D fill:#ecfdf5,stroke:#059669,stroke-width:1.5px
-```
-
 ```text
 +-----------------------+     +-------------------------------+     +--------------------------------+     +-------------------------------+
 |      Input Video      |     |     Detection & Tracking      |     |      Behavior Recognition      |     |     Longitudinal Analysis     |
