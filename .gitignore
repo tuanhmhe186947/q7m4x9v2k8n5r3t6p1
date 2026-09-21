@@ -70,10 +70,19 @@ Updating Tracking Pipeline Plan.md
 markitdown
 
 # ==============================================================================
-# 5. Excluded Data, Manuscripts, and Internal Pipelines
+# 5. Excluded Data, Manuscripts, Internal Docs, and Pipelines
 # ==============================================================================
 data/
 docs/paper/
+docs/figures/
+docs/release/
+docs/repo_audit/
+docs/CLASSIFICATION_V2_*
+docs/TRACKING_*
+docs/classification_v2_*
+docs/DATASET_CARD.md
+docs/MODEL_CARD.md
+docs/reproducibility.md
 scripts/paper/
 src/legacy_burst_recovery/
 docs/assets/
@@ -146,12 +155,4 @@ tatus
 run_demo_v2.bat
 run_demo_v2.py
 vg1_test.json
-joint_pre_integration_architecture_audit.json
-
-# ==============================================================================
-# 10. Doc exceptions
-# ==============================================================================
-!docs/figures/
-!docs/figures/**
-!docs/repo_audit/
-!docs/repo_audit/**
+joint_pre_integration_architecture_audit.json
