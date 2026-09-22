@@ -1,13 +1,14 @@
 cff-version: 1.2.0
 message: "If you use this project, please cite it using this metadata."
-title: "Pig Behavior Project"
+title: "Identity-Preserving Tracking and Multimodal Pig Behavior Recognition"
 version: 0.1.0
-date-released: 2026-06-03
+date-released: 2026-09-22
 license: MIT
 authors:
-  - family-names: "Contributors"
-    given-names: "PIG Behavior Project"
-repository-code: "https://github.com/TODO/pig-behavior-project"
+  - family-names: "Tuan"
+    given-names: "H. M."
+repository-code: "https://github.com/tuanhmhe186947/q7m4x9v2k8n5r3t6p1"
 abstract: >
-  Research code for pig detection, tracking, and behavior sequence
-  classification from video.
+  Identity-preserving multi-object tracking and multimodal spatio-temporal
+  behavior recognition for group-housed pigs.
+

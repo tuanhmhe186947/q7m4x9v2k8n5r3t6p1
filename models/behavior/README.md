@@ -1,9 +1,8 @@
-# Behavior Model
+# Behavior Models
 
-Place the behavior sequence classifier here:
+Model weights are not distributed in this Git repository.
 
-```text
-models/behavior/pig_behavior_sequence.pt
-```
+Expected placement paths:
+- Single sequence classifier: `models/behavior/pig_behavior_sequence.pt`
+- Cross-validation checkpoints: `models/behavior/vg{1..5}_*.pt`
 
-The file is ignored by Git. Verify it against `artifacts/manifest.yaml`.

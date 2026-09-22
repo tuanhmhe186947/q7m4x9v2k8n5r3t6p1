@@ -23,7 +23,7 @@
 | :--- | :--- | :--- | :--- |
 | **Multi-Object Tracking** | **Raw ByteTrack Baseline**<br>HOTA: 89.41% \| IDF1: 94.23% \| IDSW: 64 | **Offline Hybrid-ByteTrack**<br>HOTA: **93.55%** \| IDF1: **98.41%** \| IDSW: **8** | **-87.5% identity switches** on 12 held-out videos |
 | **Behavior Recognition** | **Multimodal Baseline**<br>Macro-F1: 0.6778 ± 0.0268 | **Final Spatial-Gated Ensemble**<br>Macro-F1: **0.6939 ± 0.0377** | Pre-GAP spatial attention + relational ensemble |
-| **Profile Preservation** | **Raw ByteTrack Baseline**<br>Total Variation: 0.0953 | **Offline Hybrid-ByteTrack**<br>Total Variation: **0.0001** | **99.9% error reduction**; preserves true time budgets |
+| **Profile Preservation** | **Raw ByteTrack Baseline**<br>Total Variation: 0.0953 | **Offline Hybrid-ByteTrack**<br>Total Variation: **0.0001** | **-99.9% distortion reduction**; produced substantially lower profile distortion on the evaluated subset |
 
 ---
 
@@ -32,7 +32,7 @@
 Continuous precision livestock monitoring requires observing animals over extended periods without confusing individual subjects. This repository implements an integrated two-stage framework:
 1. **Identity-Preserving Multi-Object Tracking**: Detects individuals with YOLOv8 and preserves identities across dense interactions using causal online association (`Online RealTime-Fast`) or retrospective two-pass smoothing (`Offline Hybrid-ByteTrack`).
 2. **Multimodal Spatio-Temporal Behavior Recognition**: Classifies individual time units into 10 behavior classes integrating motion dynamics, local spatial attention, and social context.
-3. **Downstream Longitudinal Profiling**: Quantifies how identity errors propagate into individual behavior profiles and demonstrates that minimizing identity switches preserves longitudinal activity budgets.
+3. **Downstream Longitudinal Profiling**: Quantifies how identity errors propagate into individual behavior profiles and demonstrates that minimizing identity switches produced substantially lower profile distortion on the evaluated subset.
 
 ---
 
@@ -44,13 +44,13 @@ Evaluated on 12 held-out independent videos (21,600 frames, 96 pig trajectories)
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Raw ByteTrack Baseline** | Online Reference | `89.41%` [█████████░] | `94.23%` [█████████▌] | `64`  [■■■■■■■■■■■■■■■■] | Unmodified baseline |
 | **Online RealTime-Fast** | Causal Streaming | `90.33%` [█████████░] | `95.03%` [█████████▌] | `39`  [■■■■■■■■■■] (-39.1%) | Real-time edge streaming |
-| **Offline Hybrid-ByteTrack** | Retrospective | **`93.55%`** [█████████▎] | **`98.41%`** [█████████▊] | **`8`**   [■■] **(-87.5%)** | **Best overall accuracy** |
+| **Offline Hybrid-ByteTrack** | Retrospective | **`93.55%`** [█████████▎] | **`98.41%`** [█████████▊] | **`8`**   [■■] **(-87.5%)** | **highest HOTA/IDF1 among the evaluated systems** |
 
 ---
 
 ## Behavior Recognition (5-Fold Cross-Validation)
 
-Evaluated across 10 behavioral categories using video-isolated 5-fold cross-validation (VG1–VG5) to guarantee zero video leakage:
+Evaluated across 10 behavioral categories using video-group-disjoint 5-fold cross-validation (VG1–VG5):
 
 | Model Architecture | Description | Macro-F1 (Mean ± SD) | Relative Visual Score | Gain vs. Baseline |
 | :--- | :--- | :---: | :--- | :---: |
@@ -58,7 +58,7 @@ Evaluated across 10 behavioral categories using video-isolated 5-fold cross-vali
 | **Multimodal Spatio-Temporal Baseline** | High-ceiling baseline (motion + visual) | `0.6778 ± 0.0268` | `████████████████░░░` | — |
 | **Class-Aware Spatial-Gated Model** | Pre-GAP spatial attention with class gating | `0.6846 ± 0.0292` | `████████████████▌░░` | +0.0068 |
 | **Baseline Fixed Ensemble** | Equal-weighted logit ensemble of baselines | `0.6926 ± 0.0402` | `█████████████████░░` | +0.0148 |
-| **Final Spatial-Gated Ensemble** | Authoritative production ensemble | **`0.6939 ± 0.0377`** | **`█████████████████▍` [Best]** | **+0.0161** |
+| **Final Spatial-Gated Ensemble** | Authoritative evaluated ensemble | **`0.6939 ± 0.0377`** | **`█████████████████▍` [Best]** | **+0.0161** |
 
 ---
 
@@ -69,8 +69,8 @@ Tracking identity swaps corrupt longitudinal individual activity budgets. We qua
 | Tracking Method | Profile Total Variation ($L_1$) | Visual Distortion Level (Lower is better) | Distortion Reduction | Practical Impact |
 | :--- | :---: | :--- | :---: | :--- |
 | **Raw ByteTrack Baseline** | `0.0953` | `████████████████████████` (0.0953) | Baseline | Severe time-budget distortion from ID swaps |
-| **Online RealTime-Fast** | `0.0309` | `████████` (0.0309) | **-67.6%** | Suitable for online behavioral anomaly detection |
-| **Offline Hybrid-ByteTrack** | **`0.0001`** | `▏` (**0.0001**) | **-99.9%** | **Near-zero distortion; preserves true budgets** |
+| **Online RealTime-Fast** | `0.0309` | `████████` (0.0309) | **-67.6%** | Causal online tracking alternative |
+| **Offline Hybrid-ByteTrack** | **`0.0001`** | `▏` (**0.0001**) | **-99.9%** | **Near-zero distortion; produced substantially lower profile distortion on the evaluated subset** |
 
 ---
 

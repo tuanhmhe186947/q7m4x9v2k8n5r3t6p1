@@ -24,14 +24,12 @@ python scripts/run_tracking_mode.py --task compare --video data/videos/sample.mp
 ```
 
 ### B. Direct Video Tracking (`track_videos.py`)
-Run tracking on one or more videos and save identity annotations in CVAT XML or CSV format:
+Run tracking on one or more videos:
 
 ```bash
 python scripts/track_videos.py \
-    --mode hybrid_bytetrack \
     --eval-config hybrid_bytetrack_best \
-    --video-dir data/videos \
-    --output-dir outputs/tracking
+    -v sample_video_stem
 ```
 
 ### C. Confirmatory Tracking Evaluation (`evaluate_tracking.py`)
@@ -41,9 +39,10 @@ Evaluate tracker outputs against ground-truth CVAT XML annotations using standar
 python scripts/evaluate_tracking.py \
     --mode hybrid_bytetrack \
     --eval-config hybrid_bytetrack_best \
-    --gt-dir data/ground_truth \
-    --output-dir outputs/eval
+    -a
 ```
+
+> **Note**: Evaluation against ground-truth trajectories requires local video files and CVAT XML ground-truth annotations not distributed in this repository.
 
 ---
 
@@ -63,10 +62,9 @@ Use `scripts/optimize_tracking_metrics.py` to evaluate parameter sets over valid
 
 ```bash
 python scripts/optimize_tracking_metrics.py \
-    --mode hybrid_bytetrack \
-    --candidates configs/tracking/optimization_presets.yaml \
-    --gt-dir data/ground_truth \
-    --output-dir outputs/optimization
+    --tracking-mode hybrid_bytetrack \
+    --scope quick \
+    -a
 ```
 
 ---
@@ -82,10 +80,10 @@ For remote cloud inference or model exports via the Roboflow Inference API:
    ```
 2. Execute the workflow client:
    ```bash
-   python scripts/integrations/run_roboflow_workflow.py \
+   python scripts/integrations/run_roboflow_tracking.py \
        --workspace "pig-behavior" \
        --workflow-id "pig-detection-tracking" \
-       --input "data/videos/sample.mp4"
+       --video "sample.mp4"
    ```
 
 ### Environment Variables

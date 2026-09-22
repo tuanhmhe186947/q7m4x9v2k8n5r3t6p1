@@ -1,9 +1,7 @@
-# Detector Model
+# Detector Models
 
-Place the YOLO detector/tracker weights here:
+Model weights are not distributed in this Git repository.
 
-```text
-models/detector/pig_detector_yolo.pt
-```
+Expected placement paths:
+- YOLOv8 pig detector: `models/detector/pig_detector_yolov8x_30fps.pt` (or `models/pig_detector_yolov8.pt`)
 
-The file is ignored by Git. Verify it against `artifacts/manifest.yaml`.

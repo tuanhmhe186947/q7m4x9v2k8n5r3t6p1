@@ -30,19 +30,19 @@ The tracking results evaluate 12 held-out independent videos (21,600 frames, 96 
 python scripts/evaluate_tracking.py \
     --mode hybrid_bytetrack \
     --eval-config hybrid_bytetrack_best \
-    --output-dir outputs/reproduction/tracking_hybrid
+    -a
 
 # Evaluate the causal online tracker (Online RealTime-Fast)
 python scripts/evaluate_tracking.py \
     --mode realtime \
     --eval-config realtime_fast \
-    --output-dir outputs/reproduction/tracking_realtime
+    -a
 
 # Evaluate the frozen technical baseline (Raw ByteTrack Baseline)
 python scripts/evaluate_tracking.py \
     --mode bytetrack_raw \
     --eval-config bytetrack_raw \
-    --output-dir outputs/reproduction/tracking_raw
+    -a
 ```
 
 - **Reference Metrics**:
@@ -50,18 +50,13 @@ python scripts/evaluate_tracking.py \
   - Online RealTime-Fast: HOTA 90.33%, IDF1 95.03%, 39 ID switches (-39.1%)
   - Offline Hybrid-ByteTrack: HOTA 93.55%, IDF1 98.41%, 8 ID switches (-87.5%)
 
+> **Note on Data Availability**: Running full trajectory evaluation against ground truth requires the 12 held-out video files and ground-truth CVAT XML annotations (`data/ground_truth/`), which are private research artifacts and not distributed in this public repository.
+
 ---
 
 ## 2. Behavior Recognition 5-Fold Cross-Validation
 
-The behavior recognition experiments utilize 5-fold group-aware cross-validation across video cohorts VG1–VG5 to ensure zero video leakage:
-
-```bash
-# Evaluate 5-fold ensemble predictions (Final Spatial-Gated Ensemble)
-python scripts/classification_v2/08_multimodal_eval/evaluate_jpbnew_b_ensemble.py \
-    --alpha 0.50 \
-    --output-dir outputs/reproduction/behavior_ej
-```
+The behavior recognition experiments utilize 5-fold group-aware cross-validation across video cohorts VG1–VG5 to ensure video-group-disjoint evaluation:
 
 - **Reference Metrics**:
   - Multimodal Spatio-Temporal Baseline: Macro-F1 = 0.6778 ± 0.0268
@@ -70,18 +65,18 @@ python scripts/classification_v2/08_multimodal_eval/evaluate_jpbnew_b_ensemble.p
   - Baseline Fixed Ensemble: Macro-F1 = 0.6926 ± 0.0402
   - Final Spatial-Gated Ensemble: Macro-F1 = 0.6939 ± 0.0377
 
+> **Note on Reproduction**: These cross-validation results are reported from frozen experimental evidence. Full re-evaluation requires the original video crops, precomputed multimodal feature caches (HDF5), and trained model checkpoints that are private research artifacts and not distributed in this public repository.
+
 ---
 
 ## 3. Downstream Profile Distortion (DEV12 Cohort)
 
 To measure how identity switches distort longitudinal behavioral budgets, individual time budgets are projected across the 12-video development overlap cohort:
 
-```bash
-python scripts/run_profile_distortion.py \
-    --output-dir outputs/reproduction/profile_tv
-```
-
-- **Total Variation (A1 Metric)**:
+- **Total Variation ($L_1$ Metric)**:
   - Raw ByteTrack Baseline: `0.0953`
-  - Online RealTime-Fast: `0.0309`
-  - Offline Hybrid-ByteTrack: `0.0001`
+  - Online RealTime-Fast: `0.0309` (-67.6%)
+  - Offline Hybrid-ByteTrack: `0.0001` (-99.9%)
+
+> **Note on Reproduction**: Profile distortion metrics are computed from frozen trajectory-to-behavior projection evidence on the DEV12 cohort. Running this analysis requires the paired tracking outputs, aligned human behavioral annotations, and private dataset splits not distributed in this public repository.
+
